@@ -1,9 +1,8 @@
-import abc
 import math
 import random
 import warnings
 from numbers import Number
-from typing import Optional, Union, Tuple, List, Sequence, Dict, Any, Iterable
+from typing import Optional, Union, Tuple, List, Sequence, Dict, Iterable
 
 import cv2
 import numpy as np
@@ -21,7 +20,7 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyx
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.samples import DetectionSample
-from super_gradients.training.transforms.detection import DetectionPadIfNeeded, AbstractDetectionTransform, LegacyDetectionTransformMixin
+from super_gradients.training.transforms.detection import DetectionPadIfNeeded, AbstractDetectionTransform
 from super_gradients.training.transforms.utils import (
     _rescale_and_pad_to_size,
     _rescale_image,
@@ -398,48 +397,8 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
     return fill_mask, fill_image
 
 
-class DetectionTransform(abc.ABC):
-    """
-    Detection transform base class.
-
-    Complex transforms that require extra data loading can use the the additional_samples_count attribute in a
-     similar fashion to what's been done in COCODetectionDataset:
-
-    self._load_additional_inputs_for_transform(sample, transform)
-
-    # after the above call, sample["additional_samples"] holds a list of additional inputs and targets.
-
-    sample = transform(sample)
-
-
-    :param additional_samples_count:    Additional samples to be loaded.
-    :param non_empty_targets:           Whether the additional targets can have empty targets or not.
-    """
-
-    def __init__(self, additional_samples_count: int = 0, non_empty_targets: bool = False):
-        super().__init__()
-        self.additional_samples_count = additional_samples_count
-        self.non_empty_targets = non_empty_targets
-
-    @abc.abstractmethod
-    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        :param sample: Dict with following keys:
-                        - image: numpy array of [H,W,C] or [C,H,W] format
-                        - target: numpy array of [N,5] shape with bounding box of each instance (XYWH)
-                        - crowd_targets: numpy array of [N,5] shape with bounding box of each instance (XYWH)
-        """
-        raise NotImplementedError()
-
-    def __repr__(self):
-        return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
-
-    def get_equivalent_preprocessing(self) -> List:
-        raise NotImplementedError()
-
-
 @register_transform(Transforms.DetectionStandardize)
-class DetectionStandardize(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionStandardize(AbstractDetectionTransform):
     """
     Standardize image pixel values with img/max_val
 
@@ -463,7 +422,7 @@ class DetectionStandardize(AbstractDetectionTransform, LegacyDetectionTransformM
 
 
 @register_transform(Transforms.DetectionMosaic)
-class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionMosaic(AbstractDetectionTransform):
     """
     DetectionMosaic detection transform
 
@@ -543,7 +502,7 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
 
 
 @register_transform(Transforms.DetectionRandomAffine)
-class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionRandomAffine(AbstractDetectionTransform):
     """
     DetectionRandomAffine detection transform
 
@@ -626,7 +585,7 @@ class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransform
 
 
 @register_transform(Transforms.DetectionMixup)
-class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionMixup(AbstractDetectionTransform):
     """
     Mixup detection transform
 
@@ -733,7 +692,7 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
 
 
 @register_transform(Transforms.DetectionImagePermute)
-class DetectionImagePermute(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionImagePermute(AbstractDetectionTransform):
     """
     Permute image dims. Useful for converting image from HWC to CHW format.
     """
@@ -755,7 +714,7 @@ class DetectionImagePermute(AbstractDetectionTransform, LegacyDetectionTransform
 
 
 @register_transform(Transforms.DetectionPadToSize)
-class DetectionPadToSize(DetectionPadIfNeeded, LegacyDetectionTransformMixin):
+class DetectionPadToSize(DetectionPadIfNeeded):
     """
     Preprocessing transform to pad image and bboxes to `input_dim` shape (rows, cols).
     Transform does center padding, so that input image with bboxes located in the center of the produced image.
@@ -780,7 +739,7 @@ class DetectionPadToSize(DetectionPadIfNeeded, LegacyDetectionTransformMixin):
 
 
 @register_transform(Transforms.DetectionPaddedRescale)
-class DetectionPaddedRescale(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionPaddedRescale(AbstractDetectionTransform):
     """
     Preprocessing transform to be applied last of all transforms for validation.
 
@@ -815,7 +774,7 @@ class DetectionPaddedRescale(AbstractDetectionTransform, LegacyDetectionTransfor
 
 
 @register_transform(Transforms.DetectionHorizontalFlip)
-class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionHorizontalFlip(AbstractDetectionTransform):
     """
     Horizontal Flip for Detection
 
@@ -833,8 +792,13 @@ class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransfo
         :return:       Transformed detection sample
         """
         if random.random() < self.prob:
-            sample.image = _flip_horizontal_image(sample.image)
-            sample.bboxes_xyxy = _flip_horizontal_boxes_xyxy(sample.bboxes_xyxy, sample.image.shape[1])
+            sample = DetectionSample(
+                image=_flip_horizontal_image(sample.image),
+                bboxes_xyxy=_flip_horizontal_boxes_xyxy(sample.bboxes_xyxy, sample.image.shape[1]),
+                labels=sample.labels,
+                is_crowd=sample.is_crowd,
+                additional_samples=None,
+            )
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -842,7 +806,7 @@ class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransfo
 
 
 @register_transform(Transforms.DetectionVerticalFlip)
-class DetectionVerticalFlip(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionVerticalFlip(AbstractDetectionTransform):
     """
     Vertical Flip for Detection
 
@@ -855,8 +819,13 @@ class DetectionVerticalFlip(AbstractDetectionTransform, LegacyDetectionTransform
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if random.random() < self.prob:
-            sample.image = _flip_vertical_image(sample.image)
-            sample.bboxes_xyxy = _flip_vertical_boxes_xyxy(sample.bboxes_xyxy, sample.image.shape[0])
+            sample = DetectionSample(
+                image=_flip_vertical_image(sample.image),
+                bboxes_xyxy=_flip_vertical_boxes_xyxy(sample.bboxes_xyxy, sample.image.shape[0]),
+                labels=sample.labels,
+                is_crowd=sample.is_crowd,
+                additional_samples=None,
+            )
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -864,7 +833,7 @@ class DetectionVerticalFlip(AbstractDetectionTransform, LegacyDetectionTransform
 
 
 @register_transform(Transforms.DetectionRescale)
-class DetectionRescale(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionRescale(AbstractDetectionTransform):
     """
     Resize image and bounding boxes to given image dimensions without preserving aspect ratio
 
@@ -889,16 +858,20 @@ class DetectionRescale(AbstractDetectionTransform, LegacyDetectionTransformMixin
         sx = output_width / image_width
         sy = output_height / image_height
 
-        sample.image = self.apply_to_image(sample.image, output_width=output_width, output_height=output_height)
-        sample.bboxes_xyxy = self.apply_to_bboxes(sample.bboxes_xyxy, sx=sx, sy=sy)
-        return sample
+        return DetectionSample(
+            image=self.apply_to_image(sample.image, output_width=output_width, output_height=output_height),
+            bboxes_xyxy=self.apply_to_bboxes(sample.bboxes_xyxy, sx=sx, sy=sy),
+            labels=sample.labels,
+            is_crowd=sample.is_crowd,
+            additional_samples=None,
+        )
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
         return [{Processings.DetectionRescale: {"output_shape": self.output_shape}}]
 
 
 @register_transform(Transforms.DetectionRandomRotate90)
-class DetectionRandomRotate90(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionRandomRotate90(AbstractDetectionTransform):
     def __init__(self, prob: float = 0.5):
         super().__init__()
         self.prob = prob
@@ -907,8 +880,13 @@ class DetectionRandomRotate90(AbstractDetectionTransform, LegacyDetectionTransfo
         if random.random() < self.prob:
             k = random.randrange(0, 4)
             image_shape = sample.image.shape[:2]
-            sample.image = self.apply_to_image(sample.image, k)
-            sample.bboxes_xyxy = self.apply_to_bboxes(sample.bboxes_xyxy, k, image_shape)
+            sample = DetectionSample(
+                image=self.apply_to_image(sample.image, k),
+                bboxes_xyxy=self.apply_to_bboxes(sample.bboxes_xyxy, k, image_shape),
+                labels=sample.labels,
+                is_crowd=sample.is_crowd,
+                additional_samples=None,
+            )
         return sample
 
     def apply_to_image(self, image: np.ndarray, factor: int) -> np.ndarray:
@@ -966,7 +944,7 @@ class DetectionRandomRotate90(AbstractDetectionTransform, LegacyDetectionTransfo
 
 
 @register_transform(Transforms.DetectionRGB2BGR)
-class DetectionRGB2BGR(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionRGB2BGR(AbstractDetectionTransform):
     """
     Detection change Red & Blue channel of the image
 
@@ -981,8 +959,13 @@ class DetectionRGB2BGR(AbstractDetectionTransform, LegacyDetectionTransformMixin
         if len(sample.image.shape) != 3 or sample.image.shape[2] < 3:
             raise ValueError("DetectionRGB2BGR transform expects image to have 3 channels, got input image shape: " + str(sample.image.shape))
         if random.random() < self.prob:
-            sample.image = np.ascontiguousarray(sample.image[..., ::-1])
-
+            sample = DetectionSample(
+                image=np.ascontiguousarray(sample.image[..., ::-1]),
+                bboxes_xyxy=sample.bboxes_xyxy,
+                labels=sample.labels,
+                is_crowd=sample.is_crowd,
+                additional_samples=None,
+            )
         return sample
 
     def get_equivalent_preprocessing(self) -> List:
@@ -992,7 +975,7 @@ class DetectionRGB2BGR(AbstractDetectionTransform, LegacyDetectionTransformMixin
 
 
 @register_transform(Transforms.DetectionHSV)
-class DetectionHSV(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionHSV(AbstractDetectionTransform):
     """
     Detection HSV transform.
 
@@ -1026,18 +1009,24 @@ class DetectionHSV(AbstractDetectionTransform, LegacyDetectionTransformMixin):
             self._additional_channels_warned = True
 
         if random.random() < self.prob:
-            sample.image = self.apply_to_image(sample.image)
+            sample = DetectionSample(
+                image=self.apply_to_image(sample.image),
+                bboxes_xyxy=sample.bboxes_xyxy,
+                labels=sample.labels,
+                is_crowd=sample.is_crowd,
+                additional_samples=None,
+            )
         return sample
 
     def apply_to_image(self, image: np.ndarray) -> np.ndarray:
-        return augment_hsv(image, self.hgain, self.sgain, self.vgain, self.bgr_channels)
+        return augment_hsv(image.copy(), self.hgain, self.sgain, self.vgain, self.bgr_channels)
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
         raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
 @register_transform(Transforms.DetectionNormalize)
-class DetectionNormalize(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionNormalize(AbstractDetectionTransform):
     """
     Normalize image by subtracting mean and dividing by std.
     """
@@ -1048,8 +1037,13 @@ class DetectionNormalize(AbstractDetectionTransform, LegacyDetectionTransformMix
         self.std = np.array(list(std)).reshape((1, 1, -1)).astype(np.float32)
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        sample.image = self.apply_to_image(sample.image)
-        return sample
+        return DetectionSample(
+            image=self.apply_to_image(sample.image),
+            bboxes_xyxy=sample.bboxes_xyxy,
+            labels=sample.labels,
+            is_crowd=sample.is_crowd,
+            additional_samples=None,
+        )
 
     def apply_to_image(self, image: np.ndarray) -> np.ndarray:
         return (image - self.mean) / self.std
@@ -1059,7 +1053,7 @@ class DetectionNormalize(AbstractDetectionTransform, LegacyDetectionTransformMix
 
 
 @register_transform(Transforms.DetectionTargetsFormatTransform)
-class DetectionTargetsFormatTransform(DetectionTransform):
+class DetectionTargetsFormatTransform(AbstractDetectionTransform):
     """
     Detection targets format transform
 

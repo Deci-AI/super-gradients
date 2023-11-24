@@ -51,9 +51,13 @@ class DetectionPadIfNeeded(AbstractDetectionTransform):
 
         padding_coordinates = PaddingCoordinates(top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right)
 
-        sample.image = _pad_image(sample.image, padding_coordinates, self.image_pad_value)
-        sample.bboxes_xyxy = _shift_bboxes_xyxy(sample.bboxes_xyxy, pad_left, pad_top)
-        return sample
+        return DetectionSample(
+            image=_pad_image(sample.image, padding_coordinates, self.image_pad_value),
+            bboxes_xyxy=_shift_bboxes_xyxy(sample.bboxes_xyxy, pad_left, pad_top),
+            labels=sample.labels,
+            is_crowd=sample.is_crowd,
+            additional_samples=None,
+        )
 
     def get_equivalent_preprocessing(self) -> List:
         if self.padding_mode == "bottom_right":

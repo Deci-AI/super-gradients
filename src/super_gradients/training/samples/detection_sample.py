@@ -35,23 +35,26 @@ class DetectionSample:
         image: Union[np.ndarray, torch.Tensor],
         bboxes_xyxy: np.ndarray,
         labels: np.ndarray,
-        is_crowd: np.ndarray,
-        additional_samples: Optional[List["DetectionSample"]],
+        is_crowd: Optional[np.ndarray] = None,
+        additional_samples: Optional[List["DetectionSample"]] = None,
     ):
+        if is_crowd is None:
+            is_crowd = np.zeros(len(labels), dtype=bool)
+
         if len(bboxes_xyxy) != len(labels):
-            raise ValueError("Number of bounding boxes and labels must be equal")
+            raise ValueError("Number of bounding boxes and labels must be equal. Got {len(bboxes_xyxy)} and {len(labels)} respectively")
 
         if len(bboxes_xyxy) != len(is_crowd):
-            raise ValueError("Number of bounding boxes and is_crowd flags must be equal")
+            raise ValueError("Number of bounding boxes and is_crowd flags must be equal. Got {len(bboxes_xyxy)} and {len(is_crowd)} respectively")
 
         if len(bboxes_xyxy.shape) != 2 or bboxes_xyxy.shape[1] != 4:
-            raise ValueError("Bounding boxes must be in [N,4] format")
+            raise ValueError(f"Bounding boxes must be in [N,4] format. Shape of input bboxes is {bboxes_xyxy.shape}")
 
         if len(is_crowd.shape) != 1:
-            raise ValueError("Number of is_crowd flags must be in [N] format")
+            raise ValueError(f"Number of is_crowd flags must be in [N] format. Shape of input is_crowd is {is_crowd.shape}")
 
         if len(labels.shape) != 1:
-            raise ValueError("Labels must be in [N] format")
+            raise ValueError("Labels must be in [N] format. Shape of input labels is {labels.shape}")
 
         self.image = image
         self.bboxes_xyxy = bboxes_xyxy

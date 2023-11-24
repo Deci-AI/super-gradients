@@ -13,7 +13,7 @@ from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
 )
-from super_gradients.training.samples import PoseEstimationSample
+from super_gradients.training.samples import PoseEstimationSample, DetectionSample
 
 from super_gradients.training.transforms.keypoints import KeypointsBrightnessContrast, KeypointsMosaic
 from super_gradients.training.transforms.transforms import (
@@ -38,8 +38,8 @@ from super_gradients.training.transforms.utils import (
 
 class TestTransforms(unittest.TestCase):
     def test_keypoints_random_affine(self):
-        image = np.random.rand(640, 480, 3)
-        mask = np.random.rand(640, 480)
+        image = np.random.rand(32, 48, 3)
+        mask = np.random.rand(32, 48)
 
         # Cover all image pixels with keypoints. This would guarantee test coverate of all possible keypoint locations
         # without relying on randomly generated keypoints.
@@ -121,28 +121,29 @@ class TestTransforms(unittest.TestCase):
     def test_detection_image_permute(self):
         aug = DetectionImagePermute(dims=(2, 1, 0))
         image = np.random.rand(640, 480, 3)
-        sample = {"image": image, "target": np.ones((17, 4))}
+        sample = DetectionSample(image=image, bboxes_xyxy=np.array([[0, 0, 100, 100]]), labels=np.array([0]))
 
-        output = aug(sample)
-        self.assertEqual(output["image"].shape, (3, 480, 640))
+        output = aug.apply_to_sample(sample)
+        self.assertEqual(output.image.shape, (3, 480, 640))
 
     def test_detection_pad_to_size(self):
         aug = DetectionPadToSize(output_size=(640, 640), pad_value=123)
         image = np.ones((512, 480, 3))
 
         # Boxes in format (x1, y1, x2, y2, class_id)
-        boxes = np.array([[0, 0, 100, 100, 0], [100, 100, 200, 200, 1]])
+        boxes = np.array([[0, 0, 100, 100], [100, 100, 200, 200]])
+        labels = np.array([0, 1])
 
-        sample = {"image": image, "target": boxes}
-        output = aug(sample)
+        sample = DetectionSample(image=image, bboxes_xyxy=boxes, labels=labels)
+        output = aug.apply_to_sample(sample)
 
         shift_x = (640 - 480) // 2
         shift_y = (640 - 512) // 2
-        expected_boxes = np.array(
-            [[0 + shift_x, 0 + shift_y, 100 + shift_x, 100 + shift_y, 0], [100 + shift_x, 100 + shift_y, 200 + shift_x, 200 + shift_y, 1]]
-        )
-        self.assertEqual(output["image"].shape, (640, 640, 3))
-        np.testing.assert_array_equal(output["target"], expected_boxes)
+        expected_boxes = np.array([[0 + shift_x, 0 + shift_y, 100 + shift_x, 100 + shift_y], [100 + shift_x, 100 + shift_y, 200 + shift_x, 200 + shift_y]])
+        expected_labels = np.array([0, 1])
+        self.assertEqual(output.image.shape, (640, 640, 3))
+        np.testing.assert_array_equal(output.bboxes_xyxy, expected_boxes)
+        np.testing.assert_array_equal(output.labels, expected_labels)
 
     def test_rescale_image(self):
         image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
@@ -155,7 +156,6 @@ class TestTransforms(unittest.TestCase):
     def test_detection_horizontal_flip(self):
         aug = DetectionHorizontalFlip(prob=1)
         image = np.random.rand(100, 100, 3)
-        image_original = image.copy()
         # [x0, y0, x1, y1]
         bboxes = np.array(
             (
@@ -171,30 +171,24 @@ class TestTransforms(unittest.TestCase):
         )
 
         # run transform
-        sample = {"image": image}
-        sample["target"] = bboxes
-        sample["crowd_targets"] = bboxes.copy()
-        output = aug(sample)
-        image = output["image"]
-        target = output["target"]
-        crowd_targets = output["crowd_targets"]
+        input_sample = DetectionSample(image=image, bboxes_xyxy=bboxes, labels=np.array([0, 1]))
+        output_sample = aug.apply_to_sample(input_sample)
 
         # check image hasn't changed shape
-        self.assertEqual(image.shape, image_original.shape)
+        self.assertEqual(output_sample.image.shape, image.shape)
 
         # check the first two cols of original image
         # match last two rows of flipped image
-        self.assertTrue(np.array_equal(image_original[:, 0], image[:, -1]))
-        self.assertTrue(np.array_equal(image_original[:, 1], image[:, -2]))
+        self.assertTrue(np.array_equal(input_sample.image[:, 0], output_sample.image[:, -1]))
+        self.assertTrue(np.array_equal(input_sample.image[:, 1], output_sample.image[:, -2]))
 
         # check bboxes as expected
-        self.assertTrue(np.array_equal(target, bboxes_expected))
-        self.assertTrue(np.array_equal(crowd_targets, bboxes_expected))
+        self.assertTrue(np.array_equal(output_sample.bboxes_xyxy, bboxes_expected))
+        self.assertTrue(np.array_equal(input_sample.labels, output_sample.labels))
 
     def test_detection_vertical_flip(self):
         aug = DetectionVerticalFlip(prob=1)
         image = np.random.rand(100, 100, 3)
-        image_original = image.copy()
         # [x0, y0, x1, y1]
         bboxes = np.array(
             (
@@ -210,25 +204,20 @@ class TestTransforms(unittest.TestCase):
         )
 
         # run transform
-        sample = {"image": image}
-        sample["target"] = bboxes
-        sample["crowd_targets"] = bboxes.copy()
-        output = aug(sample)
-        image = output["image"]
-        target = output["target"]
-        crowd_targets = output["crowd_targets"]
+        input_sample = DetectionSample(image=image, bboxes_xyxy=bboxes, labels=np.array([0, 1]))
+        output_sample = aug.apply_to_sample(input_sample)
 
         # check image hasn't changed shape
-        self.assertEqual(image.shape, image_original.shape)
+        self.assertEqual(output_sample.image.shape, input_sample.image.shape)
 
         # check top two rows of original image
         # matches bottom rows of flipped image
-        self.assertTrue(np.array_equal(image_original[0], image[-1]))
-        self.assertTrue(np.array_equal(image_original[1], image[-2]))
+        self.assertTrue(np.array_equal(output_sample.image[0], input_sample.image[-1]))
+        self.assertTrue(np.array_equal(output_sample.image[1], input_sample.image[-2]))
 
         # check bboxes as expected
-        self.assertTrue(np.array_equal(target, bboxes_expected))
-        self.assertTrue(np.array_equal(crowd_targets, bboxes_expected))
+        self.assertTrue(np.array_equal(output_sample.bboxes_xyxy, bboxes_expected))
+        self.assertTrue(np.array_equal(input_sample.labels, output_sample.labels))
 
     def test_rescale_bboxes(self):
         sy, sx = (2.0, 0.5)

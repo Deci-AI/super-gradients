@@ -24,7 +24,7 @@ from super_gradients.module_interfaces import HasPreprocessingParams
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, LabelTensorSliceItem
 from super_gradients.training.samples import DetectionSample
-from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
+from super_gradients.training.transforms.transforms import AbstractDetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
 from super_gradients.training.utils.detection_utils import get_class_index_in_target
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
@@ -76,7 +76,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         cache_annotations: bool = True,
         cache_dir: str = None,
         input_dim: Union[int, Tuple[int, int], None] = None,
-        transforms: List[DetectionTransform] = [],
+        transforms: List[AbstractDetectionTransform] = [],
         all_classes_list: Optional[List[str]] = [],
         class_inclusion_list: Optional[List[str]] = None,
         ignore_empty_annotations: bool = True,
@@ -525,7 +525,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
             transformed_dict = target_format_transform(sample=transformed_dict)
         return transformed_dict
 
-    def _get_additional_inputs_for_transform(self, transform: DetectionTransform) -> List[Dict[str, Union[np.ndarray, Any]]]:
+    def _get_additional_inputs_for_transform(self, transform: AbstractDetectionTransform) -> List[Dict[str, Union[np.ndarray, Any]]]:
         """Add additional inputs required by a transform to the sample"""
         additional_samples_count = transform.additional_samples_count if hasattr(transform, "additional_samples_count") else 0
         non_empty_annotations = transform.non_empty_annotations if hasattr(transform, "non_empty_annotations") else False

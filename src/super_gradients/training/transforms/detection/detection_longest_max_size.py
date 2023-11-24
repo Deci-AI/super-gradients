@@ -34,15 +34,20 @@ class DetectionLongestMaxSize(AbstractDetectionTransform):
         if random.random() < self.prob:
             height, width = sample.image.shape[:2]
             scale = min(self.max_height / height, self.max_width / width)
-            sample.image = self.apply_to_image(sample.image, scale, cv2.INTER_LINEAR)
+
+            sample = DetectionSample(
+                image=self.apply_to_image(sample.image, scale, cv2.INTER_LINEAR),
+                bboxes_xyxy=self.apply_to_bboxes(sample.bboxes_xyxy, scale),
+                labels=sample.labels,
+                is_crowd=sample.is_crowd,
+                additional_samples=None,
+            )
 
             if sample.image.shape[0] != self.max_height and sample.image.shape[1] != self.max_width:
                 raise RuntimeError(f"Image shape is not as expected (scale={scale}, input_shape={height, width}, resized_shape={sample.image.shape[:2]})")
 
             if sample.image.shape[0] > self.max_height or sample.image.shape[1] > self.max_width:
                 raise RuntimeError(f"Image shape is not as expected (scale={scale}, input_shape={height, width}, resized_shape={sample.image.shape[:2]}")
-
-            sample.bboxes_xyxy = self.apply_to_bboxes(sample.bboxes_xyxy, scale)
 
         return sample
 

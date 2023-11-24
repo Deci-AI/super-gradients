@@ -2,7 +2,6 @@
 import cv2
 
 from super_gradients.training.transforms.transforms import (
-    DetectionTransform,
     DetectionStandardize,
     DetectionMosaic,
     DetectionRandomAffine,
@@ -44,7 +43,7 @@ __all__ = [
     "ALBUMENTATIONS_COMP_TRANSFORMS",
     "imported_albumentations_failure",
     "Transforms",
-    "DetectionTransform",
+    "AbstractDetectionTransform",
     "DetectionStandardize",
     "DetectionMosaic",
     "DetectionRandomAffine",
