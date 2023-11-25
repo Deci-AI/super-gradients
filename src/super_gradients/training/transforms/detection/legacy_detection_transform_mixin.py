@@ -30,13 +30,21 @@ class LegacyDetectionTransformMixin:
 
     @classmethod
     def convert_input_dict_to_detection_sample(cls, sample_annotations: Dict[str, Union[np.ndarray, Any]]) -> DetectionSample:
-        bboxes_xyxy = sample_annotations["target"][..., 0:4].reshape(-1, 4)
-        labels = sample_annotations["target"][..., 4]
+        target = sample_annotations["target"]
+        if len(target) == 0:
+            target = np.zeros((0, 5), dtype=np.float32)
+
+        bboxes_xyxy = target[:, 0:4].reshape(-1, 4)
+        labels = target[:, 4]
 
         is_crowd = np.zeros_like(labels, dtype=bool)
         if "crowd_target" in sample_annotations:
-            crowd_bboxes_xyxy = sample_annotations["crowd_target"][..., 0:4].reshape(-1, 4)
-            crowd_labels = sample_annotations["crowd_target"][..., 4]
+            crowd_target = sample_annotations["crowd_target"]
+            if len(crowd_target) == 0:
+                crowd_target = np.zeros((0, 5), dtype=np.float32)
+
+            crowd_bboxes_xyxy = crowd_target[:, 0:4].reshape(-1, 4)
+            crowd_labels = crowd_target[:, 4]
             bboxes_xyxy = np.concatenate([bboxes_xyxy, crowd_bboxes_xyxy], axis=0)
             labels = np.concatenate([labels, crowd_labels], axis=0)
             is_crowd = np.concatenate([is_crowd, np.ones_like(crowd_labels, dtype=bool)], axis=0)

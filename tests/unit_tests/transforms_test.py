@@ -6,6 +6,7 @@ import numpy as np
 from omegaconf import ListConfig
 
 from super_gradients.training.transforms import KeypointsMixup, KeypointsCompose
+from super_gradients.training.transforms.detection import LegacyDetectionTransformMixin
 from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsRandomHorizontalFlip,
     KeypointsRandomVerticalFlip,
@@ -527,6 +528,19 @@ class TestTransforms(unittest.TestCase):
         plt.figure()
         plt.imshow(image)
         plt.show()
+
+    def test_detection_transform_can_take_zero_targets(self):
+        sample = {
+            "image": np.random.rand(640, 480, 3),
+            "target": np.array([]),
+            "crowd_target": np.array([]),
+        }
+
+        sample_object = LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(sample)
+        result_sample = LegacyDetectionTransformMixin.convert_detection_sample_to_dict(sample_object, include_crowd_target=True)
+        self.assertTrue(result_sample["image"].shape == (640, 480, 3))
+        self.assertTrue(result_sample["target"].shape == (0, 5))
+        self.assertTrue(result_sample["crowd_target"].shape == (0, 5))
 
 
 if __name__ == "__main__":
