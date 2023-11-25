@@ -1101,14 +1101,17 @@ class DetectionTargetsFormatTransform(AbstractDetectionTransform, LegacyDetectio
             input_format=self.input_format, output_format=self.output_format, image_shape=input_dim
         )
 
-    def __call__(self, sample: dict) -> dict:
-        # if self.input_dim not set yet, it will be set with first batch
-        if self.input_dim is None:
-            self._setup_input_dim_related_params(input_dim=sample["image"].shape[1:])
+    def __call__(self, sample: Union[dict, DetectionSample]) -> dict:
+        if isinstance(sample, DetectionSample):
+            pass
+        else:
+            # if self.input_dim not set yet, it will be set with first batch
+            if self.input_dim is None:
+                self._setup_input_dim_related_params(input_dim=sample["image"].shape[1:])
 
-        sample["target"] = self.apply_on_targets(sample["target"])
-        if "crowd_target" in sample.keys():
-            sample["crowd_target"] = self.apply_on_targets(sample["crowd_target"])
+            sample["target"] = self.apply_on_targets(sample["target"])
+            if "crowd_target" in sample.keys():
+                sample["crowd_target"] = self.apply_on_targets(sample["crowd_target"])
         return sample
 
     def apply_to_sample(self, sample: DetectionSample):
