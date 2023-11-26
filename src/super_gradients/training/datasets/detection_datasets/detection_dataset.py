@@ -478,6 +478,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
                 LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(s) for s in self._get_additional_inputs_for_transform(transform=transform)
             ]
             detection_sample = transform.apply_to_sample(sample=detection_sample)
+            detection_sample = detection_sample.sanitize_sample()
+
             detection_sample.additional_samples = None
             if isinstance(transform, DetectionTargetsFormatTransform):
                 target_format_transform = transform
@@ -540,7 +542,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
 
                 if plot_transformed_data:
                     image, targets, *_ = self[img_i + plot_i * 16]
-                    image = image.transpose(1, 2, 0).astype(np.int32)
+                    if image.shape[0] == 3:
+                        image = image.transpose(1, 2, 0).astype(np.int32)
                 else:
                     sample = self.get_sample(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
                     image, targets = sample["image"], sample["target"]
