@@ -1,8 +1,9 @@
 import unittest
+from pathlib import Path
 
 import numpy as np
 
-from super_gradients.training.datasets import Cifar10, Cifar100, ImageNetDataset
+from super_gradients.training.datasets import Cifar10, Cifar100, ImageNetDataset, COCODetectionDataset
 from albumentations import Compose, HorizontalFlip, InvertImg
 
 
@@ -55,6 +56,31 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
         img_no_aug_transformed = self._apply_aug(img_no_aug)
 
         self.assertTrue(np.allclose(img_no_aug_transformed, img_aug))
+
+    def test_coco_albumentations_integration(self):
+        mini_coco_data_dir = str(Path(__file__).parent.parent / "data" / "tinycoco")
+
+        train_dataset_params = {
+            "data_dir": mini_coco_data_dir,
+            "subdir": "images/train2017",
+            "json_file": "instances_train2017.json",
+            "cache": False,
+            "input_dim": [512, 512],
+            "transforms": [
+                {"DetectionMosaic": {"input_dim": [640, 640], "prob": 1.0}},
+                {
+                    "Albumentations": {
+                        "Compose": {
+                            "transforms": [{"HorizontalFlip": {"p": 0.5}}, {"RandomBrightnessContrast": {"p": 0.5}}],
+                            "bbox_params": {"min_area": 1, "min_visibility": 0, "min_width": 0, "min_height": 0, "check_each_transform": True},
+                        },
+                    }
+                },
+            ],
+        }
+
+        ds = COCODetectionDataset(**train_dataset_params)
+        ds.plot()
 
 
 if __name__ == "__main__":

@@ -63,6 +63,7 @@ class DetectionSample:
         self.labels = labels
         self.is_crowd = is_crowd
         self.additional_samples = additional_samples
+        self.sanitize_sample()
 
     def sanitize_sample(self) -> "DetectionSample":
         """
@@ -73,6 +74,7 @@ class DetectionSample:
         """
         image_height, image_width = self.image.shape[:2]
         self.bboxes_xyxy = change_bbox_bounds_for_image_size(self.bboxes_xyxy, img_shape=(image_height, image_width))
+        self.filter_by_bbox_area(0)
         return self
 
     def filter_by_mask(self, mask: np.ndarray) -> "DetectionSample":
@@ -102,5 +104,5 @@ class DetectionSample:
         """
         bboxes_xywh = xyxy_to_xywh(self.bboxes_xyxy, image_shape=None)
         area = bboxes_xywh[..., 2:4].prod(axis=-1)
-        keep_mask = area >= min_bbox_area
+        keep_mask = area > min_bbox_area
         return self.filter_by_mask(keep_mask)

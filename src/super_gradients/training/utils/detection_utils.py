@@ -185,8 +185,8 @@ def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, i
     :param img_shape:  Tuple[int,int] of image shape (height, width).
     :return:           (np.ndarray)clipped bboxes in XYXY format of [..., 4] shape
     """
-    boxes[..., [0, 2]] = boxes[..., [0, 2]].clamp(min=0, max=img_shape[1] - 1)
-    boxes[..., [1, 3]] = boxes[..., [1, 3]].clamp(min=0, max=img_shape[0] - 1)
+    boxes[..., [0, 2]] = boxes[..., [0, 2]].clip(min=0, max=img_shape[1])
+    boxes[..., [1, 3]] = boxes[..., [1, 3]].clip(min=0, max=img_shape[0])
     return boxes
 
 
