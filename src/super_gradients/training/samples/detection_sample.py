@@ -8,6 +8,8 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyx
 
 __all__ = ["DetectionSample"]
 
+from super_gradients.training.utils.detection_utils import change_bbox_bounds_for_image_size
+
 
 @dataclasses.dataclass
 class DetectionSample:
@@ -69,11 +71,8 @@ class DetectionSample:
         This method operates in-place and modifies the caller.
         :return: A DetectionSample after filtering (caller instance).
         """
-        image_height, image_width, _ = self.image.shape
-
-        # Clamp bboxes to image boundaries
-        self.bboxes_xyxy[..., [0, 2]] = np.clip(self.bboxes_xyxy[..., [0, 2]], 0, image_width - 1)
-        self.bboxes_xyxy[..., [1, 3]] = np.clip(self.bboxes_xyxy[..., [1, 3]], 0, image_height - 1)
+        image_height, image_width = self.image.shape[:2]
+        self.bboxes_xyxy = change_bbox_bounds_for_image_size(self.bboxes_xyxy, img_shape=(image_height, image_width))
         return self
 
     def filter_by_mask(self, mask: np.ndarray) -> "DetectionSample":

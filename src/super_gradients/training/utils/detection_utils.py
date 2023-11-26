@@ -177,10 +177,16 @@ def calc_bbox_iou_matrix(pred: torch.Tensor):
     return ious
 
 
-def change_bbox_bounds_for_image_size(boxes, img_shape):
-    # CLIP BOUNDING XYXY BOUNDING BOXES TO IMAGE SHAPE (HEIGHT, WIDTH)
-    boxes[:, [0, 2]] = boxes[:, [0, 2]].clamp(min=0, max=img_shape[1])
-    boxes[:, [1, 3]] = boxes[:, [1, 3]].clamp(min=0, max=img_shape[0])
+def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, int]) -> np.ndarray:
+    """
+    Clips bboxes to image boundaries.
+
+    :param bboxes:     (np.ndarray) Input bounding boxes in XYXY format of [..., 4] shape
+    :param img_shape:  Tuple[int,int] of image shape (height, width).
+    :return:           (np.ndarray)clipped bboxes in XYXY format of [..., 4] shape
+    """
+    boxes[..., [0, 2]] = boxes[..., [0, 2]].clamp(min=0, max=img_shape[1] - 1)
+    boxes[..., [1, 3]] = boxes[..., [1, 3]].clamp(min=0, max=img_shape[0] - 1)
     return boxes
 
 
@@ -273,7 +279,6 @@ def non_max_suppression(
     output = [None] * prediction.shape[0]
 
     for image_idx, pred in enumerate(prediction):
-
         pred = pred[candidates_above_thres[image_idx]]  # confident
 
         if not pred.shape[0]:  # If none remain process next image
@@ -692,9 +697,8 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     :param h_max: (int) height border
     :return: modified bbox (np.array)
     """
-    bbox[:, 0::2] = np.clip(bbox[:, 0::2] * scale_ratio + padw, 0, w_max)
-    bbox[:, 1::2] = np.clip(bbox[:, 1::2] * scale_ratio + padh, 0, h_max)
-    return bbox
+    scaled_bboxes = bbox * scale_ratio + np.array([[[padw, padh, padw, padh]]])
+    return change_bbox_bounds_for_image_size(scaled_bboxes, img_shape=(h_max, w_max))
 
 
 @deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_DatasetItemsException)
@@ -880,7 +884,6 @@ def compute_img_detection_matching(
     preds_to_ignore[preds_idx_to_use] = False
 
     if len(targets) > 0 or len(crowd_targets) > 0:
-
         # CHANGE bboxes TO FIT THE IMAGE SIZE
         change_bbox_bounds_for_image_size(preds, (height, width))
 
@@ -894,7 +897,6 @@ def compute_img_detection_matching(
             crowd_target_box[:, [1, 3]] *= height
 
     if len(targets) > 0:
-
         # shape = (n_preds x n_targets)
         iou = box_iou(preds_box[preds_idx_to_use], targets_box)
 
@@ -909,7 +911,6 @@ def compute_img_detection_matching(
 
         # Only iterate over IoU values higher than min threshold to speed up the process
         for pred_selected_i, target_sorted_i in (sorted_iou > iou_thresholds[0]).nonzero(as_tuple=False):
-
             # pred_selected_i and target_sorted_i are relative to filters/sorting, so we extract their absolute indexes
             pred_i = preds_idx_to_use[pred_selected_i]
             target_i = target_sorted[pred_selected_i, target_sorted_i]
@@ -935,7 +936,6 @@ def compute_img_detection_matching(
     # Crowd targets can be matched with many predictions.
     # Therefore, for every prediction we just need to check if it has IoA large enough with any crowd target.
     if len(crowd_targets) > 0:
-
         # shape = (n_preds_to_use x n_crowd_targets)
         ioa = crowd_ioa(preds_box[preds_idx_to_use], crowd_target_box)
 

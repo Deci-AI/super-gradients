@@ -27,7 +27,7 @@ from super_gradients.training.transforms.utils import (
     _rescale_bboxes,
     _rescale_xyxy_bboxes,
 )
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat, change_bbox_bounds_for_image_size
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
@@ -529,8 +529,7 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
             mosaic_iscrowd = np.concatenate(mosaic_iscrowd, 0)
             mosaic_labels = np.concatenate(mosaic_labels, 0)
             mosaic_bboxes = np.concatenate(mosaic_bboxes, 0)
-            mosaic_bboxes[:, [0, 2]] = np.clip(mosaic_bboxes[:, [0, 2]], 0, mosaic_img.shape[1])
-            mosaic_bboxes[:, [1, 3]] = np.clip(mosaic_bboxes[:, [1, 3]], 0, mosaic_img.shape[0])
+            mosaic_bboxes = change_bbox_bounds_for_image_size(mosaic_bboxes, mosaic_img.shape[:2])
 
             sample = DetectionSample(
                 image=mosaic_img,
@@ -714,8 +713,9 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
 
             cp_bboxes_origin_np = adjust_box_anns(cp_sample.bboxes_xyxy[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h)
             cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
-            cp_bboxes_transformed_np[:, 0::2] = np.clip(cp_bboxes_transformed_np[:, 0::2] - x_offset, 0, target_w)
-            cp_bboxes_transformed_np[:, 1::2] = np.clip(cp_bboxes_transformed_np[:, 1::2] - y_offset, 0, target_h)
+            cp_bboxes_transformed_np[:, [0, 2]] = cp_bboxes_transformed_np[:, [0, 2]] - x_offset
+            cp_bboxes_transformed_np[:, [1, 3]] = cp_bboxes_transformed_np[:, [1, 3]] - y_offset
+            cp_bboxes_transformed_np = change_bbox_bounds_for_image_size(cp_bboxes_transformed_np, (target_h, target_w))
 
             mixup_boxes = np.concatenate([sample.bboxes_xyxy, cp_bboxes_transformed_np], axis=0)
             mixup_labels = np.concatenate([sample.labels, cp_sample.labels], axis=0)
