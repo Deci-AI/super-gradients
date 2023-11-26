@@ -44,7 +44,7 @@ sync_bn: True
 #  - ExtremeBatchDetectionVisualizationCallback:
 #      loss_to_monitor: "PPYoloELoss/loss"
 #      max: True
-#      enable_on_train_loader: True
+#      enable_on_train_loader: False
 #      enable_on_valid_loader: True
 #      classes: ${dataset_params.class_names}
 #      normalize_targets: True
