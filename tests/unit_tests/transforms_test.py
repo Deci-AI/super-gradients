@@ -1,10 +1,14 @@
 import copy
 import unittest
+from pathlib import Path
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from omegaconf import ListConfig
 
+from super_gradients.common.registry import register_transform
+from super_gradients.training.datasets import COCODetectionDataset
 from super_gradients.training.transforms import KeypointsMixup, KeypointsCompose
 from super_gradients.training.transforms.detection import LegacyDetectionTransformMixin
 from super_gradients.training.transforms.keypoint_transforms import (
@@ -22,6 +26,7 @@ from super_gradients.training.transforms.transforms import (
     DetectionPadToSize,
     DetectionHorizontalFlip,
     DetectionVerticalFlip,
+    DetectionTransform,
 )
 
 from super_gradients.training.transforms.utils import (
@@ -38,6 +43,9 @@ from super_gradients.training.transforms.utils import (
 
 
 class TestTransforms(unittest.TestCase):
+    def setUp(self) -> None:
+        self.mini_coco_data_dir = str(Path(__file__).parent.parent / "data" / "tinycoco")
+
     def test_keypoints_random_affine(self):
         image = np.random.rand(32, 48, 3)
         mask = np.random.rand(32, 48)
@@ -541,6 +549,37 @@ class TestTransforms(unittest.TestCase):
         self.assertTrue(result_sample["image"].shape == (640, 480, 3))
         self.assertTrue(result_sample["target"].shape == (0, 5))
         self.assertTrue(result_sample["crowd_target"].shape == (0, 5))
+
+    def test_custom_transform(self):
+        """
+        Checks whether custom transform with deprecated API still works with new DetectionSample
+        """
+
+        @register_transform("CustomDetectionTransform")
+        class CustomDetectionTransform(DetectionTransform):
+            def __init__(self):
+                super().__init__()
+
+            def __call__(self, sample):
+                sample["target"] = np.array([[0, 0, 2, 2, 5]])
+                return sample
+
+        train_dataset_params = {
+            "data_dir": self.mini_coco_data_dir,
+            "subdir": "images/train2017",
+            "json_file": "instances_train2017.json",
+            "cache": False,
+            "input_dim": [512, 512],
+            "transforms": [
+                {"CustomDetectionTransform": {}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+            ],
+        }
+        dataset = COCODetectionDataset(**train_dataset_params)
+        sample = dataset.__getitem__(0)
+        self.assertIsNotNone(sample)
+        # [0, 0, 2, 2, 5] (XYXY_LABEL) -> 5, 1, 1, 2, 2 (LABEL_CXCYWH)
+        np.testing.assert_almost_equal(sample[1], np.array([[5, 1, 1, 2, 2]]))
 
 
 if __name__ == "__main__":

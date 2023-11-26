@@ -477,7 +477,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
             detection_sample.additional_samples = [
                 LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(s) for s in self._get_additional_inputs_for_transform(transform=transform)
             ]
-            detection_sample = transform(sample=detection_sample)
+            detection_sample = transform.apply_to_sample(sample=detection_sample)
             detection_sample.additional_samples = None
             if isinstance(transform, DetectionTargetsFormatTransform):
                 target_format_transform = transform

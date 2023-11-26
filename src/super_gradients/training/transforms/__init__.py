@@ -10,6 +10,7 @@ from super_gradients.training.transforms.transforms import (
     DetectionPaddedRescale,
     DetectionTargetsFormatTransform,
     Standardize,
+    DetectionTransform,
 )
 from super_gradients.training.transforms.keypoints import (
     AbstractKeypointTransform,
@@ -43,6 +44,7 @@ __all__ = [
     "ALBUMENTATIONS_COMP_TRANSFORMS",
     "imported_albumentations_failure",
     "Transforms",
+    "DetectionTransform",
     "AbstractDetectionTransform",
     "DetectionStandardize",
     "DetectionMosaic",

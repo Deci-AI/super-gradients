@@ -397,6 +397,51 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
     return fill_mask, fill_image
 
 
+class DetectionTransform:
+    """
+    Detection transform base class.
+    Complex transforms that require extra data loading can use the the additional_samples_count attribute in a
+     similar fashion to what's been done in COCODetectionDataset:
+    self._load_additional_inputs_for_transform(sample, transform)
+    # after the above call, sample["additional_samples"] holds a list of additional inputs and targets.
+    sample = transform(sample)
+    :param additional_samples_count:    Additional samples to be loaded.
+    :param non_empty_targets:           Whether the additional targets can have empty targets or not.
+    """
+
+    def __init__(self, additional_samples_count: int = 0, non_empty_targets: bool = False):
+        self.additional_samples_count = additional_samples_count
+        self.non_empty_targets = non_empty_targets
+        warnings.warn(
+            "Inheriting from DetectionTransform is deprecated. "
+            "If you have a custom detection transform please change the base class to "
+            "AbstractDetectionTransform and implement apply_to_sample() method instead of __call__.",
+            DeprecationWarning,
+        )
+
+    def __call__(self, sample: Union[dict, list]):
+        raise NotImplementedError
+
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        """
+        Apply transformation to the input detection sample.
+        This method exists here for compatibility reasons to ensure a custom transform that inherits from DetectionSample
+        would still work.
+
+        :param sample: Input detection sample.
+        :return:       Output detection sample.
+        """
+        sample_dict = LegacyDetectionTransformMixin.convert_detection_sample_to_dict(sample, include_crowd_target=sample.is_crowd.any())
+        sample_dict = self(sample_dict)
+        return LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(sample_dict)
+
+    def __repr__(self):
+        return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
+
+    def get_equivalent_preprocessing(self) -> List:
+        raise NotImplementedError
+
+
 @register_transform(Transforms.DetectionStandardize)
 class DetectionStandardize(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
