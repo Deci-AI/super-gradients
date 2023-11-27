@@ -470,7 +470,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         """
 
         has_crowd_target = "crowd_target" in sample
-        detection_sample = LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(sample)
+        detection_sample = LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(sample).sanitize_sample()
         target_format_transform: Optional[DetectionTargetsFormatTransform] = None
 
         for transform in self.transforms:
@@ -478,7 +478,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
                 LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(s) for s in self._get_additional_inputs_for_transform(transform=transform)
             ]
             detection_sample = transform.apply_to_sample(sample=detection_sample)
-            detection_sample = detection_sample.sanitize_sample()
 
             detection_sample.additional_samples = None
             if isinstance(transform, DetectionTargetsFormatTransform):
