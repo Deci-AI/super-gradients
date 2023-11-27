@@ -19,6 +19,7 @@ from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.predict import PoseEstimationPrediction
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.module_interfaces import AbstractPoseEstimationDecodingModule, ExportablePoseEstimationModel
+from super_gradients.module_interfaces.exceptions import ModelHasNoPreprocessingParamsException
 from .yolo_nas_pose_post_prediction_callback import YoloNASPosePostPredictionCallback
 
 logger = get_logger(__name__)
@@ -235,6 +236,8 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
 
     def get_preprocessing_callback(self, **kwargs):
         processing = self.get_processing_params()
+        if processing is None:
+            raise ModelHasNoPreprocessingParamsException()
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
 
