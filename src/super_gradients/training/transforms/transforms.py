@@ -529,8 +529,8 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
             mosaic_iscrowd = np.concatenate(mosaic_iscrowd, 0)
             mosaic_labels = np.concatenate(mosaic_labels, 0)
             mosaic_bboxes = np.concatenate(mosaic_bboxes, 0)
-            mosaic_bboxes = change_bbox_bounds_for_image_size(mosaic_bboxes, mosaic_img.shape[:2])
 
+            # No need to adjust bboxes for image size since DetectionSample constructor will do this anyway
             sample = DetectionSample(
                 image=mosaic_img,
                 bboxes_xyxy=mosaic_bboxes,
@@ -618,10 +618,17 @@ class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransform
                 border_value=self.border_value,
             )
 
-            sample.image = img
-            sample.is_crowd = np.array([0] * len(targets) + [1] * len(crowd_targets), dtype=bool)
-            sample.bboxes_xyxy = np.concatenate([targets[:, 0:4], crowd_targets[:, 0:4]], axis=0, dtype=sample.bboxes_xyxy.dtype)
-            sample.labels = np.concatenate([targets[:, 4], crowd_targets[:, 4]], axis=0, dtype=sample.labels.dtype)
+            is_crowd = np.array([0] * len(targets) + [1] * len(crowd_targets), dtype=bool)
+            bboxes_xyxy = np.concatenate([targets[:, 0:4], crowd_targets[:, 0:4]], axis=0, dtype=sample.bboxes_xyxy.dtype)
+            labels = np.concatenate([targets[:, 4], crowd_targets[:, 4]], axis=0, dtype=sample.labels.dtype)
+
+            sample = DetectionSample(
+                image=img,
+                bboxes_xyxy=bboxes_xyxy,
+                labels=labels,
+                is_crowd=is_crowd,
+                additional_samples=None,
+            )
         return sample
 
     def get_equivalent_preprocessing(self):
