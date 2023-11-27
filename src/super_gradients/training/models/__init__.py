@@ -135,7 +135,7 @@ from super_gradients.common.registry.registry import ARCHITECTURES
 from super_gradients.training.utils import make_divisible as _make_divisible_current_version, HpmStruct as CurrVersionHpmStruct
 
 
-@deprecated(deprecated_since="3.1.0", removed_from="3.5.0", target=_make_divisible_current_version)
+@deprecated(deprecated_since="3.1.0", removed_from="3.6.0", target=_make_divisible_current_version)
 def make_divisible(x: int, divisor: int, ceil: bool = True) -> int:
     """
     Returns x evenly divisible by divisor.
@@ -144,17 +144,17 @@ def make_divisible(x: int, divisor: int, ceil: bool = True) -> int:
     return _make_divisible_current_version(x=x, divisor=divisor, ceil=ceil)
 
 
-@deprecated(deprecated_since="3.1.0", removed_from="3.5.0", target=BasicResNetBlock, reason="This block was renamed to BasicResNetBlock for better clarity.")
+@deprecated(deprecated_since="3.1.0", removed_from="3.6.0", target=BasicResNetBlock, reason="This block was renamed to BasicResNetBlock for better clarity.")
 class BasicBlock(BasicResNetBlock):
     ...
 
 
-@deprecated(deprecated_since="3.1.0", removed_from="3.5.0", target=NewBottleneck, reason="This block was renamed to BasicResNetBlock for better clarity.")
+@deprecated(deprecated_since="3.1.0", removed_from="3.6.0", target=NewBottleneck, reason="This block was renamed to BasicResNetBlock for better clarity.")
 class Bottleneck(NewBottleneck):
     ...
 
 
-@deprecated(deprecated_since="3.1.0", removed_from="3.5.0", target=CurrVersionHpmStruct)
+@deprecated(deprecated_since="3.1.0", removed_from="3.6.0", target=CurrVersionHpmStruct)
 class HpmStruct(CurrVersionHpmStruct):
     ...
 

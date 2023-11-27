@@ -317,17 +317,17 @@ class LinearEpochLRWarmup(LRCallbackBase):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
 class EpochStepWarmupLRCallback(LinearEpochLRWarmup):
     ...
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
 class LinearLRWarmup(LinearEpochLRWarmup):
     ...
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
 class LinearStepWarmupLRCallback(LinearEpochLRWarmup):
     ...
 
@@ -409,7 +409,7 @@ class LinearBatchLRWarmup(Callback):
             param_group["lr"] = self.lr[param_group["name"]]
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearBatchLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearBatchLRWarmup)
 class BatchStepLinearWarmupLRCallback(LinearBatchLRWarmup):
     ...
 
@@ -446,7 +446,7 @@ class StepLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=StepLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=StepLRScheduler)
 class StepLRCallback(StepLRScheduler):
     ...
 
@@ -473,7 +473,7 @@ class ExponentialLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=ExponentialLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=ExponentialLRScheduler)
 class ExponentialLRCallback(ExponentialLRScheduler):
     ...
 
@@ -502,7 +502,7 @@ class PolyLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=PolyLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=PolyLRScheduler)
 class PolyLRCallback(PolyLRScheduler):
     ...
 
@@ -545,7 +545,7 @@ class CosineLRScheduler(LRCallbackBase):
         return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=CosineLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=CosineLRScheduler)
 class CosineLRCallback(CosineLRScheduler):
     ...
 
@@ -556,7 +556,7 @@ class FunctionLRScheduler(LRCallbackBase):
     Hard coded rate scheduling for user defined lr scheduling function.
     """
 
-    @deprecated(deprecated_since="3.2.0", removed_from="3.5.0", reason="This callback is deprecated and will be removed in future versions.")
+    @deprecated(deprecated_since="3.2.0", removed_from="3.6.0", reason="This callback is deprecated and will be removed in future versions.")
     def __init__(self, max_epochs, lr_schedule_function, **kwargs):
         super().__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
         assert callable(lr_schedule_function), "self.lr_function must be callable"
@@ -581,7 +581,7 @@ class FunctionLRScheduler(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=FunctionLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=FunctionLRScheduler)
 class FunctionLRCallback(FunctionLRScheduler):
     ...
 
@@ -1423,9 +1423,7 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
                 "No classes have been passed to ExtremeBatchDetectionVisualizationCallback. "
                 "Will try to fetch them through context.valid_loader.dataset classes attribute if it exists."
             )
-        else:
-            classes = list(classes)
-        self.classes = classes
+        self.classes = list(classes) if classes is not None else None
         self.normalize_targets = normalize_targets
 
     @staticmethod

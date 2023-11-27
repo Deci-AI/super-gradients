@@ -7,9 +7,9 @@ from torch import nn
 from super_gradients.common.registry import register_model
 from super_gradients.training import models
 from super_gradients.training.models import CustomizableDetector, get_arch_params
+from super_gradients.training.transforms.transforms import DetectionTargetsFormatTransform, DetectionPaddedRescale
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.utils import arch_params_deprecated
-from super_gradients.training.transforms.transforms import DetectionTargetsFormatTransform, DetectionHorizontalFlip, DetectionPaddedRescale
 
 
 @register_model("DummyModel")
@@ -68,7 +68,8 @@ class DeprecationsUnitTest(unittest.TestCase):
     def test_deprecated_max_targets(self):
         with self.assertWarns(DeprecationWarning):
             DetectionTargetsFormatTransform(max_targets=1)
-            DetectionHorizontalFlip(prob=1.0, max_targets=1)
+
+        with self.assertWarns(DeprecationWarning):
             DetectionPaddedRescale(input_dim=(2, 2), max_targets=1)
 
     def test_moved_Bottleneck_import(self):

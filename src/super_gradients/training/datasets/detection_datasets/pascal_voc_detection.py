@@ -11,7 +11,7 @@ import numpy as np
 
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry.registry import register_dataset
-from super_gradients.training.transforms.transforms import DetectionTransform
+from super_gradients.training.transforms.transforms import AbstractDetectionTransform
 from super_gradients.training.utils.utils import download_and_untar_from_url, get_image_size_from_path
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
@@ -236,7 +236,7 @@ class PascalVOCUnifiedDetectionTrainDataset(ConcatDataset):
         input_dim: tuple,
         cache: bool = False,
         cache_dir: str = None,
-        transforms: List[DetectionTransform] = [],
+        transforms: List[AbstractDetectionTransform] = [],
         class_inclusion_list: Optional[List[str]] = None,
         max_num_samples: int = None,
         download: bool = False,

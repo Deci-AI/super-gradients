@@ -65,6 +65,8 @@ class Transforms:
     DetectionPaddedRescale = "DetectionPaddedRescale"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
     DetectionNormalize = "DetectionNormalize"
+    DetectionPadIfNeeded = "DetectionPadIfNeeded"
+    DetectionLongestMaxSize = "DetectionLongestMaxSize"
     #
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
     RandAugmentTransform = "RandAugmentTransform"
