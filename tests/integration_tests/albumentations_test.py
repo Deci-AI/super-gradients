@@ -76,6 +76,15 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
                         },
                     }
                 },
+                {
+                    "DetectionMixup": {
+                        "input_dim": [640, 640],
+                        "mixup_scale": [0.5, 1.5],
+                        # random rescale range for the additional sample in mixup
+                        "prob": 1.0,  # probability to apply per-sample mixup
+                        "flip_prob": 0.5,
+                    }
+                },
             ],
         }
 

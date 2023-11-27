@@ -697,7 +697,7 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     :param h_max: (int) height border
     :return: modified bbox (np.array)
     """
-    scaled_bboxes = bbox * scale_ratio + np.array([[[padw, padh, padw, padh]]])
+    scaled_bboxes = bbox * scale_ratio + np.array([[padw, padh, padw, padh]])
     return change_bbox_bounds_for_image_size(scaled_bboxes, img_shape=(h_max, w_max))
 
 

@@ -721,7 +721,7 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
             mixup_labels = np.concatenate([sample.labels, cp_sample.labels], axis=0)
             mixup_crowds = np.concatenate([sample.is_crowd, cp_sample.is_crowd], axis=0)
 
-            mixup_image = (0.5 * sample.image + 0.5 * padded_cropped_img).astype(np.float32)
+            mixup_image = (0.5 * sample.image + 0.5 * padded_cropped_img).astype(sample.image.dtype)
             sample = DetectionSample(
                 image=mixup_image,
                 bboxes_xyxy=mixup_boxes,
