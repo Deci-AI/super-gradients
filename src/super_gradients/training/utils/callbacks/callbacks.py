@@ -1392,7 +1392,7 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
                 "No classes have been passed to ExtremeBatchDetectionVisualizationCallback. "
                 "Will try to fetch them through context.valid_loader.dataset classes attribute if it exists."
             )
-        self.classes = classes
+        self.classes = list(classes) if classes is not None else None
         self.normalize_targets = normalize_targets
 
     @staticmethod

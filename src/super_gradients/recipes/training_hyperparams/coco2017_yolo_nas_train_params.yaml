@@ -37,6 +37,24 @@ ema_params:
 mixed_precision: False
 sync_bn: True
 
+# This is how you can enable visualization of predictions during training
+# A batch with the largest loss will be visualized for train and valid loaders
+# Visualization images will be logged using configured logger
+# phase_callbacks:
+#  - ExtremeBatchDetectionVisualizationCallback:
+#      loss_to_monitor: "PPYoloELoss/loss"
+#      max: True
+#      enable_on_train_loader: False
+#      enable_on_valid_loader: True
+#      classes: ${dataset_params.class_names}
+#      normalize_targets: True
+#      post_prediction_callback:
+#        _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
+#        score_threshold: 0.25
+#        nms_top_k: 300
+#        max_predictions: 30
+#        nms_threshold: 0.7
+
 valid_metrics_list:
   - DetectionMetrics:
       score_thres: 0.1

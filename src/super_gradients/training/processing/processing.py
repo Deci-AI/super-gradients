@@ -14,7 +14,7 @@ from super_gradients.training.transforms.utils import (
     _get_center_padding_coordinates,
     _get_bottom_right_padding_coordinates,
     _pad_image,
-    _shift_bboxes,
+    _shift_bboxes_xyxy,
     PaddingCoordinates,
     _rescale_keypoints,
     _shift_keypoints,
@@ -324,7 +324,7 @@ class _DetectionPadding(Processing, ABC):
         return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
 
     def postprocess_predictions(self, predictions: DetectionPrediction, metadata: DetectionPadToSizeMetadata) -> DetectionPrediction:
-        predictions.bboxes_xyxy = _shift_bboxes(
+        predictions.bboxes_xyxy = _shift_bboxes_xyxy(
             targets=predictions.bboxes_xyxy,
             shift_h=-metadata.padding_coordinates.top,
             shift_w=-metadata.padding_coordinates.left,
@@ -376,7 +376,7 @@ class _KeypointsPadding(Processing, ABC):
             shift_w=-metadata.padding_coordinates.left,
         )
         if predictions.bboxes_xyxy is not None:
-            predictions.bboxes_xyxy = _shift_bboxes(
+            predictions.bboxes_xyxy = _shift_bboxes_xyxy(
                 targets=predictions.bboxes_xyxy,
                 shift_h=-metadata.padding_coordinates.top,
                 shift_w=-metadata.padding_coordinates.left,
@@ -444,7 +444,7 @@ class DetectionAutoPadding(AutoPadding):
         return PaddingCoordinates(top=padding_top, left=padding_left, bottom=padding_bottom, right=padding_right)
 
     def postprocess_predictions(self, predictions: DetectionPrediction, metadata: DetectionPadToSizeMetadata) -> DetectionPrediction:
-        predictions.bboxes_xyxy = _shift_bboxes(
+        predictions.bboxes_xyxy = _shift_bboxes_xyxy(
             targets=predictions.bboxes_xyxy,
             shift_h=-metadata.padding_coordinates.top,
             shift_w=-metadata.padding_coordinates.left,
@@ -481,7 +481,7 @@ class KeypointsAutoPadding(AutoPadding):
             shift_w=-metadata.padding_coordinates.left,
         )
         if predictions.bboxes_xyxy is not None:
-            predictions.bboxes_xyxy = _shift_bboxes(
+            predictions.bboxes_xyxy = _shift_bboxes_xyxy(
                 targets=predictions.bboxes_xyxy,
                 shift_h=-metadata.padding_coordinates.top,
                 shift_w=-metadata.padding_coordinates.left,
