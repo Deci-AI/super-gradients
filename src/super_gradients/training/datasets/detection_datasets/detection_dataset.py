@@ -144,7 +144,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
             raise DatasetValidationException(f"class_inclusion_list contains duplicate class names: {collections.Counter(class_inclusion_list)}")
 
         self.all_classes_list = all_classes_list or self._all_classes
-        self.class_inclusion_list = class_inclusion_list
+        self.all_classes_list = list(self.all_classes_list) if self.all_classes_list is not None else None
+        self.class_inclusion_list = list(class_inclusion_list) if class_inclusion_list is not None else None
         self.classes = self.class_inclusion_list or self.all_classes_list
         if len(set(self.classes) - set(self.all_classes_list)) > 0:
             wrong_classes = set(self.classes) - set(all_classes_list)
