@@ -194,6 +194,7 @@ class YoloNASStage(BaseDetectionModule):
         concat_intermediates: bool = False,
         drop_path_rates: Union[Iterable[float], None] = None,
         dropout_rate: float = 0.0,
+        stride: int = 2,
     ):
         """
         Initialize the YoloNASStage module
@@ -209,7 +210,7 @@ class YoloNASStage(BaseDetectionModule):
         """
         super().__init__(in_channels)
         self._out_channels = out_channels
-        self.downsample = QARepVGGBlock(in_channels, out_channels, stride=2, activation_type=activation_type, use_residual_connection=False)
+        self.downsample = QARepVGGBlock(in_channels, out_channels, stride=stride, activation_type=activation_type, use_residual_connection=False)
         self.blocks = YoloNASCSPLayer(
             out_channels,
             out_channels,
