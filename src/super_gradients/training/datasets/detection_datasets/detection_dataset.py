@@ -282,9 +282,9 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
 
             is_annotation_non_empty = any(len(sample_annotations[field]) != 0 for field in self.target_fields)
             if is_annotation_non_empty:
-                non_empty_annotations[index] = sample_annotations if self._cache_annotations else None
+                non_empty_annotations[index] = sample_annotations
             else:
-                empty_annotations[index] = sample_annotations if self._cache_annotations else None
+                empty_annotations[index] = sample_annotations
 
         if len(non_empty_annotations) + len(empty_annotations) == 0:
             raise EmptyDatasetException(f"Out of {n_samples} images, not a single one was found with any of these classes: {self.class_inclusion_list}")
