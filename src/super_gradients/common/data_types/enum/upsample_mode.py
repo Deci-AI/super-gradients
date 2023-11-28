@@ -7,3 +7,4 @@ class UpsampleMode(Enum):
     BICUBIC = "bicubic"
     NN_PIXEL_SHUFFLE = "nn_pixel_shuffle"
     PIXEL_SHUFFLE = "pixel_shuffle"
+    CONV_TRANSPOSE = "conv_transpose"
