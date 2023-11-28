@@ -21,6 +21,8 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.samples import DetectionSample
 from super_gradients.training.transforms.detection import DetectionPadIfNeeded, AbstractDetectionTransform, LegacyDetectionTransformMixin
+from super_gradients.training.transforms.segmentation.abstract_segmentation_transform import AbstractSegmentationTransform
+from super_gradients.training.transforms.segmentation.legacy_segmentation_transform_mixin import LegacySegmentationTransformMixin
 from super_gradients.training.transforms.utils import (
     _rescale_and_pad_to_size,
     _rescale_image,
@@ -38,6 +40,12 @@ logger = get_logger(__name__)
 
 class SegmentationTransform:
     def __call__(self, *args, **kwargs):
+        warnings.warn(
+            "Inheriting from class SegmentationTransform is deprecated. "
+            "If you have a custom detection transform please change the base class to "
+            "AbstractDetectionTransform and implement apply_to_sample() method instead of __call__.",
+            DeprecationWarning,
+        )
         raise NotImplementedError
 
     def __repr__(self):
@@ -45,7 +53,7 @@ class SegmentationTransform:
 
 
 @register_transform(Transforms.SegResize)
-class SegResize(SegmentationTransform):
+class SegResize(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     def __init__(self, h, w):
         self.h = h
         self.w = w
@@ -59,7 +67,7 @@ class SegResize(SegmentationTransform):
 
 
 @register_transform(Transforms.SegRandomFlip)
-class SegRandomFlip(SegmentationTransform):
+class SegRandomFlip(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     """
     Randomly flips the image and mask (synchronously) with probability 'prob'.
     """
@@ -81,7 +89,7 @@ class SegRandomFlip(SegmentationTransform):
 
 
 @register_transform(Transforms.SegRescale)
-class SegRescale(SegmentationTransform):
+class SegRescale(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     """
     Rescales the image and mask (synchronously) while preserving aspect ratio.
     The rescaling can be done according to scale_factor, short_size or long_size.
@@ -185,7 +193,7 @@ class SegRandomRescale:
 
 
 @register_transform(Transforms.SegRandomRotate)
-class SegRandomRotate(SegmentationTransform):
+class SegRandomRotate(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     """
     Randomly rotates image and mask (synchronously) between 'min_deg' and 'max_deg'.
     """
@@ -217,7 +225,7 @@ class SegRandomRotate(SegmentationTransform):
 
 
 @register_transform(Transforms.SegCropImageAndMask)
-class SegCropImageAndMask(SegmentationTransform):
+class SegCropImageAndMask(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     """
     Crops image and mask (synchronously).
     In "center" mode a center crop is performed while, in "random" mode the drop will be positioned around
@@ -269,7 +277,7 @@ class SegCropImageAndMask(SegmentationTransform):
 
 
 @register_transform(Transforms.SegRandomGaussianBlur)
-class SegRandomGaussianBlur(SegmentationTransform):
+class SegRandomGaussianBlur(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     """
     Adds random Gaussian Blur to image with probability 'prob'.
     """
@@ -292,7 +300,7 @@ class SegRandomGaussianBlur(SegmentationTransform):
 
 
 @register_transform(Transforms.SegPadShortToCropSize)
-class SegPadShortToCropSize(SegmentationTransform):
+class SegPadShortToCropSize(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     """
     Pads image to 'crop_size'.
     Should be called only after "SegRescale" or "SegRandomRescale" in augmentations pipeline.
@@ -341,7 +349,7 @@ class SegPadShortToCropSize(SegmentationTransform):
 
 
 @register_transform(Transforms.SegPadToDivisible)
-class SegPadToDivisible(SegmentationTransform):
+class SegPadToDivisible(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     def __init__(self, divisible_value: int, fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0) -> None:
         super().__init__()
         self.divisible_value = divisible_value
@@ -741,6 +749,10 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
 
     def get_equivalent_preprocessing(self):
         raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
+
+
+# class SegToTensor(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
+#     def __call__(self, *args, **kwargs):
 
 
 @register_transform(Transforms.DetectionImagePermute)

@@ -3,11 +3,12 @@ from typing import Callable
 from abc import abstractmethod, ABC
 import numpy as np
 
-from super_gradients.training.samples import DetectionSample
+from super_gradients.training.samples import DetectionSample, SegmentationSample
 
 
 class SampleType(Enum):
     DETECTION = "DETECTION"
+    SEGMENTATION = "SEGMENTATION"
     IMAGE_ONLY = "IMAGE_ONLY"
 
 
@@ -36,6 +37,8 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
     def __call__(self, sample, *args, **kwargs):
         if isinstance(sample, DetectionSample):
             self.sample_type = SampleType.DETECTION
+        elif isinstance(sample, SegmentationSample):
+            self.sample_type = SampleType.SEGMENTATION
         else:
             self.sample_type = SampleType.IMAGE_ONLY
 
