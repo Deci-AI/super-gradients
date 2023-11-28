@@ -1224,7 +1224,6 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
                 for image in images_to_save
             ]
             images_to_save = np.stack(images_to_save, axis=0)
-            logger.info(f"images_to_save after pad {images_to_save.shape}")
 
             context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=context.epoch, data_format="NHWC")
 
