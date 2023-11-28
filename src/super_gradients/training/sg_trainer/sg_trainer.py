@@ -1549,7 +1549,7 @@ class Trainer:
                     self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch=1 + epoch, inference_time=val_inf_time, tag="Valid")
 
                 test_metrics_dict = {}
-                if (epoch + 1) % self.run_test_freq == 0:
+                if len(self.test_loaders) and (epoch + 1) % self.run_test_freq == 0:
                     self.phase_callback_handler.on_test_loader_start(context)
                     test_inf_time = 0.0
                     for dataset_name, dataloader in self.test_loaders.items():
