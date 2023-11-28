@@ -67,6 +67,7 @@ class YoloNASDecodingModule(AbstractObjectDetectionDecodingModule):
         return output_pred_bboxes, output_pred_scores
 
 
+@register_model("YoloNAS")
 class YoloNAS(ExportableObjectDetectionModel, CustomizableDetector):
     """
 
