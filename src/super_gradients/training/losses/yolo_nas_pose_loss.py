@@ -249,7 +249,9 @@ class CIoULoss(nn.Module):
     Complete IoU loss
     """
 
-    def __init__(self, eps: float = 1e-10, reduction: str = "none"):
+    def __init__(
+        self, iou_term_weight: float = 1, distance_term_weight: float = 1, aspect_ratio_term_weight: float = 1, eps: float = 1e-10, reduction: str = "none"
+    ):
         """
         :param eps:         epsilon to avoid divide by zero, default as 1e-10
         :param reduction:   Options are "none", "mean" and "sum". default as none
@@ -260,6 +262,9 @@ class CIoULoss(nn.Module):
         super().__init__()
         self.eps = eps
         self.reduction = reduction
+        self.iou_term_weight = iou_term_weight
+        self.distance_term_weight = distance_term_weight
+        self.aspect_ratio_term_weight = aspect_ratio_term_weight
 
     def forward(self, predictions: Tensor, targets: Tensor, loc_weights: Optional[Tensor] = None) -> Tensor:
         """
@@ -268,7 +273,14 @@ class CIoULoss(nn.Module):
         :param loc_weights: Optional tensor of [D0, D1,...Di] shape with weights for each prediction
         :return:            CIOU loss
         """
-        loss = bbox_ciou_loss(predictions, targets, eps=self.eps)
+        loss = bbox_ciou_loss(
+            predictions,
+            targets,
+            eps=self.eps,
+            iou_term_weight=self.iou_term_weight,
+            distance_term_weight=self.distance_term_weight,
+            aspect_ratio_term_weight=self.aspect_ratio_term_weight,
+        )
         if loc_weights is not None:
             loss = loss * loc_weights
         if self.reduction == "sum":

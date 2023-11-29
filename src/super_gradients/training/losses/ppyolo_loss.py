@@ -1,4 +1,4 @@
-from typing import Mapping, Tuple, Union, Optional, List
+from typing import Mapping, Tuple, Union, Optional, List, Dict
 
 import numpy as np
 import torch
@@ -649,6 +649,8 @@ class PPYoloELoss(nn.Module):
         iou_loss_weight: float = 2.5,
         dfl_loss_weight: float = 0.5,
         use_batched_assignment: bool = True,
+        iou_loss: str = "giou",
+        iou_loss_kwargs: Optional[Dict] = None,
     ):
         """
         :param num_classes:                Number of classes
@@ -664,13 +666,17 @@ class PPYoloELoss(nn.Module):
                                            Sequential assignment has lower peak GPU memory usage and preferable for cases
                                            when number of targets per image varies a lot.
         """
+        if iou_loss_kwargs is None:
+            iou_loss_kwargs = {}
         super().__init__()
         self.use_varifocal_loss = use_varifocal_loss
         self.classification_loss_weight = classification_loss_weight
         self.dfl_loss_weight = dfl_loss_weight
         self.iou_loss_weight = iou_loss_weight
 
-        self.iou_loss = GIoULoss()
+        from super_gradients.training.losses.yolo_nas_pose_loss import CIoULoss
+
+        self.iou_loss = {"giou": GIoULoss, "ciou": CIoULoss}[iou_loss](**iou_loss_kwargs)
         self.static_assigner = ATSSAssigner(topk=9, num_classes=num_classes)
         self.assigner = TaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
         self.use_static_assigner = use_static_assigner

@@ -79,7 +79,9 @@ def get_bbox_width_height(bbox: Tuple[Tensor, Tensor, Tensor, Tensor]) -> Tuple[
     return w, h
 
 
-def bbox_ciou_loss(pred_bboxes: Tensor, target_bboxes: Tensor, eps: float) -> Tensor:
+def bbox_ciou_loss(
+    pred_bboxes: Tensor, target_bboxes: Tensor, eps: float, iou_term_weight: float = 1, distance_term_weight: float = 1, aspect_ratio_term_weight: float = 1
+) -> Tensor:
     """
     Compute CIoU loss between predicted and target bboxes.
     :param pred_bboxes:   Predicted boxes in xyxy format of [D0, D1,...Di, 4] shape
@@ -130,4 +132,4 @@ def bbox_ciou_loss(pred_bboxes: Tensor, target_bboxes: Tensor, eps: float) -> Te
 
     aspect_ratio_term = v * alpha
 
-    return iou_term + distance_term + aspect_ratio_term  # CIoU
+    return iou_term * iou_term_weight + distance_term * distance_term_weight + aspect_ratio_term * aspect_ratio_term_weight  # CIoU
