@@ -1445,12 +1445,12 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
             targets[:, 2:] = target_bboxes
 
         images_to_save_preds = DetectionVisualization.visualize_batch(
-            inputs, preds, targets.clone(), "extreme_batch_preds", self.classes, gt_alpha=0.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
+            inputs, preds, targets, "extreme_batch_preds", self.classes, gt_alpha=0.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
         )
         images_to_save_preds = np.stack(images_to_save_preds)
 
         images_to_save_gt = DetectionVisualization.visualize_batch(
-            inputs, None, targets.clone(), "extreme_batch_gt", self.classes, gt_alpha=1.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
+            inputs, None, targets, "extreme_batch_gt", self.classes, gt_alpha=1.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
         )
         images_to_save_gt = np.stack(images_to_save_gt)
 
