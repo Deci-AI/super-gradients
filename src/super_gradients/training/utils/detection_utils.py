@@ -871,6 +871,10 @@ def compute_img_detection_matching(
         preds_scores = torch.tensor([], dtype=torch.float32, device=device)
         preds_cls = torch.tensor([], dtype=torch.float32, device=device)
         targets_cls = targets[:, 0].to(device=device)
+
+        if use_perfect_classification:
+            targets_cls = torch.zeros_like(targets_cls)
+
         return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
 
     preds_matched = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
@@ -885,6 +889,11 @@ def compute_img_detection_matching(
     preds_idx_to_use = get_top_k_idx_per_cls(preds_scores, preds_cls, top_k)
     preds_to_ignore[:, :] = True
     preds_to_ignore[preds_idx_to_use] = False
+
+    if use_perfect_classification:
+        preds_cls = torch.zeros_like(preds_cls)
+        targets_cls = torch.zeros_like(targets_cls)
+        crowd_targets_cls = torch.zeros_like(crowd_targets_cls)
 
     if len(targets) > 0 or len(crowd_targets) > 0:
         # CHANGE bboxes TO FIT THE IMAGE SIZE
@@ -905,13 +914,8 @@ def compute_img_detection_matching(
 
         # Fill IoU values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
         # Filling with 0 is equivalent to ignore these values since with want IoU > iou_threshold > 0
-        if use_perfect_classification:
-            # When this flag is True, we assume that the classification is perfect and we ignore the class mismatch
-            # completely. This is useful when we want to evaluate the regression aspect only.
-            pass
-        else:
-            cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1)
-            iou[cls_mismatch] = 0
+        cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1)
+        iou[cls_mismatch] = 0
 
         # The matching priority is first detection confidence and then IoU value.
         # The detection is already sorted by confidence in NMS, so here for each prediction we order the targets by iou.
