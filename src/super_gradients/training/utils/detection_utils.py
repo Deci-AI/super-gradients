@@ -763,6 +763,7 @@ def compute_detection_matching(
     crowd_targets: Optional[torch.Tensor] = None,
     top_k: int = 100,
     return_on_cpu: bool = True,
+    use_perfect_classification: bool = False,
 ) -> List[Tuple]:
     """
     Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score.
@@ -813,6 +814,7 @@ def compute_detection_matching(
             iou_thresholds=iou_thresholds,
             top_k=top_k,
             return_on_cpu=return_on_cpu,
+            use_perfect_classification=use_perfect_classification,
         )
         batch_metrics.append(img_matching_tensors)
 
@@ -830,6 +832,7 @@ def compute_img_detection_matching(
     denormalize_targets: bool,
     top_k: int = 100,
     return_on_cpu: bool = True,
+    use_perfect_classification: bool = False,
 ) -> Tuple:
     """
     Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score
@@ -902,8 +905,13 @@ def compute_img_detection_matching(
 
         # Fill IoU values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
         # Filling with 0 is equivalent to ignore these values since with want IoU > iou_threshold > 0
-        cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1)
-        iou[cls_mismatch] = 0
+        if use_perfect_classification:
+            # When this flag is True, we assume that the classification is perfect and we ignore the class mismatch
+            # completely. This is useful when we want to evaluate the regression aspect only.
+            pass
+        else:
+            cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1)
+            iou[cls_mismatch] = 0
 
         # The matching priority is first detection confidence and then IoU value.
         # The detection is already sorted by confidence in NMS, so here for each prediction we order the targets by iou.
