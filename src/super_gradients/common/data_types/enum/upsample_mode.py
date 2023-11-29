@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class UpsampleMode(Enum):
+class UpsampleMode(str, Enum):
     NEAREST = "nearest"
     BILINEAR = "bilinear"
     BICUBIC = "bicubic"
