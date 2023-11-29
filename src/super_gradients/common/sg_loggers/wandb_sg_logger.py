@@ -281,11 +281,6 @@ class WandBSGLogger(BaseSGLogger):
             else:
                 wandb.save(glob_str=path, base_path=self._local_dir, policy="now")
 
-    @multi_process_safe
-    def flush(self):
-        super().flush()
-        wandb.flush()
-
     def _get_tensorboard_file_name(self):
         try:
             tb_file_path = self.tensorboard_writer.file_writer.event_writer._file_name
