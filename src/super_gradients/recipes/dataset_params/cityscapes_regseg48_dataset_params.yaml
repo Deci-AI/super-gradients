@@ -5,6 +5,11 @@ defaults:
 train_dataset_params:
   transforms:
     # for more options see common.factories.transforms_factory.py
+    - Albumentations:
+        Compose:
+          transforms:
+            - HorizontalFlip:
+                p: 1.
     - SegColorJitter:
         brightness: 0.1
         contrast: 0.1
@@ -27,6 +32,8 @@ train_dataset_params:
 
 train_dataloader_params:
   batch_size: 4
+  num_workers: 0
 
 val_dataloader_params:
   batch_size: 4
+  num_workers: 0

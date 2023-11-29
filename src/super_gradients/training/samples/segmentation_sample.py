@@ -3,7 +3,7 @@ from typing import Union
 
 import numpy as np
 import torch
-
+from PIL import Image
 
 __all__ = ["SegmentationSample"]
 
@@ -23,8 +23,8 @@ class SegmentationSample:
 
     __slots__ = ["image", "mask"]
 
-    image: Union[np.ndarray, torch.Tensor]
-    mask: Union[np.ndarray, torch.Tensor]
+    image: Image
+    mask: Image
 
     def __init__(self, image: Union[np.ndarray, torch.Tensor], mask: Union[np.ndarray, torch.Tensor]):
         self.image = image

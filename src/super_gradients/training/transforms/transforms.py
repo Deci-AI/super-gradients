@@ -8,7 +8,8 @@ import cv2
 import numpy as np
 import torch.nn
 from PIL import Image, ImageFilter, ImageOps
-from torchvision import transforms as transforms
+from torchvision import transforms as _transforms
+from torchvision.transforms.functional import to_tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -19,7 +20,7 @@ from super_gradients.training.datasets.data_formats import ConcatenatedTensorFor
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyxy_to_xywh
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
-from super_gradients.training.samples import DetectionSample
+from super_gradients.training.samples import DetectionSample, SegmentationSample
 from super_gradients.training.transforms.detection import DetectionPadIfNeeded, AbstractDetectionTransform, LegacyDetectionTransformMixin
 from super_gradients.training.transforms.segmentation.abstract_segmentation_transform import AbstractSegmentationTransform
 from super_gradients.training.transforms.segmentation.legacy_segmentation_transform_mixin import LegacySegmentationTransformMixin
@@ -58,11 +59,11 @@ class SegResize(AbstractSegmentationTransform, LegacySegmentationTransformMixin)
         self.h = h
         self.w = w
 
-    def __call__(self, sample):
-        image = sample["image"]
-        mask = sample["mask"]
-        sample["image"] = image.resize((self.w, self.h), IMAGE_RESAMPLE_MODE)
-        sample["mask"] = mask.resize((self.w, self.h), MASK_RESAMPLE_MODE)
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
+        sample.image = image.resize((self.w, self.h), IMAGE_RESAMPLE_MODE)
+        sample.mask = mask.resize((self.w, self.h), MASK_RESAMPLE_MODE)
         return sample
 
 
@@ -76,14 +77,14 @@ class SegRandomFlip(AbstractSegmentationTransform, LegacySegmentationTransformMi
         assert 0.0 <= prob <= 1.0, f"Probability value must be between 0 and 1, found {prob}"
         self.prob = prob
 
-    def __call__(self, sample: dict) -> dict:
-        image = sample["image"]
-        mask = sample["mask"]
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
         if random.random() < self.prob:
             image = image.transpose(Image.FLIP_LEFT_RIGHT)
             mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
-            sample["image"] = image
-            sample["mask"] = mask
+            sample.image = image
+            sample.mask = mask
 
         return sample
 
@@ -109,9 +110,9 @@ class SegRescale(AbstractSegmentationTransform, LegacySegmentationTransformMixin
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict) -> dict:
-        image = sample["image"]
-        mask = sample["mask"]
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
         w, h = image.size
         if self.scale_factor is not None:
             scale = self.scale_factor
@@ -127,8 +128,8 @@ class SegRescale(AbstractSegmentationTransform, LegacySegmentationTransformMixin
         image = image.resize(out_size, IMAGE_RESAMPLE_MODE)
         mask = mask.resize(out_size, MASK_RESAMPLE_MODE)
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -145,7 +146,7 @@ class SegRescale(AbstractSegmentationTransform, LegacySegmentationTransformMixin
 
 
 @register_transform(Transforms.SegRandomRescale)
-class SegRandomRescale:
+class SegRandomRescale(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     """
     Random rescale the image and mask (synchronously) while preserving aspect ratio.
     Scale factor is randomly picked between scales [min, max]
@@ -159,9 +160,9 @@ class SegRandomRescale:
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict) -> dict:
-        image = sample["image"]
-        mask = sample["mask"]
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
         w, h = image.size
 
         scale = random.uniform(self.scales[0], self.scales[1])
@@ -170,8 +171,8 @@ class SegRandomRescale:
         image = image.resize(out_size, IMAGE_RESAMPLE_MODE)
         mask = mask.resize(out_size, MASK_RESAMPLE_MODE)
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -207,16 +208,16 @@ class SegRandomRotate(AbstractSegmentationTransform, LegacySegmentationTransform
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict) -> dict:
-        image = sample["image"]
-        mask = sample["mask"]
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
 
         deg = random.uniform(self.min_deg, self.max_deg)
         image = image.rotate(deg, resample=IMAGE_RESAMPLE_MODE, fillcolor=self.fill_image)
         mask = mask.rotate(deg, resample=MASK_RESAMPLE_MODE, fillcolor=self.fill_mask)
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -246,9 +247,9 @@ class SegCropImageAndMask(AbstractSegmentationTransform, LegacySegmentationTrans
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict) -> dict:
-        image = sample["image"]
-        mask = sample["mask"]
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
 
         w, h = image.size
         if self.mode == "random":
@@ -261,8 +262,8 @@ class SegCropImageAndMask(AbstractSegmentationTransform, LegacySegmentationTrans
         image = image.crop((x1, y1, x1 + self.crop_size[0], y1 + self.crop_size[1]))
         mask = mask.crop((x1, y1, x1 + self.crop_size[0], y1 + self.crop_size[1]))
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -286,15 +287,15 @@ class SegRandomGaussianBlur(AbstractSegmentationTransform, LegacySegmentationTra
         assert 0.0 <= prob <= 1.0, "Probability value must be between 0 and 1"
         self.prob = prob
 
-    def __call__(self, sample: dict) -> dict:
-        image = sample["image"]
-        mask = sample["mask"]
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
 
         if random.random() < self.prob:
             image = image.filter(ImageFilter.GaussianBlur(radius=random.random()))
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -319,9 +320,9 @@ class SegPadShortToCropSize(AbstractSegmentationTransform, LegacySegmentationTra
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict) -> dict:
-        image = sample["image"]
-        mask = sample["mask"]
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
         w, h = image.size
 
         # pad images from center symmetrically
@@ -334,8 +335,8 @@ class SegPadShortToCropSize(AbstractSegmentationTransform, LegacySegmentationTra
             image = ImageOps.expand(image, border=(pad_left, pad_top, pad_right, pad_bottom), fill=self.fill_image)
             mask = ImageOps.expand(mask, border=(pad_left, pad_top, pad_right, pad_bottom), fill=self.fill_mask)
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -359,9 +360,9 @@ class SegPadToDivisible(AbstractSegmentationTransform, LegacySegmentationTransfo
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict) -> dict:
-        image = sample["image"]
-        mask = sample["mask"]
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
         w, h = image.size
 
         padded_w = int(math.ceil(w / self.divisible_value) * self.divisible_value)
@@ -374,8 +375,8 @@ class SegPadToDivisible(AbstractSegmentationTransform, LegacySegmentationTransfo
             image = ImageOps.expand(image, border=(0, 0, padw, padh), fill=self.fill_image)
             mask = ImageOps.expand(mask, border=(0, 0, padw, padh), fill=self.fill_mask)
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -384,9 +385,12 @@ class SegPadToDivisible(AbstractSegmentationTransform, LegacySegmentationTransfo
 
 
 @register_transform(Transforms.SegColorJitter)
-class SegColorJitter(transforms.ColorJitter):
-    def __call__(self, sample):
-        sample["image"] = super(SegColorJitter, self).__call__(sample["image"])
+class SegColorJitter(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
+    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
+        self._color_jitter = _transforms.ColorJitter(brightness=brightness, contrast=contrast, saturation=saturation, hue=hue)
+
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        sample.image = self._color_jitter(sample.image)
         return sample
 
 
@@ -751,8 +755,11 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
         raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
-# class SegToTensor(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
-#     def __call__(self, *args, **kwargs):
+class SegToTensor(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        sample.image = to_tensor(sample.image)
+        sample.mask = torch.from_numpy(np.array(sample.mask)).long()
+        return sample
 
 
 @register_transform(Transforms.DetectionImagePermute)

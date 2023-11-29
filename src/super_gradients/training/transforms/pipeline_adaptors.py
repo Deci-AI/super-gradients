@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Callable
 from abc import abstractmethod, ABC
 import numpy as np
-
+from PIL import Image
 from super_gradients.training.samples import DetectionSample, SegmentationSample
 
 
@@ -53,6 +53,8 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
     def prep_for_transforms(self, sample):
         if self.sample_type == SampleType.DETECTION:
             sample = {"image": sample.image, "bboxes": sample.bboxes_xyxy, "labels": sample.labels, "is_crowd": sample.is_crowd}
+        elif self.sample_type == SampleType.SEGMENTATION:
+            sample = {"image": np.array(sample.image), "mask": np.array(sample.mask)}
         else:
             sample = {"image": np.array(sample)}
         return sample
@@ -65,11 +67,17 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
                 sample["labels"] = np.zeros((0))
             if len(sample["is_crowd"]) == 0:
                 sample["is_crowd"] = np.zeros((0))
-            return DetectionSample(
+            sample = DetectionSample(
                 image=sample["image"],
                 bboxes_xyxy=np.array(sample["bboxes"]),
                 labels=np.array(sample["labels"]),
                 is_crowd=np.array(sample["is_crowd"]),
                 additional_samples=None,
             )
-        return sample["image"]
+        elif self.sample_type == SampleType.SEGMENTATION:
+            sample = SegmentationSample(image=Image.fromarray(sample["image"]), mask=Image.fromarray(sample["mask"]))
+
+        else:
+            sample = sample["image"]
+
+        return sample

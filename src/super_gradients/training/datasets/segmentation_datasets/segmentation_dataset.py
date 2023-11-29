@@ -12,6 +12,7 @@ from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.sg_dataset import DirectoryDataSet, ListDataset
+from super_gradients.training.samples import SegmentationSample
 
 
 @register_dataset(Datasets.SEGMENTATION_DATASET)
@@ -74,7 +75,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
                 collate_fn=collate_fn,
             )
 
-        self.transforms = transform.Compose(transforms if transforms else [])
+        self.transforms = transforms if transforms else []
 
     def __getitem__(self, index):
         sample_path, target_path = self.samples_targets_tuples_list[index]
@@ -207,5 +208,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         :param mask:            The input mask
         :return:                The transformed image, mask
         """
-        transformed = self.transforms({"image": image, "mask": mask})
-        return transformed["image"], transformed["mask"]
+        sample = SegmentationSample(image=image, mask=mask)
+        for t in self.transforms:
+            sample = t.apply_to_sample(sample)
+        return sample.image, sample.mask
