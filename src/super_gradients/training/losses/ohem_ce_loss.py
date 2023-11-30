@@ -46,7 +46,7 @@ class OhemLoss(_Loss):
             num_pixels = labels.numel()
         # if all pixels are ignore labels, return empty loss tensor
         if num_pixels == 0:
-            return torch.tensor([0.0]).requires_grad_(True)
+            return torch.tensor([0.0]).requires_grad_(True).to(logits.device)
 
         num_mining = int(self.mining_percent * num_pixels)
         # in case mining_percent=1, prevent out of bound exception
