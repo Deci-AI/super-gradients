@@ -1,9 +1,5 @@
 import os
 from typing import Callable, Iterable
-
-import numpy as np
-import torch
-import torchvision.transforms as transform
 from PIL import Image
 from tqdm import tqdm
 
@@ -90,8 +86,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
 
         # MAKE SURE THE TRANSFORM WORKS ON BOTH IMAGE AND MASK TO ALIGN THE AUGMENTATIONS
         sample, target = self._transform_image_and_mask(sample, target)
-
-        return self.sample_transform(sample), self.target_transform(target)
+        return sample, target
 
     @staticmethod
     def sample_loader(sample_path: str) -> Image:
@@ -104,21 +99,6 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         return image
 
     @staticmethod
-    def sample_transform(image):
-        """
-        sample_transform - Transforms the sample image
-
-            :param image:  The input image to transform
-            :return:       The transformed image
-        """
-        sample_transform = transform.Compose([transform.ToTensor(), SegmentationDataSet.get_normalize_transform()])
-        return sample_transform(image)
-
-    @staticmethod
-    def get_normalize_transform():
-        return transform.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-
-    @staticmethod
     def target_loader(target_path: str) -> Image:
         """
         target_loader
@@ -127,16 +107,6 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         """
         target = Image.open(target_path)
         return target
-
-    @staticmethod
-    def target_transform(target):
-        """
-        target_transform - Transforms the sample image
-
-            :param target: The target mask to transform
-            :return:       The transformed target mask
-        """
-        return torch.from_numpy(np.array(target)).long()
 
     def _generate_samples_and_targets(self):
         """

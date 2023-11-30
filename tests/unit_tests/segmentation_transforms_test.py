@@ -1,10 +1,10 @@
 import unittest
 
+import numpy as np
 import torch
 from torchvision.transforms import Compose, ToTensor
 from super_gradients.training.transforms.transforms import SegRescale, SegRandomRescale, SegCropImageAndMask, SegPadShortToCropSize
 from PIL import Image
-from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
 
 class SegmentationTransformsTest(unittest.TestCase):
@@ -145,7 +145,7 @@ class SegmentationTransformsTest(unittest.TestCase):
         padding = SegPadShortToCropSize(crop_size=out_size, fill_mask=fill_mask_value, fill_image=fill_image_value)
         out = padding(sample)
 
-        out_mask = SegmentationDataSet.target_transform(out["mask"])
+        out_mask = torch.from_numpy(np.array(out["mask"]))
         # same as SegmentationDataset transform just without normalization to easily keep track of values.
         out_image = image_to_tensor(out["image"])
 
