@@ -9,7 +9,7 @@ import numpy as np
 import torch.nn
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as _transforms
-from torchvision.transforms.functional import to_tensor
+from torchvision.transforms.functional import to_tensor, normalize
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -755,10 +755,30 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
         raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
+@register_transform(Transforms.SegToTensor)
 class SegToTensor(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
         sample.image = to_tensor(sample.image)
         sample.mask = torch.from_numpy(np.array(sample.mask)).long()
+        return sample
+
+
+@register_transform(Transforms.SegNormalize)
+class SegNormalize(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
+    """
+    Normalization to be applied on the segmentation sample's image.
+
+    A call to SegToTensor prior to this transform is required.
+    :param mean (sequence): Sequence of means for each channel.
+    :param std (sequence): Sequence of standard deviations for each channel.
+    """
+
+    def __init__(self, mean: List[float], std: List[float]):
+        self.mean = mean
+        self.std = std
+
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        sample.image = normalize(sample.image, self.mean, self.std)
         return sample
 
 

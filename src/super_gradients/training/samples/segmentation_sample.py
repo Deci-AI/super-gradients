@@ -23,9 +23,9 @@ class SegmentationSample:
 
     __slots__ = ["image", "mask"]
 
-    image: Image
-    mask: Image
+    image: Union[np.ndarray, torch.Tensor, Image]
+    mask: Union[np.ndarray, torch.Tensor, Image]
 
-    def __init__(self, image: Union[np.ndarray, torch.Tensor], mask: Union[np.ndarray, torch.Tensor]):
+    def __init__(self, image: Union[np.ndarray, torch.Tensor, Image], mask: Union[np.ndarray, torch.Tensor, Image]):
         self.image = image
         self.mask = mask

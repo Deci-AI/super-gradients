@@ -56,9 +56,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
                 file=list_file,
                 target_extension=target_extension,
                 sample_loader=self.sample_loader,
-                sample_transform=self.sample_transform,
                 target_loader=self.target_loader,
-                target_transform=self.target_transform,
                 collate_fn=collate_fn,
             )
         else:
@@ -69,9 +67,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
                 targets_sub_directory=targets_sub_directory,
                 target_extension=target_extension,
                 sample_loader=self.sample_loader,
-                sample_transform=self.sample_transform,
                 target_loader=self.target_loader,
-                target_transform=self.target_transform,
                 collate_fn=collate_fn,
             )
 
