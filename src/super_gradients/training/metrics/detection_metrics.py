@@ -138,7 +138,7 @@ class DetectionMetrics(Metric):
         self.rank = None
         self.add_state(f"{metric_prefix}matching_info{self._get_range_str()}", default=[], dist_reduce_fx=None)
 
-        self.recall_thresholds = torch.linspace(0, 1, 101) if recall_thres is None else recall_thres
+        self.recall_thresholds = torch.linspace(0, 1, 101) if recall_thres is None else torch.tensor(recall_thres, dtype=torch.float32)
         self.score_threshold = score_thres
         self.top_k_predictions = top_k_predictions
 
