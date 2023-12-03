@@ -27,11 +27,10 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         self.max_predictions = max_predictions
         self.multi_label_per_box = multi_label_per_box
 
-    def forward(self, outputs, device: str):
+    def forward(self, outputs):
         """
 
         :param x: Tuple of (bboxes, scores) of shape [B, Anchors, 4], [B, Anchors, C]
-        :param device:
         :return:
         """
         nms_result = []
