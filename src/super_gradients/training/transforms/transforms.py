@@ -32,6 +32,7 @@ from super_gradients.training.transforms.utils import (
 )
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat, change_bbox_bounds_for_image_size
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
+import torch
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
 MASK_RESAMPLE_MODE = Image.NEAREST
@@ -757,9 +758,30 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
 
 @register_transform(Transforms.SegToTensor)
 class SegToTensor(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
+    """
+    Converts SegmentationSample images and masks to PyTorch tensors.
+
+    :param mask_output_dtype (Optional[str]): The desired output data type for the mask tensor.
+    :param add_mask_dummy_dim (bool): Whether to add a dummy channels dimension to the mask tensor.
+    """
+
+    def __init__(self, mask_output_dtype: Optional[str] = None, add_mask_dummy_dim: bool = False):
+        self.mask_output_dtype = mask_output_dtype
+        self.add_mask_dummy_dim = add_mask_dummy_dim
+
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
         sample.image = to_tensor(sample.image)
-        sample.mask = torch.from_numpy(np.array(sample.mask)).long()
+
+        # Convert mask to torch tensor with specified dtype
+        if self.mask_output_dtype is not None:
+            sample.mask = torch.from_numpy(np.array(sample.mask)).to(dtype=self.mask_output_dtype)
+        else:
+            sample.mask = torch.from_numpy(np.array(sample.mask))
+
+        # Add dummy channels dimension if needed
+        if self.add_mask_dummy_dim:
+            sample.mask = sample.mask.unsqueeze(0)
+
         return sample
 
 
