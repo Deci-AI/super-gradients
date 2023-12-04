@@ -9,7 +9,15 @@ from super_gradients.training.utils.detection_utils import DetectionPostPredicti
 class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
     """Non-Maximum Suppression (NMS) module"""
 
-    def __init__(self, score_threshold: float, nms_threshold: float, nms_top_k: int, max_predictions: int, multi_label_per_box: bool = True):
+    def __init__(
+        self,
+        score_threshold: float,
+        nms_threshold: float,
+        nms_top_k: int,
+        max_predictions: int,
+        multi_label_per_box: bool = True,
+        class_agnostic_nms: bool = False,
+    ):
         """
         :param score_threshold: Predictions confidence threshold. Predictions with score lower than score_threshold will not participate in Top-K & NMS
         :param nms_threshold: IoU threshold for NMS step.
@@ -26,6 +34,7 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         self.nms_top_k = nms_top_k
         self.max_predictions = max_predictions
         self.multi_label_per_box = multi_label_per_box
+        self.class_agnostic_nms = class_agnostic_nms
 
     @torch.no_grad()
     def forward(self, outputs, device: str):
@@ -67,7 +76,10 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
                 pred_bboxes = pred_bboxes[topk_candidates.indices, :]
 
             # NMS
-            idx_to_keep = torchvision.ops.boxes.batched_nms(boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=self.nms_threshold)
+            if self.class_agnostic_nms:
+                idx_to_keep = torchvision.ops.boxes.nms(pred_bboxes, pred_cls_conf, iou_threshold=self.nms_threshold)
+            else:
+                idx_to_keep = torchvision.ops.boxes.batched_nms(boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=self.nms_threshold)
 
             pred_cls_conf = pred_cls_conf[idx_to_keep].unsqueeze(-1)
             pred_cls_label = pred_cls_label[idx_to_keep].unsqueeze(-1)
