@@ -11,8 +11,8 @@ __all__ = ["SegmentationSample"]
 @dataclasses.dataclass
 class SegmentationSample:
     """
-    A data class describing a single object detection sample that comes from a dataset.
-    It contains both input image and target information to train an object detection model.
+    A data class describing a single semantic segmentation sample that comes from a dataset.
+    It contains both input image and target segmentation mask to train an semantic segmentation model.
 
     :param image:              Associated image with sample, in [H,W,C] (or H,W for greyscale) format.
     :param mask:               Associated segmentation mask with sample, in [H,W,C]
