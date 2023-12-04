@@ -795,9 +795,9 @@ class SegNormalize(AbstractSegmentationTransform, LegacySegmentationTransformMix
     :param std (sequence): Sequence of standard deviations for each channel.
     """
 
-    def __init__(self, mean: List[float], std: List[float]):
-        self.mean = mean
-        self.std = std
+    def __init__(self, mean: Sequence[float], std: Sequence[float]):
+        self.mean = list(mean)
+        self.std = list(std)
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
         sample.image = normalize(sample.image, self.mean, self.std)
