@@ -1,0 +1,45 @@
+# Base recipe for ImageNet Datasets amd Dataloaders.
+img_mean: [0.485, 0.456, 0.406] # mean for normalization
+img_std: [0.229, 0.224, 0.225]  # std  for normalization
+
+train_dataset_params:
+  root: /data/Imagenet/train
+  pre_transforms:
+    - Resize:
+        size: 256
+    - CenterCrop:
+        size: 224
+  augmentations: []
+  post_transforms:
+    - ToTensor
+    - Normalize:
+        mean: ${dataset_params.img_mean}
+        std: ${dataset_params.img_std}
+
+val_dataset_params:
+  root: /data/Imagenet/val
+  pre_transforms:
+    - Resize:
+        size: 256
+    - CenterCrop:
+        size: 224
+  post_transforms:
+    - ToTensor
+    - Normalize:
+        mean: ${dataset_params.img_mean}
+        std: ${dataset_params.img_std}
+
+train_dataloader_params:
+  shuffle: True
+  batch_size: 64
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+
+val_dataloader_params:
+  batch_size: 200
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+
+_convert_: all

@@ -369,6 +369,28 @@ def imagenet_val(dataset_params: Dict = None, dataloader_params: Dict = None, co
     )
 
 
+@register_dataloader("imagenet_ae_train")
+def imagenet_ae_train(dataset_params: Dict = None, dataloader_params: Dict = None, config_name="imagenet_ae_dataset_params"):
+    return get_data_loader(
+        config_name=config_name,
+        dataset_cls=ImageNetDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader("imagenet_ae_val")
+def imagenet_ae_val(dataset_params: Dict = None, dataloader_params: Dict = None, config_name="imagenet_ae_dataset_params"):
+    return get_data_loader(
+        config_name=config_name,
+        dataset_cls=ImageNetDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
 @register_dataloader(Dataloaders.IMAGENET_EFFICIENTNET_TRAIN)
 def imagenet_efficientnet_train(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return imagenet_train(
