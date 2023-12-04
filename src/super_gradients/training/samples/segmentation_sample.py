@@ -15,9 +15,7 @@ class SegmentationSample:
     It contains both input image and target segmentation mask to train an semantic segmentation model.
 
     :param image:              Associated image with sample, in [H,W,C] (or H,W for greyscale) format.
-    :param mask:               Associated segmentation mask with sample, in [H,W,C]
-                                (or optionally H,W for binary case) format.
-
+    :param mask:               Associated segmentation mask with sample, in [H,W]
     """
 
     __slots__ = ["image", "mask"]

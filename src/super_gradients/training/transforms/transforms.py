@@ -765,7 +765,7 @@ class SegToTensor(AbstractSegmentationTransform, LegacySegmentationTransformMixi
     :param add_mask_dummy_dim (bool): Whether to add a dummy channels dimension to the mask tensor.
     """
 
-    def __init__(self, mask_output_dtype: Optional[str] = None, add_mask_dummy_dim: bool = False):
+    def __init__(self, mask_output_dtype: Optional[torch.dtype] = None, add_mask_dummy_dim: bool = False):
         self.mask_output_dtype = mask_output_dtype
         self.add_mask_dummy_dim = add_mask_dummy_dim
 
