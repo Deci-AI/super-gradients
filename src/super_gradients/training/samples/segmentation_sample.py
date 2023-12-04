@@ -14,11 +14,10 @@ class SegmentationSample:
     A data class describing a single object detection sample that comes from a dataset.
     It contains both input image and target information to train an object detection model.
 
-    :param image:              Associated image with a sample. Can be in [H,W,C] or [C,H,W] format
-    :param bboxes_xywh:        Numpy array of [N,4] shape with bounding box of each instance (XYWH)
-    :param labels:             Numpy array of [N] shape with class label for each instance
-    :param is_crowd:           (Optional) Numpy array of [N] shape with is_crowd flag for each instance
-    :param additional_samples: (Optional) List of additional samples for the same image.
+    :param image:              Associated image with sample, in [H,W,C] (or H,W for greyscale) format.
+    :param mask:               Associated segmentation mask with sample, in [H,W,C]
+                                (or optionally H,W for binary case) format.
+
     """
 
     __slots__ = ["image", "mask"]
