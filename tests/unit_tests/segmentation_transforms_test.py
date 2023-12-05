@@ -232,7 +232,7 @@ class SegmentationTransformsTest(unittest.TestCase):
                 {
                     "SegCropImageAndMask": {"crop_size": 256, "mode": "center"},
                 },
-                {"SegToTensor": {"output_dtype": torch.float32}},
+                {"SegToTensor": {"mask_output_dtype": torch.float32}},
             ],
         )
 
