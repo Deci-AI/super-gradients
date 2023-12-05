@@ -1174,6 +1174,12 @@ class Trainer:
                        IMPORTANT: Only works for experiments that were ran with sg_logger_params.save_checkpoints_remote=True.
                        IMPORTANT: For WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
 
+                -   `max_train_batches`: For debug- when not None- will break out of inner train loop (i.e iterating over train_loader)
+                        when reaching this number of batches.
+
+                -   `max_valid_batches`: For debug- when not None- will break out of inner valid loop (i.e iterating over valid_loader)
+                        when reaching this number of batches.
+
 
 
         :return:
