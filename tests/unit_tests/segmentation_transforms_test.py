@@ -254,7 +254,7 @@ class SegmentationTransformsTest(unittest.TestCase):
                 {
                     "SegCropImageAndMask": {"crop_size": 256, "mode": "center"},
                 },
-                {"SegToTensor": {"mask_output_dtype": torch.float32, "add_mask_dummy_dim": True}},
+                {"SegToTensor": {"mask_output_dtype": "float32", "add_mask_dummy_dim": True}},
             ],
             dataset_classes_inclusion_tuples_list=[(1, "person")],
         )

@@ -14,6 +14,7 @@ from torchvision.transforms.functional import to_tensor, normalize
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
+from super_gradients.common.factories.torch_dtype_factory import TorchDtypeFactory
 from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
@@ -765,6 +766,7 @@ class SegToTensor(AbstractSegmentationTransform, LegacySegmentationTransformMixi
     :param add_mask_dummy_dim (bool): Whether to add a dummy channels dimension to the mask tensor.
     """
 
+    @resolve_param("mask_output_dtype", TorchDtypeFactory())
     def __init__(self, mask_output_dtype: Optional[torch.dtype] = None, add_mask_dummy_dim: bool = False):
         self.mask_output_dtype = mask_output_dtype
         self.add_mask_dummy_dim = add_mask_dummy_dim
