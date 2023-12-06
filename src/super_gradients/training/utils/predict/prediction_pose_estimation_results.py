@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import List, Iterator
+from typing import List, Iterator, Optional
 
 import numpy as np
 
@@ -30,7 +30,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> np.ndarray:
         """Draw the predicted bboxes on the image.
@@ -44,7 +44,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
                                 If not None the length must be equal to the number of joints in the skeleton.
         :param keypoint_radius: Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :return:                Image with predicted bboxes. Note that this does not modify the original image.
         """
         image = PoseVisualization.draw_poses(
@@ -69,7 +69,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
         """Display the image with predicted bboxes.
@@ -83,7 +83,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
                                 If not None the length must be equal to the number of joints in the skeleton.
         :param keypoint_radius: Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
         image = self.draw(
             edge_colors=edge_colors,
@@ -102,7 +102,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
         """Save the predicted bboxes on the images.
@@ -117,7 +117,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
                                 If not None the length must be equal to the number of joints in the skeleton.
         :param keypoint_radius: Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
         image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence)
         save_image(image=image, path=output_path)
@@ -138,7 +138,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
         """Display the predicted bboxes on the images.
@@ -152,7 +152,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
                                 If not None the length must be equal to the number of joints in the skeleton.
         :param keypoint_radius: Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
         for prediction in self._images_prediction_lst:
             prediction.show(
@@ -171,7 +171,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
         """Save the predicted bboxes on the images.
@@ -186,7 +186,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
                                 If not None the length must be equal to the number of joints in the skeleton.
         :param keypoint_radius: Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
         if output_folder:
             os.makedirs(output_folder, exist_ok=True)
@@ -222,7 +222,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> Iterator[np.ndarray]:
         """Draw the predicted bboxes on the images.
@@ -237,7 +237,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
                                 If not None the length must be equal to the number of joints in the skeleton.
         :param keypoint_radius: Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
 
         :return:                Iterator of images with predicted bboxes. Note that this does not modify the original image.
         """
@@ -258,7 +258,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
         """Display the predicted bboxes on the images.
@@ -272,7 +272,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
                                 If not None the length must be equal to the number of joints in the skeleton.
         :param keypoint_radius: Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
         frames = self.draw(
             edge_colors=edge_colors,
@@ -291,7 +291,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
         """Save the predicted bboxes on the images.
@@ -306,7 +306,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
                                 If not None the length must be equal to the number of joints in the skeleton.
         :param keypoint_radius: Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
         frames = self.draw(
             edge_colors=edge_colors,

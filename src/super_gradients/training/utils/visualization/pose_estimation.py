@@ -16,7 +16,7 @@ def draw_skeleton(
     keypoint_colors: Union[None, np.ndarray, List[Tuple[int, int, int]]],
     keypoint_radius: int,
     show_confidence: bool,
-    box_thickness: int,
+    box_thickness: Optional[int],
     keypoint_confidence_threshold: float = 0.0,
     show_keypoint_confidence: bool = False,
 ):
@@ -33,7 +33,7 @@ def draw_skeleton(
     :param keypoint_colors: Array of shape [Num Joints, 3] or list of tuples containing the (r,g,b) colors for each keypoint.
     :param keypoint_radius: Radius of the keypoints (in pixels)
     :param show_confidence: Whether to show the bounding box around the pose and confidence score on top of it.
-    :param box_thickness:   Thickness of bounding boxes.
+    :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
     :param keypoint_confidence_threshold: If keypoints contains confidence scores (Shape is [Num Joints, 3]), this function
     will draw keypoints with confidence score > threshold.
     :param show_keypoint_confidence: Whether to show the confidence score for each keypoint individually.
@@ -130,7 +130,7 @@ class PoseVisualization:
         keypoint_colors: Union[None, np.ndarray, List[Tuple[int, int, int]]],
         show_keypoint_confidence: bool = False,
         joint_thickness: int = 2,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         keypoint_radius: int = 3,
         keypoint_confidence_threshold: float = 0.5,
     ):
