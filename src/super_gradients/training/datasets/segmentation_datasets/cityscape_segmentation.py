@@ -134,20 +134,10 @@ class CityscapesDataset(SegmentationDataSet):
     def get_train_ids_color_palette(self):
         return self.train_id_color_palette
 
-    @staticmethod
-    def target_transform(target):
-        """
-        target_transform - Transforms the sample image
-        This function overrides the original function from SegmentationDataSet and changes target pixels with value
-        255 to value = CITYSCAPES_IGNORE_LABEL. This was done since current IoU metric from torchmetrics does not
-        support such a high ignore label value (crashed on OOM)
-
-            :param target: The target mask to transform
-            :return:       The transformed target mask
-        """
-        out = SegmentationDataSet.target_transform(target)
-        out[out == 255] = CITYSCAPES_IGNORE_LABEL
-        return out
+    def __getitem__(self, index):
+        sample, target = super(CityscapesDataset, self).__getitem__(index)
+        target[target == 255] = CITYSCAPES_IGNORE_LABEL
+        return sample, target
 
 
 @register_dataset(Datasets.CITYSCAPES_CONCAT_DATASET)

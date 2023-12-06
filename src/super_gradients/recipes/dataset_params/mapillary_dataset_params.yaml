@@ -36,6 +36,13 @@ train_dataset_params:
         crop_size: 1024
         mode: random
 
+    - SegToTensor
+
+    - SegNormalize:
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
+
+
 val_dataset_params:
   root_dir: /data/mapillary-vistas-dataset_public_v2.0
   config_file: config_v${..config_version}.json
@@ -50,6 +57,13 @@ val_dataset_params:
     - SegPadToDivisible:
         divisible_value: 32
         fill_mask: ${dataset_params.mask_fill_value}
+
+    - SegToTensor
+
+    - SegNormalize:
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
+
 
 train_dataloader_params:
   shuffle: True
