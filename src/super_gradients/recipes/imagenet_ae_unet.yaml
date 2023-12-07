@@ -1,0 +1,39 @@
+#  RepVGGA0 Imagenet classification training:
+#  This example trains with batch_size = 64 * 4 GPUs, total 256.
+#  Training time on 4 X GeForce RTX 3090 Ti is 10min / epoch, total time ~ 20h 22m (DistributedDataParallel).
+#  Reach => 72.05 Top1 accuracy.
+#
+#  Log and tensorboard at s3://deci-pretrained-models/repvggg-a0-imagenet-tensorboard/
+#
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python -m super_gradients.train_from_recipe --config-name=imagenet_repvgg
+
+defaults:
+  - training_hyperparams: imagenet_ae_unet_train_params
+  - dataset_params: imagenet_ae_dataset_params
+  - arch_params: unet_ae_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+arch_params:
+  num_classes: 3
+train_dataloader: imagenet_ae_train
+val_dataloader: imagenet_ae_val
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
+
+experiment_name: unet_ae_imagenet_no_skip_srap1
+
+multi_gpu: DDP
+num_gpus: 8
+
+#multi_gpu: OFF
+#num_gpus: 1
+
+architecture: unet

@@ -1,0 +1,46 @@
+defaults:
+  - default_train_params
+
+max_epochs: 120
+lr_mode: CosineLRScheduler
+initial_lr: 0.03
+cosine_final_lr_ratio: 0
+
+loss: MSE
+
+zero_weight_decay_on_bias_and_bn: True
+average_best_models: True
+
+
+metric_to_watch: PSNR
+greater_metric_to_watch_is_better: True
+
+train_metrics_list:                               # metrics for evaluation
+  - PSNR
+
+valid_metrics_list:                               # metrics for evaluation
+  - PSNR
+
+#max_train_batches: 1
+
+sg_logger: wandb_sg_logger
+sg_logger_params:
+  project_name: AE_Imagenet
+  entity: super-gradients
+  api_server: "https://wandb.research.deci.ai"
+  tb_files_user_prompt: false
+  launch_tensorboard: false
+  tensorboard_port: null
+  save_checkpoints_remote: false
+  save_tensorboard_remote: false
+  save_logs_remote: false
+  monitor_system: false
+
+phase_callbacks:
+- AEVisualizationCallback:
+    freq: 1
+    phase:
+      _target_: super_gradients.training.utils.callbacks.callbacks.Phase
+      value: VALIDATION_BATCH_END
+
+_convert_: all

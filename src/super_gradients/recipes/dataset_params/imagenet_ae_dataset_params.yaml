@@ -9,12 +9,17 @@ train_dataset_params:
         size: 256
     - CenterCrop:
         size: 224
-  augmentations: []
-  post_transforms:
     - ToTensor
     - Normalize:
         mean: ${dataset_params.img_mean}
         std: ${dataset_params.img_std}
+  augmentations:
+    - RandomErase:
+        probability: 1.0
+        value: 0
+        scale: [ 0.05,0.05 ]
+        ratio: [ 1,1 ]
+  post_transforms: []
 
 val_dataset_params:
   root: /data/Imagenet/val
@@ -23,15 +28,21 @@ val_dataset_params:
         size: 256
     - CenterCrop:
         size: 224
-  post_transforms:
     - ToTensor
     - Normalize:
         mean: ${dataset_params.img_mean}
         std: ${dataset_params.img_std}
+  augmentations:
+    - RandomErase:
+        probability: 1.0
+        value: 0
+        scale: [ 0.05,0.05 ]
+        ratio: [ 1,1 ]
+  post_transforms: []
 
 train_dataloader_params:
   shuffle: True
-  batch_size: 64
+  batch_size: 320
   num_workers: 8
   drop_last: False
   pin_memory: True
