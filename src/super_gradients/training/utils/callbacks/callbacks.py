@@ -6,7 +6,7 @@ import os
 import signal
 import time
 from abc import ABC, abstractmethod
-from typing import List, Union, Optional, Sequence, Mapping
+from typing import List, Union, Optional, Sequence, Mapping, Callable
 
 import cv2
 import numpy as np
@@ -32,7 +32,7 @@ from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback, cxcywh2xyxy, xyxy2cxcywh
 from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
-from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
+from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization, reverse_imagenet_preprocessing
 from super_gradients.training.utils.utils import unwrap_model, infer_model_device, tensor_container_to_device
 
 logger = get_logger(__name__)
@@ -729,6 +729,77 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
             context.sg_logger.add_images(tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch, data_format="NHWC")
+
+
+@register_callback("AEVisualizationCallback")
+class AEVisualizationCallback(PhaseCallback):
+    """
+    A callback that adds a visualization of a batch of segmentation predictions to context.sg_logger
+
+    :param phase:                   When to trigger the callback.
+    :param freq:                    Frequency (in epochs) to perform this callback.
+    :param batch_idx:               Batch index to perform visualization for.
+    :param last_img_idx_in_batch:   Last image index to add to log. (default=-1, will take entire batch).
+    """
+
+    def __init__(self, phase: Phase, freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
+        super(AEVisualizationCallback, self).__init__(phase)
+        self.freq = freq
+        self.batch_idx = batch_idx
+        self.last_img_idx_in_batch = last_img_idx_in_batch
+
+    def __call__(self, context: PhaseContext):
+        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx and not context.ddp_silent_mode and context.sg_logger is not None:
+            batch_imgs = self.visualize_batch(context.inputs, context.target, context.preds, self.batch_idx)
+            batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
+            batch_imgs = np.stack(batch_imgs)
+            tag = "batch_" + str(self.batch_idx) + "_images"
+            context.sg_logger.add_images(tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch + 1, data_format="NHWC")
+
+    @staticmethod
+    def visualize_batch(
+        image_tensor: torch.Tensor,
+        target: torch.Tensor,
+        pred: torch.Tensor,
+        batch_name: Union[int, str],
+        checkpoint_dir: str = None,
+        undo_preprocessing_func: Callable[[torch.Tensor], np.ndarray] = reverse_imagenet_preprocessing,
+        image_scale: float = 1.0,
+        max_images: int = 20,
+    ):
+        """
+        A helper function to visualize detections predicted by a network:
+        saves images into a given path with a name that is {batch_name}_{imade_idx_in_the_batch}.jpg, one batch per call.
+        Colors are generated on the fly: uniformly sampled from color wheel to support all given classes.
+
+        :param image_tensor:            rgb images, (B, H, W, 3)
+        :param pred_mask:              prediction mask in shape [B, 1, H, W] with C number of classes
+        :param target_mask:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, x y w h
+                                        (coordinates scaled to [0, 1])
+        :param batch_name:              id of the current batch to use for image naming
+
+        :param checkpoint_dir:          a path where images with boxes will be saved. if None, the result images will
+                                        be returns as a list of numpy image arrays
+
+        :param undo_preprocessing_func: a function to convert preprocessed images tensor into a batch of cv2-like images
+        :param image_scale:             scale factor for output image
+        """
+        image_np = undo_preprocessing_func(image_tensor.detach())
+        target_np = undo_preprocessing_func(target.detach())
+        pred_np = undo_preprocessing_func(pred.detach())
+
+        out_images = []
+        for i, (im, t, p) in enumerate(zip(image_np, target_np, pred_np)):
+            if i > max_images:
+                break
+
+            res_image = np.concatenate([im, t, p], axis=1)
+            image_name = "_".join([str(batch_name), str(i)])
+            if checkpoint_dir is None:
+                out_images.append(res_image)
+            else:
+                cv2.imwrite(os.path.join(checkpoint_dir, str(image_name) + ".jpg"), res_image)
+        return out_images
 
 
 class TrainingStageSwitchCallbackBase(PhaseCallback):

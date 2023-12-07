@@ -1,6 +1,8 @@
+from typing import Optional
+
 import torch
 import torchmetrics
-from torchmetrics import Metric
+from torchmetrics import Metric, PeakSignalNoiseRatio
 
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
@@ -76,6 +78,13 @@ class Top5(Metric):
 
     def compute(self):
         return self.correct.float() / self.total
+
+
+@register_metric("PSNR")
+class PSNR(PeakSignalNoiseRatio):
+    def __init__(self, data_range: Optional[float] = None):
+        super().__init__(data_range=data_range)
+        self.greater_is_better = True
 
 
 class ToyTestClassificationMetric(Metric):

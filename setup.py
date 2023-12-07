@@ -61,6 +61,12 @@ setup(
         "super_gradients.examples": ["*.ipynb", "**/*.ipynb"],
         "super_gradients": ["requirements.txt", "requirements.pro.txt"],
     },
+    entry_points={
+        "yaml_scripts": [
+            "yaml2code = super_gradients.convert_recipe_to_code:main",
+            "one_yaml = super_gradients.scripts.export_recipe.py:main",
+        ]
+    },
     long_description=readme(),
     long_description_content_type="text/markdown",
     extras_require={"pro": get_pro_requirements()},

@@ -8,6 +8,7 @@ import torch.nn as nn
 from super_gradients.common.registry.registry import register_model, register_unet_backbone_stage, BACKBONE_STAGES
 from super_gradients.common.object_names import Models
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
+from super_gradients.modules.super_rep_block import SuperRepBlock
 from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
 from super_gradients.training.utils.utils import get_param, HpmStruct
 from super_gradients.training import models
@@ -141,14 +142,14 @@ class ConvBaseStage(BackboneStage, ABC):
         # RepVGG blocks
         blocks.extend(
             [
-                self.build_conv_block(in_channels, out_channels, stride=stride),
-                *[self.build_conv_block(out_channels, out_channels, stride=1) for _ in range(num_blocks - 1)],
+                self.build_conv_block(in_channels, out_channels, stride=stride, **kwargs),
+                *[self.build_conv_block(out_channels, out_channels, stride=1, **kwargs) for _ in range(num_blocks - 1)],
             ]
         )
         return nn.Sequential(*blocks)
 
     @abstractmethod
-    def build_conv_block(self, in_channels: int, out_channels: int, stride: int):
+    def build_conv_block(self, in_channels: int, out_channels: int, stride: int, **kwargs):
         raise NotImplementedError()
 
 
@@ -158,8 +159,18 @@ class RepVGGStage(ConvBaseStage):
     RepVGG stage with RepVGGBlock as building block.
     """
 
-    def build_conv_block(self, in_channels: int, out_channels: int, stride: int):
+    def build_conv_block(self, in_channels: int, out_channels: int, stride: int, **kwargs):
         return RepVGGBlock(in_channels, out_channels, stride=stride)
+
+
+@register_unet_backbone_stage()
+class SuperRepStage(ConvBaseStage):
+    """
+    SuperRep stage with SuperRepBlock as building block.
+    """
+
+    def build_conv_block(self, in_channels: int, out_channels: int, stride: int, **kwargs):
+        return SuperRepBlock(in_channels, out_channels, stride=stride, branches=kwargs["branches"])
 
 
 @register_unet_backbone_stage()
@@ -168,7 +179,7 @@ class QARepVGGStage(ConvBaseStage):
     QARepVGG stage with QARepVGGBlock as building block.
     """
 
-    def build_conv_block(self, in_channels: int, out_channels: int, stride: int):
+    def build_conv_block(self, in_channels: int, out_channels: int, stride: int, **kwargs):
         return QARepVGGBlock(in_channels, out_channels, stride=stride, use_residual_connection=(out_channels == in_channels and stride == 1))
 
 
@@ -218,7 +229,7 @@ class ConvStage(ConvBaseStage):
     Conv stage with ConvBNReLU as building block.
     """
 
-    def build_conv_block(self, in_channels: int, out_channels: int, stride: int):
+    def build_conv_block(self, in_channels: int, out_channels: int, stride: int, **kwargs):
         return ConvBNReLU(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
 
 

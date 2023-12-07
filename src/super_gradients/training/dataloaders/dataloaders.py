@@ -18,6 +18,7 @@ from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar10,
     Cifar100,
 )
+from super_gradients.training.datasets.classification_datasets.imagenet_ae_dataset import ImageNetAEDataset
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, RoboflowDetectionDataset, YoloDarknetFormatDetectionDataset
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
     PascalVOCUnifiedDetectionTrainDataset,
@@ -373,7 +374,7 @@ def imagenet_val(dataset_params: Dict = None, dataloader_params: Dict = None, co
 def imagenet_ae_train(dataset_params: Dict = None, dataloader_params: Dict = None, config_name="imagenet_ae_dataset_params"):
     return get_data_loader(
         config_name=config_name,
-        dataset_cls=ImageNetDataset,
+        dataset_cls=ImageNetAEDataset,
         train=True,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
@@ -384,7 +385,7 @@ def imagenet_ae_train(dataset_params: Dict = None, dataloader_params: Dict = Non
 def imagenet_ae_val(dataset_params: Dict = None, dataloader_params: Dict = None, config_name="imagenet_ae_dataset_params"):
     return get_data_loader(
         config_name=config_name,
-        dataset_cls=ImageNetDataset,
+        dataset_cls=ImageNetAEDataset,
         train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,

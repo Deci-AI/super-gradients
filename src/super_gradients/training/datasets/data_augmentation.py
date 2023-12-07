@@ -102,11 +102,11 @@ class RandomErase(RandomErasing):
     A simple class that translates the parameters supported in SuperGradient's code base
     """
 
-    def __init__(self, probability: float, value: str):
+    def __init__(self, probability: float, scale, ratio, value: str):
         # value might be a string representing a float. First we try to convert to float and if fails,
         # pass it as-is to super
         try:
             value = float(value)
         except ValueError:
             pass
-        super().__init__(p=probability, value=value)
+        super().__init__(p=probability, scale=tuple(scale), ratio=tuple(ratio), value=value)
