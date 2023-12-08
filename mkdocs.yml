@@ -1,5 +1,8 @@
 site_name: super-gradients
 docs_dir: .
+extra_javascript:
+  - https://widget.kapa.ai/kapa-widget.bundle.js
+  - ./documentation/javascript/init_kapa_widget.js
 nav:
   - Welcome:
     - Intro: ./documentation/source/welcome.md
@@ -49,6 +52,3 @@ nav:
   - Troubleshooting: ./documentation/source/troubleshooting.md
   - Contribution: ./documentation/source/CONTRIBUTING.md
   - Code: this_is_automatically_generated.md
-extra_javascript:
- - "https://widget.kapa.ai/kapa-widget.bundle.js"
- - "./documentation/javascript/init_kapa_widget.js"
