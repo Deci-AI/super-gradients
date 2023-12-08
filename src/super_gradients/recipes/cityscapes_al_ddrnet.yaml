@@ -57,6 +57,13 @@ dataset_params:
           crop_size: [ 1024, 1024 ]
           mode: random
 
+      - SegToTensor
+
+      - SegNormalize:
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+
+
 training_hyperparams:
   max_epochs: 200
   initial_lr: 0.0075   # batch size 24

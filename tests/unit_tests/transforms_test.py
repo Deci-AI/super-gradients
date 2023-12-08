@@ -1,7 +1,16 @@
+import copy
 import unittest
+from pathlib import Path
 
+import cv2
+import matplotlib.pyplot as plt
 import numpy as np
+from omegaconf import ListConfig
 
+from super_gradients.common.registry import register_transform
+from super_gradients.training.datasets import COCODetectionDataset
+from super_gradients.training.transforms import KeypointsMixup, KeypointsCompose
+from super_gradients.training.transforms.detection import LegacyDetectionTransformMixin
 from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsRandomHorizontalFlip,
     KeypointsRandomVerticalFlip,
@@ -9,18 +18,22 @@ from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
 )
+from super_gradients.training.samples import PoseEstimationSample, DetectionSample
+
+from super_gradients.training.transforms.keypoints import KeypointsBrightnessContrast, KeypointsMosaic
 from super_gradients.training.transforms.transforms import (
     DetectionImagePermute,
     DetectionPadToSize,
     DetectionHorizontalFlip,
     DetectionVerticalFlip,
+    DetectionTransform,
 )
 
 from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
     _pad_image,
-    _shift_bboxes,
+    _shift_bboxes_xyxy,
     _rescale_and_pad_to_size,
     _rescale_xyxy_bboxes,
     _get_center_padding_coordinates,
@@ -30,9 +43,12 @@ from super_gradients.training.transforms.utils import (
 
 
 class TestTransforms(unittest.TestCase):
+    def setUp(self) -> None:
+        self.mini_coco_data_dir = str(Path(__file__).parent.parent / "data" / "tinycoco")
+
     def test_keypoints_random_affine(self):
-        image = np.random.rand(640, 480, 3)
-        mask = np.random.rand(640, 480)
+        image = np.random.rand(32, 48, 3)
+        mask = np.random.rand(32, 48)
 
         # Cover all image pixels with keypoints. This would guarantee test coverate of all possible keypoint locations
         # without relying on randomly generated keypoints.
@@ -114,28 +130,29 @@ class TestTransforms(unittest.TestCase):
     def test_detection_image_permute(self):
         aug = DetectionImagePermute(dims=(2, 1, 0))
         image = np.random.rand(640, 480, 3)
-        sample = {"image": image}
+        sample = DetectionSample(image=image, bboxes_xyxy=np.array([[0, 0, 100, 100]]), labels=np.array([0]))
 
-        output = aug(sample)
-        self.assertEqual(output["image"].shape, (3, 480, 640))
+        output = aug.apply_to_sample(sample)
+        self.assertEqual(output.image.shape, (3, 480, 640))
 
     def test_detection_pad_to_size(self):
         aug = DetectionPadToSize(output_size=(640, 640), pad_value=123)
         image = np.ones((512, 480, 3))
 
         # Boxes in format (x1, y1, x2, y2, class_id)
-        boxes = np.array([[0, 0, 100, 100, 0], [100, 100, 200, 200, 1]])
+        boxes = np.array([[0, 0, 100, 100], [100, 100, 200, 200]])
+        labels = np.array([0, 1])
 
-        sample = {"image": image, "target": boxes}
-        output = aug(sample)
+        sample = DetectionSample(image=image, bboxes_xyxy=boxes, labels=labels)
+        output = aug.apply_to_sample(sample)
 
         shift_x = (640 - 480) // 2
         shift_y = (640 - 512) // 2
-        expected_boxes = np.array(
-            [[0 + shift_x, 0 + shift_y, 100 + shift_x, 100 + shift_y, 0], [100 + shift_x, 100 + shift_y, 200 + shift_x, 200 + shift_y, 1]]
-        )
-        self.assertEqual(output["image"].shape, (640, 640, 3))
-        np.testing.assert_array_equal(output["target"], expected_boxes)
+        expected_boxes = np.array([[0 + shift_x, 0 + shift_y, 100 + shift_x, 100 + shift_y], [100 + shift_x, 100 + shift_y, 200 + shift_x, 200 + shift_y]])
+        expected_labels = np.array([0, 1])
+        self.assertEqual(output.image.shape, (640, 640, 3))
+        np.testing.assert_array_equal(output.bboxes_xyxy, expected_boxes)
+        np.testing.assert_array_equal(output.labels, expected_labels)
 
     def test_rescale_image(self):
         image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
@@ -148,7 +165,6 @@ class TestTransforms(unittest.TestCase):
     def test_detection_horizontal_flip(self):
         aug = DetectionHorizontalFlip(prob=1)
         image = np.random.rand(100, 100, 3)
-        image_original = image.copy()
         # [x0, y0, x1, y1]
         bboxes = np.array(
             (
@@ -164,30 +180,24 @@ class TestTransforms(unittest.TestCase):
         )
 
         # run transform
-        sample = {"image": image}
-        sample["target"] = bboxes
-        sample["crowd_targets"] = bboxes.copy()
-        output = aug(sample)
-        image = output["image"]
-        target = output["target"]
-        crowd_targets = output["crowd_targets"]
+        input_sample = DetectionSample(image=image, bboxes_xyxy=bboxes, labels=np.array([0, 1]))
+        output_sample = aug.apply_to_sample(input_sample)
 
         # check image hasn't changed shape
-        self.assertEqual(image.shape, image_original.shape)
+        self.assertEqual(output_sample.image.shape, image.shape)
 
         # check the first two cols of original image
         # match last two rows of flipped image
-        self.assertTrue(np.array_equal(image_original[:, 0], image[:, -1]))
-        self.assertTrue(np.array_equal(image_original[:, 1], image[:, -2]))
+        self.assertTrue(np.array_equal(input_sample.image[:, 0], output_sample.image[:, -1]))
+        self.assertTrue(np.array_equal(input_sample.image[:, 1], output_sample.image[:, -2]))
 
         # check bboxes as expected
-        self.assertTrue(np.array_equal(target, bboxes_expected))
-        self.assertTrue(np.array_equal(crowd_targets, bboxes_expected))
+        self.assertTrue(np.array_equal(output_sample.bboxes_xyxy, bboxes_expected))
+        self.assertTrue(np.array_equal(input_sample.labels, output_sample.labels))
 
     def test_detection_vertical_flip(self):
         aug = DetectionVerticalFlip(prob=1)
         image = np.random.rand(100, 100, 3)
-        image_original = image.copy()
         # [x0, y0, x1, y1]
         bboxes = np.array(
             (
@@ -203,25 +213,20 @@ class TestTransforms(unittest.TestCase):
         )
 
         # run transform
-        sample = {"image": image}
-        sample["target"] = bboxes
-        sample["crowd_targets"] = bboxes.copy()
-        output = aug(sample)
-        image = output["image"]
-        target = output["target"]
-        crowd_targets = output["crowd_targets"]
+        input_sample = DetectionSample(image=image, bboxes_xyxy=bboxes, labels=np.array([0, 1]))
+        output_sample = aug.apply_to_sample(input_sample)
 
         # check image hasn't changed shape
-        self.assertEqual(image.shape, image_original.shape)
+        self.assertEqual(output_sample.image.shape, input_sample.image.shape)
 
         # check top two rows of original image
         # matches bottom rows of flipped image
-        self.assertTrue(np.array_equal(image_original[0], image[-1]))
-        self.assertTrue(np.array_equal(image_original[1], image[-2]))
+        self.assertTrue(np.array_equal(output_sample.image[0], input_sample.image[-1]))
+        self.assertTrue(np.array_equal(output_sample.image[1], input_sample.image[-2]))
 
         # check bboxes as expected
-        self.assertTrue(np.array_equal(target, bboxes_expected))
-        self.assertTrue(np.array_equal(crowd_targets, bboxes_expected))
+        self.assertTrue(np.array_equal(output_sample.bboxes_xyxy, bboxes_expected))
+        self.assertTrue(np.array_equal(input_sample.labels, output_sample.labels))
 
     def test_rescale_bboxes(self):
         sy, sx = (2.0, 0.5)
@@ -238,7 +243,7 @@ class TestTransforms(unittest.TestCase):
         rescaled_bboxes = _rescale_bboxes(targets=bboxes, scale_factors=(sy, sx))
         np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
 
-    def test_pad_image(self):
+    def test_pad_image_with_constant(self):
         image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
         padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
         pad_value = 0
@@ -252,10 +257,52 @@ class TestTransforms(unittest.TestCase):
         self.assertTrue((shifted_image[:, : padding_coordinates.left, :] == pad_value).all())
         self.assertTrue((shifted_image[:, -padding_coordinates.right :, :] == pad_value).all())
 
+    def test_pad_image_with_tuple(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
+        pad_value = (1, 2, 3)
+        shifted_image = _pad_image(image, padding_coordinates, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600, 3))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: padding_coordinates.top, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[-padding_coordinates.bottom :, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : padding_coordinates.left, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, -padding_coordinates.right :, :] == pad_value).all())
+
+    def test_pad_image_with_listconfig(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
+        pad_value = ListConfig([1, 2, 3])
+        shifted_image = _pad_image(image, padding_coordinates, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600, 3))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: padding_coordinates.top, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[-padding_coordinates.bottom :, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : padding_coordinates.left, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, -padding_coordinates.right :, :] == pad_value).all())
+
+    def test_pad_grayscale_image(self):
+        image = np.random.randint(0, 256, size=(640, 480), dtype=np.uint8)
+        padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
+        pad_value = 1
+        shifted_image = _pad_image(image, padding_coordinates, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: padding_coordinates.top, :] == pad_value).all())
+        self.assertTrue((shifted_image[-padding_coordinates.bottom :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : padding_coordinates.left] == pad_value).all())
+        self.assertTrue((shifted_image[:, -padding_coordinates.right :] == pad_value).all())
+
     def test_shift_bboxes(self):
         bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
         shift_w, shift_h = 60, 80
-        shifted_bboxes = _shift_bboxes(bboxes, shift_w, shift_h)
+        shifted_bboxes = _shift_bboxes_xyxy(bboxes, shift_w, shift_h)
 
         # Check if the shifted bboxes have the correct values
         expected_bboxes = np.array([[70, 100, 110, 140, 1], [90, 120, 140, 170, 2]], dtype=np.float32)
@@ -374,6 +421,165 @@ class TestTransforms(unittest.TestCase):
         self.assertTrue((padded_area == pad_val).all())
         padded_area = rescaled_padded_image[:, :, resized_image_shape[1] :]  # Bottom padding area
         self.assertTrue((padded_area == pad_val).all())
+
+    def test_keypoints_brightness_contrast(self):
+        image = np.random.randint(0, 255, (640, 480, 3), dtype=np.uint8)
+        image = cv2.boxFilter(image, -1, (13, 13))
+
+        plt.figure()
+        plt.imshow(image)
+        plt.title("Original image")
+        plt.show()
+
+        aug = KeypointsBrightnessContrast(brightness_range=(1.1, 1.5), contrast_range=(1, 1), prob=1)
+        sample = aug.apply_to_sample(
+            PoseEstimationSample(image=image, joints=None, bboxes_xywh=None, areas=None, mask=None, is_crowd=None, additional_samples=None)
+        )
+        plt.figure()
+        plt.imshow(sample.image)
+        plt.title("Augmented image")
+        plt.show()
+
+    def test_keypoints_mixup(self):
+        sample1 = PoseEstimationSample(
+            image=np.zeros((256, 256, 3), dtype=np.uint8) + np.array([55, 0, 0], dtype=np.uint8),
+            mask=np.zeros((256, 256), dtype=np.uint8),
+            joints=np.random.randint(0, 256, size=(2, 17, 3)),
+            is_crowd=np.zeros((2,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(32, 64, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        sample2 = PoseEstimationSample(
+            image=np.zeros((256, 256, 3), dtype=np.uint8) + np.array([55, 0, 0], dtype=np.uint8),
+            mask=np.zeros((256, 256), dtype=np.uint8),
+            joints=np.random.randint(0, 256, size=(3, 17, 3)),
+            is_crowd=np.zeros((3,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(32, 64, size=(3, 4)),
+            additional_samples=None,
+        )
+
+        compose = KeypointsCompose([KeypointsMixup(prob=1)], load_sample_fn=lambda: sample2)
+        sample = compose.apply_to_sample(sample1)
+        self.assertEqual(sample.image.shape, (256, 256, 3))
+        self.assertEqual(len(sample.joints), len(sample1.joints) + len(sample2.joints))
+
+    def test_keypoints_mosaic(self):
+        sample1 = PoseEstimationSample(
+            image=np.zeros((128, 128, 3), dtype=np.uint8) + 255,
+            mask=np.zeros((128, 128), dtype=np.uint8),
+            joints=np.random.randint(0, 128, size=(1, 17, 3)),
+            is_crowd=np.zeros((1,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(0, 64, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        sample2 = PoseEstimationSample(
+            image=np.zeros((256, 256, 3), dtype=np.uint8) + np.array([55, 0, 0], dtype=np.uint8),
+            mask=np.zeros((256, 256), dtype=np.uint8),
+            joints=np.random.randint(0, 256, size=(1, 17, 3)),
+            is_crowd=np.zeros((1,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(32, 64, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        sample3 = PoseEstimationSample(
+            image=np.zeros((512, 512, 3), dtype=np.uint8) + np.array([0, 55, 0], dtype=np.uint8),
+            mask=np.zeros((512, 512), dtype=np.uint8),
+            joints=np.random.randint(0, 512, size=(1, 17, 3)),
+            is_crowd=np.zeros((1,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(128, 256, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        sample4 = PoseEstimationSample(
+            image=np.zeros((64, 64, 3), dtype=np.uint8) + np.array([0, 0, 55], dtype=np.uint8),
+            mask=np.zeros((64, 64), dtype=np.uint8),
+            joints=np.random.randint(0, 64, size=(1, 17, 3)),
+            is_crowd=np.zeros((1,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(0, 32, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        input_mixup = copy.deepcopy(sample4)
+        input_mixup.additional_samples = [sample1, sample2, sample3]
+
+        self.show_sample(sample1)
+        self.show_sample(sample2)
+        self.show_sample(sample3)
+        self.show_sample(sample4)
+
+        aug = KeypointsMosaic(prob=1)
+        sample = aug.apply_to_sample(input_mixup)
+
+        self.show_sample(sample)
+
+    def show_sample(self, sample: PoseEstimationSample):
+        image = sample.image.copy()
+        poses = sample.joints
+        for joints in poses:
+            for joint in joints:
+                cv2.circle(image, (int(joint[0]), int(joint[1])), 3, (0, 0, 255), -1)
+        for x, y, w, h in sample.bboxes_xywh:
+            x = int(x)
+            y = int(y)
+            w = int(w)
+            h = int(h)
+            cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+        plt.figure()
+        plt.imshow(image)
+        plt.show()
+
+    def test_detection_transform_can_take_zero_targets(self):
+        sample = {
+            "image": np.random.rand(640, 480, 3),
+            "target": np.array([]),
+            "crowd_target": np.array([]),
+        }
+
+        sample_object = LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(sample)
+        result_sample = LegacyDetectionTransformMixin.convert_detection_sample_to_dict(sample_object, include_crowd_target=True)
+        self.assertTrue(result_sample["image"].shape == (640, 480, 3))
+        self.assertTrue(result_sample["target"].shape == (0, 5))
+        self.assertTrue(result_sample["crowd_target"].shape == (0, 5))
+
+    def test_custom_transform(self):
+        """
+        Checks whether custom transform with deprecated API still works with new DetectionSample
+        """
+
+        @register_transform("CustomDetectionTransform")
+        class CustomDetectionTransform(DetectionTransform):
+            def __init__(self):
+                super().__init__()
+
+            def __call__(self, sample):
+                sample["target"] = np.array([[0, 0, 2, 2, 5]])
+                return sample
+
+        train_dataset_params = {
+            "data_dir": self.mini_coco_data_dir,
+            "subdir": "images/train2017",
+            "json_file": "instances_train2017.json",
+            "cache": False,
+            "input_dim": [512, 512],
+            "transforms": [
+                {"CustomDetectionTransform": {}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+            ],
+        }
+        dataset = COCODetectionDataset(**train_dataset_params)
+        sample = dataset.__getitem__(0)
+        self.assertIsNotNone(sample)
+        # [0, 0, 2, 2, 5] (XYXY_LABEL) -> 5, 1, 1, 2, 2 (LABEL_CXCYWH)
+        np.testing.assert_almost_equal(sample[1], np.array([[5, 1, 1, 2, 2]]))
 
 
 if __name__ == "__main__":

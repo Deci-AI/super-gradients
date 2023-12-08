@@ -30,7 +30,7 @@ class DetectionPrediction(Prediction):
         :param image_shape: Shape of the image the prediction is made on, (H, W). This is used to convert bboxes to xyxy format
 
         :param target_bboxes: np.ndarray, ground truth bounding boxes as np.ndarray of shape (image_i_object_count, 4)
-         When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one).
+         When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one)
 
         :param target_labels: np.ndarray, ground truth target class indices as an np.ndarray of shape (image_i_object_count).
 
@@ -69,12 +69,14 @@ class DetectionPrediction(Prediction):
 class PoseEstimationPrediction(Prediction):
     """Represents a pose estimation prediction.
 
-    :attr poses: Numpy array of [Num Poses, Num Joints, 2] shape
-    :attr scores: Numpy array of [Num Poses] shape
+    :param poses:  Numpy array of [Num Poses, Num Joints, 2] shape
+    :param scores: Numpy array of [Num Poses] shape
+    :param boxes:  Numpy array of [Num Poses, 4] shape which represents the bounding boxes of each pose in xyxy format
     """
 
     poses: np.ndarray
     scores: np.ndarray
+    bboxes_xyxy: Optional[np.ndarray]
     edge_links: np.ndarray
     edge_colors: np.ndarray
     keypoint_colors: np.ndarray
@@ -84,29 +86,34 @@ class PoseEstimationPrediction(Prediction):
         self,
         poses: np.ndarray,
         scores: np.ndarray,
+        bboxes_xyxy: Optional[np.ndarray],
         edge_links: np.ndarray,
         edge_colors: np.ndarray,
         keypoint_colors: np.ndarray,
         image_shape: Tuple[int, int],
     ):
         """
-        :param poses:
-        :param scores:
-        :param image_shape: Shape of the image the prediction is made on, (H, W). This is used to convert bboxes to xyxy format
+        :param poses:       Predicted poses as a numpy array of shape [Num Poses, Num Joints, 2]
+        :param scores:      Confidence scores for each pose [Num Poses]
+        :param bboxes_xyxy:      Bounding boxes of each pose in xyxy format [Num Poses, 4]
+        :param image_shape: Shape of the image the prediction is made on, (H, W).
         """
-        self._validate_input(poses, scores, edge_links, edge_colors, keypoint_colors)
+        self._validate_input(poses, scores, bboxes_xyxy, edge_links, edge_colors, keypoint_colors)
         self.poses = poses
         self.scores = scores
+        self.bboxes_xyxy = bboxes_xyxy
         self.edge_links = edge_links
         self.edge_colors = edge_colors
         self.image_shape = image_shape
         self.keypoint_colors = keypoint_colors
 
-    def _validate_input(self, poses: np.ndarray, scores: np.ndarray, edge_links, edge_colors, keypoint_colors) -> None:
+    def _validate_input(self, poses: np.ndarray, scores: np.ndarray, bboxes: Optional[np.ndarray], edge_links, edge_colors, keypoint_colors) -> None:
         if not isinstance(poses, np.ndarray):
             raise ValueError(f"Argument poses must be a numpy array, not {type(poses)}")
         if not isinstance(scores, np.ndarray):
             raise ValueError(f"Argument scores must be a numpy array, not {type(scores)}")
+        if bboxes is not None and not isinstance(bboxes, np.ndarray):
+            raise ValueError(f"Argument bboxes must be a numpy array, not {type(bboxes)}")
         if not isinstance(keypoint_colors, np.ndarray):
             raise ValueError(f"Argument keypoint_colors must be a numpy array, not {type(keypoint_colors)}")
         if len(poses) != len(scores) != len(keypoint_colors):

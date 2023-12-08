@@ -1,3 +1,5 @@
+from typing import Optional, Callable
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,6 +12,7 @@ from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.modules.conv_bn_relu_block import ConvBNReLU
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import register_model
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 from typing import List, Tuple
@@ -49,6 +52,14 @@ class PatchEmbedding(nn.Module):
         x = self.norm(x)
 
         return x, h, w
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self.proj = replace_conv2d_input_channels(conv=self.proj, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.proj.in_channels
 
 
 # TODO: extract this block to src/super_gradients/modules/transformer_modules and reuse the same module of Beit and
@@ -149,7 +160,7 @@ class EncoderBlock(nn.Module):
         return x
 
 
-class MiTBackBone(nn.Module):
+class MiTBackBone(nn.Module, SupportsReplaceInputChannels):
     def __init__(
         self,
         embed_dims: List[int],
@@ -243,6 +254,14 @@ class MiTBackBone(nn.Module):
             features.append(x)
 
         return features
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        first_patch: PatchEmbedding = self.patch_embed[0]
+        first_patch.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        first_patch: PatchEmbedding = self.patch_embed[0]
+        return first_patch.get_input_channels()
 
 
 # TODO: extract this block to src/super_gradients/modules/transformer_modules and reuse the same module of Beit and
@@ -439,11 +458,17 @@ class SegFormer(SegmentationModule):
         backbone_names = [n for n, p in self.backbone.named_parameters()]
         multiply_lr_params, no_multiply_params = {}, {}
         for name, param in self.named_parameters():
-            if name in backbone_names:
+            if any([backbone_name in name for backbone_name in backbone_names]):
                 no_multiply_params[name] = param
             else:
                 multiply_lr_params[name] = param
         return multiply_lr_params.items(), no_multiply_params.items()
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self._backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self._backbone.get_input_channels()
 
 
 class SegFormerCustom(SegFormer):

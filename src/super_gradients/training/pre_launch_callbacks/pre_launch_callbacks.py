@@ -284,12 +284,12 @@ def modify_params_for_qat(
 
     # Q/DQ Layers take a lot of space for activations in training mode
     if get_param(quantization_params, "selective_quantizer_params") and get_param(quantization_params["selective_quantizer_params"], "learn_amax"):
-        train_dataloader_params["batch_size"] //= batch_size_divisor
-        val_dataloader_params["batch_size"] //= batch_size_divisor
+        train_dataloader_params["batch_size"] = max(1, train_dataloader_params["batch_size"] // batch_size_divisor)
+        val_dataloader_params["batch_size"] = max(1, val_dataloader_params["batch_size"] // batch_size_divisor)
 
         logger.warning(f"New dataset_params.train_dataloader_params.batch_size: {train_dataloader_params['batch_size']}")
         logger.warning(f"New dataset_params.val_dataloader_params.batch_size: {val_dataloader_params['batch_size']}")
-    training_hyperparams["max_epochs"] //= max_epochs_divisor
+    training_hyperparams["max_epochs"] = max(1, training_hyperparams["max_epochs"] // max_epochs_divisor)
     logger.warning(f"New number of epochs: {training_hyperparams['max_epochs']}")
     training_hyperparams["initial_lr"] *= lr_decay_factor
     if get_param(training_hyperparams, "warmup_initial_lr") is not None:
@@ -312,6 +312,9 @@ def modify_params_for_qat(
     logger.warning(f"New lr_warmup_epochs: {training_hyperparams['lr_warmup_epochs']}")
 
     # do mess with Q/DQ
+    if get_param(training_hyperparams, "average_best_models"):
+        logger.info("Model averaging will be disabled for QAT run.")
+        training_hyperparams["average_best_models"] = False
     if get_param(training_hyperparams, "ema"):
         logger.warning("EMA will be disabled for QAT run.")
         training_hyperparams["ema"] = False

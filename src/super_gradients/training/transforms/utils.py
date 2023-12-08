@@ -1,10 +1,10 @@
-from typing import Tuple
+import numbers
+import typing
+from typing import Tuple, Union
 from dataclasses import dataclass
 import cv2
 
 import numpy as np
-
-from super_gradients.training.utils.detection_utils import xyxy2cxcywh, cxcywh2xyxy
 
 
 @dataclass
@@ -26,8 +26,26 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarr
     return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_LINEAR)
 
 
+def _rescale_image_with_pil(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarray:
+    """Rescale image to target_shape, without preserving aspect ratio using PIL.
+    OpenCV and PIL has slightly different implementations of interpolation methods.
+    OpenCV has faster resizing, however PIL is more accurate (not introducing aliasing artifacts).
+    We use this method in some preprocessing transforms where we want to keep the compatibility with
+    torchvision transforms.
+
+    :param image:           Image to rescale. (H, W, C) or (H, W).
+    :param target_shape:    Target shape to rescale to (H, W).
+    :return:                Rescaled image.
+    """
+    height, width = target_shape[:2]
+    from PIL import Image
+
+    return np.array(Image.fromarray(image).resize((width, height), Image.BILINEAR))
+
+
 def _rescale_bboxes(targets: np.ndarray, scale_factors: Tuple[float, float]) -> np.ndarray:
     """Rescale bboxes to given scale factors, without preserving aspect ratio.
+    This function supports both xyxy and xywh bboxes.
 
     :param targets:         Targets to rescale (N, 4+), where target[:, :4] is the bounding box coordinates.
     :param scale_factors:   Tuple of (scale_factor_h, scale_factor_w) scale factors to rescale to.
@@ -89,25 +107,53 @@ def _get_bottom_right_padding_coordinates(input_shape: Tuple[int, int], output_s
     return PaddingCoordinates(top=0, bottom=pad_height, left=0, right=pad_width)
 
 
-def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_value: int) -> np.ndarray:
+def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_value: Union[int, Tuple[int, ...]]) -> np.ndarray:
     """Pad an image.
 
     :param image:       Image to shift. (H, W, C) or (H, W).
     :param pad_h:       Tuple of (padding_top, padding_bottom).
     :param pad_w:       Tuple of (padding_left, padding_right).
-    :param pad_value:   Padding value
+    :param pad_value:   Padding value. Can be a single scalar (Same value for all channels) or a tuple of values.
+                        In the latter case, the tuple length must be equal to the number of channels.
     :return:            Image shifted according to padding coordinates.
     """
     pad_h = (padding_coordinates.top, padding_coordinates.bottom)
     pad_w = (padding_coordinates.left, padding_coordinates.right)
 
     if len(image.shape) == 3:
-        return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+        _, _, num_channels = image.shape
+
+        if isinstance(pad_value, numbers.Number):
+            pad_value = tuple([pad_value] * num_channels)
+        else:
+            if isinstance(pad_value, typing.Sized) and len(pad_value) != num_channels:
+                raise ValueError(f"A pad_value tuple ({pad_value} length should be {num_channels} for an image with {num_channels} channels")
+
+            pad_value = tuple(pad_value)
+
+        constant_values = ((pad_value, pad_value), (pad_value, pad_value), (0, 0))
+        # Fixes issue with numpy deprecation warning since constant_values is ragged array (Have to explicitly specify object dtype)
+        constant_values = np.array(constant_values, dtype=np.object_)
+
+        padding_values = (pad_h, pad_w, (0, 0))
     else:
-        return np.pad(image, (pad_h, pad_w), "constant", constant_values=pad_value)
+        if isinstance(pad_value, numbers.Number):
+            pass
+        elif isinstance(pad_value, typing.Sized):
+            if len(pad_value) != 1:
+                raise ValueError(f"A pad_value tuple ({pad_value} length should be 1 for a grayscale image")
+            else:
+                (pad_value,) = pad_value  # Unpack to a single scalar
+        else:
+            raise ValueError(f"Unsupported pad_value type {type(pad_value)}")
+
+        constant_values = pad_value
+        padding_values = (pad_h, pad_w)
+
+    return np.pad(image, pad_width=padding_values, mode="constant", constant_values=constant_values)
 
 
-def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
+def _shift_bboxes_xyxy(targets: np.array, shift_w: float, shift_h: float) -> np.ndarray:
     """Shift bboxes with respect to padding values.
 
     :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
@@ -115,13 +161,13 @@ def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array
     :param shift_h:  shift height.
     :return:         Bboxes transformed of shape (N, 4+), in format [x1, y1, x2, y2, ...]
     """
-    boxes, labels = targets[:, :4], targets[:, 4:]
+    boxes, labels = targets[:, :4].copy(), targets[:, 4:]
     boxes[:, [0, 2]] += shift_w
     boxes[:, [1, 3]] += shift_h
     return np.concatenate((boxes, labels), 1)
 
 
-def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.array:
+def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.ndarray:
     """Shift keypoints with respect to padding values.
 
     :param targets:  Keypoints to transform of shape (N, 2+), or (N, K, 2+), in format [x1, y1, ...]
@@ -135,19 +181,24 @@ def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.ar
     return targets
 
 
-def _rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
+def _rescale_xyxy_bboxes(targets: np.ndarray, r: float) -> np.ndarray:
     """Scale targets to given scale factors.
 
     :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
     :param r:        DetectionRescale coefficient that was applied to the image
     :return:         Rescaled Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
     """
-    targets = targets.copy()
-    boxes, targets = targets[:, :4], targets[:, 4:]
-    boxes = xyxy2cxcywh(boxes)
-    boxes *= r
-    boxes = cxcywh2xyxy(boxes)
-    return np.concatenate((boxes, targets), 1)
+    return _rescale_bboxes(targets, (r, r))
+
+
+def _rescale_xywh_bboxes(targets: np.ndarray, r: float) -> np.ndarray:
+    """Scale targets to given scale factors.
+
+    :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
+    :param r:        DetectionRescale coefficient that was applied to the image
+    :return:         Rescaled Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
+    """
+    return _rescale_bboxes(targets, (r, r))
 
 
 def _rescale_and_pad_to_size(image: np.ndarray, output_shape: Tuple[int, int], swap: Tuple[int] = (2, 0, 1), pad_val: int = 114) -> Tuple[np.ndarray, float]:

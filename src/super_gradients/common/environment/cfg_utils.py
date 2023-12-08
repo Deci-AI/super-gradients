@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict, Any, Mapping
 
 import hydra
 import pkg_resources
@@ -8,9 +8,14 @@ import pkg_resources
 from hydra import initialize_config_dir, compose
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import OmegaConf, open_dict, DictConfig
+from torch.utils.data import DataLoader
 
+from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 from super_gradients.common.environment.path_utils import normalize_path
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class RecipeNotFoundError(Exception):
@@ -167,3 +172,61 @@ def override_cfg(cfg: DictConfig, overrides: Union[DictConfig, Dict[str, Any]]) 
     """
     with open_dict(cfg):  # This is required to add new fields to existing config
         cfg.merge_with(overrides)
+
+
+def export_recipe(config_name: str, save_path: str, config_dir: str = pkg_resources.resource_filename("super_gradients.recipes", "")):
+    """
+    saves a complete (i.e no inheritance from other yaml configuration files),
+     .yaml file that can be ran on its own without the need to keep other configurations which the original
+      file inherits from.
+
+    :param config_name: The .yaml config filename (can leave the .yaml postfix out, but not mandatory).
+
+    :param save_path: The config directory path, as absolute file system path.
+        When None, will use SG's recipe directory (i.e path/to/super_gradients/recipes)
+
+    :param config_dir: The config directory path, as absolute file system path.
+        When None, will use SG's recipe directory (i.e path/to/super_gradients/recipes)
+
+    """
+    # NEED TO REGISTER RESOLVERS FIRST
+    register_hydra_resolvers()
+    GlobalHydra.instance().clear()
+    with initialize_config_dir(config_dir=normalize_path(config_dir), version_base="1.2"):
+        cfg = compose(config_name=config_name)
+        OmegaConf.save(config=cfg, f=save_path)
+        logger.info(f"Successfully saved recipe at {save_path}. \n" f"Recipe content:\n {cfg}")
+
+
+def maybe_instantiate_test_loaders(cfg) -> Optional[Mapping[str, DataLoader]]:
+    """
+    Instantiate test loaders if they are defined in the config.
+
+    :param cfg: Recipe config
+    :return:    A mapping from dataset name to test loader or None if no test loaders are defined.
+    """
+    from super_gradients.training.utils.utils import get_param
+    from super_gradients.training import dataloaders
+
+    test_loaders = None
+    if "test_dataset_params" in cfg.dataset_params:
+        test_dataloaders = get_param(cfg, "test_dataloaders")
+        test_dataset_params = cfg.dataset_params.test_dataset_params
+        test_dataloader_params = get_param(cfg.dataset_params, "test_dataloader_params")
+
+        if test_dataloaders is not None:
+            if not isinstance(test_dataloaders, Mapping):
+                raise ValueError("`test_dataloaders` should be a mapping from test_loader_name to test_loader_params.")
+
+            if test_dataloader_params is not None and test_dataloader_params.keys() != test_dataset_params.keys():
+                raise ValueError("test_dataloader_params and test_dataset_params should have the same keys.")
+
+        test_loaders = {}
+        for dataset_name, dataset_params in test_dataset_params.items():
+            loader_name = test_dataloaders[dataset_name] if test_dataloaders is not None else None
+            dataset_params = test_dataset_params[dataset_name]
+            dataloader_params = test_dataloader_params[dataset_name] if test_dataloader_params is not None else cfg.dataset_params.val_dataloader_params
+            loader = dataloaders.get(loader_name, dataset_params=dataset_params, dataloader_params=dataloader_params)
+            test_loaders[dataset_name] = loader
+
+    return test_loaders

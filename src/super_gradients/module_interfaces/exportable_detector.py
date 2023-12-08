@@ -6,17 +6,18 @@ from typing import Any
 from typing import Union, Optional, List, Tuple
 
 import numpy as np
+import onnx
 import onnxsim
 import torch
-from torch import nn, Tensor
-from torch.utils.data import DataLoader
-
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
+from super_gradients.conversion.conversion_utils import find_compatible_model_device_for_dtype
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
 from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules, infer_model_dtype
+from torch import nn, Tensor
+from torch.utils.data import DataLoader
 
 logger = get_logger(__name__)
 
@@ -311,6 +312,7 @@ class ExportableObjectDetectionModel:
         }
 
         model_type = torch.half if quantization_mode == ExportQuantizationMode.FP16 else torch.float32
+        device = find_compatible_model_device_for_dtype(device, model_type)
 
         if isinstance(preprocessing, nn.Module):
             preprocessing_module = preprocessing
@@ -491,13 +493,15 @@ class ExportableObjectDetectionModel:
                 # Stitch ONNX graph with NMS postprocessing
                 if attach_nms_postprocessing:
                     if engine == ExportTargetBackend.TENSORRT:
-
                         if onnx_simplify:
                             # If TRT engine is used, we need to run onnxsim.simplify BEFORE attaching NMS,
                             # because EfficientNMS_TRT is not supported by onnxsim and would lead to a runtime error.
-                            onnxsim.simplify(output)
+                            model_opt, simplify_successful = onnxsim.simplify(output)
+                            if not simplify_successful:
+                                raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+                            onnx.save(model_opt, output)
                             logger.debug(f"Ran onnxsim.simplify on model {output}")
-                            # Disable onnx_simplify to avoid running it twice.
+                            # Disable onnx_simplify to avoid running it second time.
                             onnx_simplify = False
 
                         nms_attach_method = attach_tensorrt_nms
@@ -505,7 +509,7 @@ class ExportableObjectDetectionModel:
                         if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
                             logger.warning(
                                 "Support of flat predictions format in TensorRT is experimental and may not work on all versions of TensorRT. "
-                                "We recommend using TensorRT 8.4.1 or newer. On older versions this format will not work. "
+                                "We recommend using TensorRT 8.5.3 or newer. On older versions of TensorRT this format will not work. "
                                 "If you encountering issues loading exported model in TensorRT, please try upgrading TensorRT to latest version. "
                                 "Alternatively, you can export the model to output predictions in batch format by "
                                 "specifying output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT. "
@@ -525,10 +529,15 @@ class ExportableObjectDetectionModel:
                         batch_size=batch_size,
                         output_predictions_format=output_predictions_format,
                         device=device,
+                        onnx_export_kwargs=onnx_export_kwargs,
                     )
 
                 if onnx_simplify:
-                    onnxsim.simplify(output)
+                    model_opt, simplify_successful = onnxsim.simplify(output)
+                    if not simplify_successful:
+                        raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+                    onnx.save(model_opt, output)
+
                     logger.debug(f"Ran onnxsim.simplify on {output}")
             finally:
                 if quantization_mode == ExportQuantizationMode.INT8:

@@ -16,6 +16,7 @@ class Losses:
     DICE_CE_EDGE_LOSS = "DiceCEEdgeLoss"
     DEKR_LOSS = "DEKRLoss"
     RESCORING_LOSS = "RescoringLoss"
+    YOLONAS_POSE_LOSS = "YoloNASPoseLoss"
 
 
 class Metrics:
@@ -33,12 +34,15 @@ class Metrics:
     BINARY_DICE = "BinaryDice"
     PIXEL_ACCURACY = "PixelAccuracy"
     POSE_ESTIMATION_METRICS = "PoseEstimationMetrics"
+    DETECTION_METRICS_DISTANCE_BASED = "DetectionMetricsDistanceBased"
 
 
 class Transforms:
     """Static class holding all the supported transform names"""
 
     # From SG
+    SegNormalize = "SegNormalize"
+    SegToTensor = "SegToTensor"
     SegRandomFlip = "SegRandomFlip"
     SegResize = "SegResize"
     SegRescale = "SegRescale"
@@ -64,6 +68,8 @@ class Transforms:
     DetectionPaddedRescale = "DetectionPaddedRescale"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
     DetectionNormalize = "DetectionNormalize"
+    DetectionPadIfNeeded = "DetectionPadIfNeeded"
+    DetectionLongestMaxSize = "DetectionLongestMaxSize"
     #
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
     RandAugmentTransform = "RandAugmentTransform"
@@ -113,11 +119,13 @@ class Transforms:
     KeypointsImageNormalize = "KeypointsImageNormalize"
     KeypointsImageStandardize = "KeypointsImageStandardize"
     KeypointsImageToTensor = "KeypointsImageToTensor"
-    KeypointTransform = "KeypointTransform"
     KeypointsPadIfNeeded = "KeypointsPadIfNeeded"
     KeypointsLongestMaxSize = "KeypointsLongestMaxSize"
     KeypointsRandomVerticalFlip = "KeypointsRandomVerticalFlip"
     KeypointsRandomHorizontalFlip = "KeypointsRandomHorizontalFlip"
+    KeypointsRescale = "KeypointsRescale"
+    KeypointsRandomRotate90 = "KeypointsRandomRotate90"
+    KeypointsRemoveSmallObjects = "KeypointsRemoveSmallObjects"
 
 
 class Optimizers:
@@ -312,6 +320,11 @@ class Models:
     POSE_RESCORING = "pose_rescoring_custom"
     POSE_RESCORING_COCO = "pose_rescoring_coco"
 
+    YOLO_NAS_POSE_N = "yolo_nas_pose_n"
+    YOLO_NAS_POSE_S = "yolo_nas_pose_s"
+    YOLO_NAS_POSE_M = "yolo_nas_pose_m"
+    YOLO_NAS_POSE_L = "yolo_nas_pose_l"
+
 
 class ConcatenatedTensorFormats:
     XYXY_LABEL = "XYXY_LABEL"
@@ -410,6 +423,7 @@ class Datasets:
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
+    COCO_POSE_ESTIMATION_DATASET = "COCOPoseEstimationDataset"
 
 
 class Processings:
@@ -418,6 +432,7 @@ class Processings:
     DetectionLongestMaxSizeRescale = "DetectionLongestMaxSizeRescale"
     DetectionBottomRightPadding = "DetectionBottomRightPadding"
     DetectionRescale = "DetectionRescale"
+    KeypointsRescale = "KeypointsRescale"
     KeypointsLongestMaxSizeRescale = "KeypointsLongestMaxSizeRescale"
     KeypointsBottomRightPadding = "KeypointsBottomRightPadding"
     ImagePermute = "ImagePermute"

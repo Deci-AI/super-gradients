@@ -1,11 +1,12 @@
-from typing import Union
+from typing import Union, Optional, Callable
 
 from torch import nn
 
 from super_gradients.training.utils.utils import HpmStruct
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
-class SgModule(nn.Module):
+class SgModule(nn.Module, SupportsReplaceInputChannels):
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
 
@@ -61,4 +62,7 @@ class SgModule(nn.Module):
         class to implement.
         """
 
+        raise NotImplementedError
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         raise NotImplementedError

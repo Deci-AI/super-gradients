@@ -7,6 +7,9 @@ from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.datasets import COCODetectionDataset
 
+import cv2
+import numpy as np
+
 
 class TestModelPredict(unittest.TestCase):
     def setUp(self) -> None:
@@ -33,6 +36,22 @@ class TestModelPredict(unittest.TestCase):
         self.np_array_images = [x1, x2]
         self.np_array_target_bboxes = [y1[:, :4], y2[:, :4]]
         self.np_array_target_class_ids = [y1[:, 4], y2[:, 4]]
+
+    def _prepare_video(self, path):
+        video_width, video_height = 400, 400
+        fps = 10
+        num_frames = 20
+        video_writer = cv2.VideoWriter(
+            path,
+            cv2.VideoWriter_fourcc(*"mp4v"),
+            fps,
+            (video_width, video_height),
+        )
+
+        frames = np.zeros((num_frames, video_height, video_width, 3), dtype=np.uint8)
+        for frame in frames:
+            video_writer.write(frame)
+        video_writer.release()
 
     def test_classification_models(self):
         with tempfile.TemporaryDirectory() as tmp_dirname:
@@ -73,6 +92,47 @@ class TestModelPredict(unittest.TestCase):
                     target_class_ids=self.np_array_target_class_ids,
                     target_bboxes_format="xyxy",
                 )
+
+    def test_predict_class_names(self):
+        for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.PP_YOLOE_S]:
+            model = models.get(model_name, pretrained_weights="coco")
+
+            predictions = model.predict(self.np_array_images)
+            _ = predictions.show(class_names=["person", "bicycle", "car", "motorcycle", "airplane", "bus"])
+
+            with self.assertRaises(ValueError):
+                _ = predictions.show(class_names=["human"])
+
+    def test_predict_video(self):
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            video_path = os.path.join(tmp_dirname, "test.mp4")
+            self._prepare_video(video_path)
+            for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.YOLO_NAS_POSE_S]:
+
+                pretrained_weights = "coco"
+                if model_name == Models.YOLO_NAS_POSE_S:
+                    pretrained_weights += "_pose"
+                model = models.get(model_name, pretrained_weights=pretrained_weights)
+
+                predictions = model.predict(video_path)
+                predictions.save(os.path.join(tmp_dirname, "test_predict_video_detection.mp4"))
+
+                predictions = model.predict(video_path)
+                predictions.save(os.path.join(tmp_dirname, "test_predict_video_detection.gif"))
+
+    def test_predict_detection_skip_resize(self):
+        for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.PP_YOLOE_S]:
+            model = models.get(model_name, pretrained_weights="coco")
+            pipeline = model._get_pipeline(skip_image_resizing=True)
+
+            dummy_images = [np.random.random((21, 21, 3)), np.random.random((21, 32, 3)), np.random.random((640, 640, 3))]
+            expected_preprocessing_shape = [(3, 32, 32), (3, 32, 32), (3, 640, 640)]
+            for image, expected_shape in zip(dummy_images, expected_preprocessing_shape):
+                pred = model.predict(image, skip_image_resizing=True)[0]
+                self.assertEqual(image.shape, pred.draw().shape)
+
+                preprocessed_shape = pipeline.image_processor.preprocess_image(image)[0].shape
+                self.assertEqual(preprocessed_shape, expected_shape)
 
 
 if __name__ == "__main__":

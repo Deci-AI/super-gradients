@@ -1,4 +1,4 @@
-from typing import Mapping, Tuple, Union, Optional
+from typing import Mapping, Tuple, Union, Optional, List
 
 import numpy as np
 import torch
@@ -6,11 +6,11 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 
 import super_gradients
+from super_gradients.common.environment.ddp_utils import get_world_size
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import cxcywh_to_xyxy
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
-from super_gradients.common.environment.ddp_utils import get_world_size
 
 
 def batch_iou_similarity(box1: torch.Tensor, box2: torch.Tensor, eps: float = 1e-9) -> float:
@@ -277,7 +277,7 @@ class ATSSAssigner(nn.Module):
         self.force_gt_matching = force_gt_matching
         self.eps = eps
 
-    def _gather_topk_pyramid(self, gt2anchor_distances, num_anchors_list, pad_gt_mask):
+    def _gather_topk_pyramid(self, gt2anchor_distances, num_anchors_list, pad_gt_mask: Optional[Tensor]):
         gt2anchor_distances_list = torch.split(gt2anchor_distances, num_anchors_list, dim=-1)
         num_anchors_index = np.cumsum(num_anchors_list).tolist()
         num_anchors_index = [
@@ -290,7 +290,9 @@ class ATSSAssigner(nn.Module):
             _, topk_idxs = torch.topk(distances, self.topk, dim=-1, largest=False)
             topk_idxs_list.append(topk_idxs + anchors_index)
             is_in_topk = torch.nn.functional.one_hot(topk_idxs, num_anchors).sum(dim=-2).type_as(gt2anchor_distances)
-            is_in_topk_list.append(is_in_topk * pad_gt_mask)
+            if pad_gt_mask is not None:
+                is_in_topk = is_in_topk * pad_gt_mask
+            is_in_topk_list.append(is_in_topk)
         is_in_topk_list = torch.cat(is_in_topk_list, dim=-1)
         topk_idxs_list = torch.cat(topk_idxs_list, dim=-1)
         return is_in_topk_list, topk_idxs_list
@@ -302,7 +304,7 @@ class ATSSAssigner(nn.Module):
         num_anchors_list: list,
         gt_labels: Tensor,
         gt_bboxes: Tensor,
-        pad_gt_mask: Tensor,
+        pad_gt_mask: Optional[Tensor],
         bg_index: int,
         gt_scores: Optional[Tensor] = None,
         pred_bboxes: Optional[Tensor] = None,
@@ -380,7 +382,9 @@ class ATSSAssigner(nn.Module):
         is_in_gts = check_points_inside_bboxes(anchor_centers, gt_bboxes)
 
         # select positive sample, [B, n, L]
-        mask_positive = is_in_topk * is_in_gts * pad_gt_mask
+        mask_positive = is_in_topk * is_in_gts
+        if pad_gt_mask is not None:
+            mask_positive = mask_positive * pad_gt_mask
 
         # 7. if an anchor box is assigned to multiple gts,
         # the one with the highest iou will be selected.
@@ -392,7 +396,9 @@ class ATSSAssigner(nn.Module):
             mask_positive_sum = mask_positive.sum(dim=-2)
         # 8. make sure every gt_bbox matches the anchor
         if self.force_gt_matching:
-            is_max_iou = compute_max_iou_gt(ious) * pad_gt_mask
+            is_max_iou = compute_max_iou_gt(ious)
+            if pad_gt_mask is not None:
+                is_max_iou = is_max_iou * pad_gt_mask
             mask_max_iou = (is_max_iou.sum(-2, keepdim=True) == 1).tile([1, num_max_boxes, 1])
             mask_positive = torch.where(mask_max_iou, is_max_iou, mask_positive)
             mask_positive_sum = mask_positive.sum(dim=-2)
@@ -453,7 +459,7 @@ class TaskAlignedAssigner(nn.Module):
         num_anchors_list: list,
         gt_labels: Tensor,
         gt_bboxes: Tensor,
-        pad_gt_mask: Tensor,
+        pad_gt_mask: Optional[Tensor],
         bg_index: int,
         gt_scores: Optional[Tensor] = None,
     ):
@@ -474,7 +480,8 @@ class TaskAlignedAssigner(nn.Module):
         :param num_anchors_list: List ( num of anchors in each level, shape(L)
         :param gt_labels: Tensor (int64|int32): Label of gt_bboxes, shape(B, n, 1)
         :param gt_bboxes: Tensor (float32): Ground truth bboxes, shape(B, n, 4)
-        :param pad_gt_mask: Tensor (float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
+        :param pad_gt_mask: Tensor (float32): 1 means bbox, 0 means no bbox, shape(B, n, 1).
+                            Can be None, which means all gt_bboxes are valid.
         :param bg_index: int ( background index
         :param gt_scores: Tensor (one, float32) Score of gt_bboxes, shape(B, n, 1)
         :return:
@@ -515,7 +522,9 @@ class TaskAlignedAssigner(nn.Module):
         is_in_topk = gather_topk_anchors(alignment_metrics * is_in_gts, self.topk, topk_mask=pad_gt_mask)
 
         # select positive sample, [B, n, L]
-        mask_positive = is_in_topk * is_in_gts * pad_gt_mask
+        mask_positive = is_in_topk * is_in_gts
+        if pad_gt_mask is not None:
+            mask_positive *= pad_gt_mask
 
         # if an anchor box is assigned to multiple gts,
         # the one with the highest iou will be selected, [B, n, L]
@@ -639,15 +648,21 @@ class PPYoloELoss(nn.Module):
         classification_loss_weight: float = 1.0,
         iou_loss_weight: float = 2.5,
         dfl_loss_weight: float = 0.5,
+        use_batched_assignment: bool = True,
     ):
         """
-        :param num_classes: Number of classes
-        :param use_varifocal_loss: Whether to use Varifocal loss for classification loss; otherwise use Focal loss
-        :param static_assigner_epoch: Whether to use static assigner or Task-Aligned assigner
+        :param num_classes:                Number of classes
+        :param use_varifocal_loss:         Whether to use Varifocal loss for classification loss; otherwise use Focal loss
         :param classification_loss_weight: Classification loss weight
-        :param iou_loss_weight: IoU loss weight
-        :param dfl_loss_weight: DFL loss weight
-        :param reg_max: Number of regression bins (Must match the number of bins in the PPYoloE head)
+        :param iou_loss_weight:            IoU loss weight
+        :param dfl_loss_weight:            DFL loss weight
+        :param reg_max:                    Number of regression bins (Must match the number of bins in the PPYoloE head)
+        :param use_batched_assignment:     Whether to use batched targets assignment or sequential (per-image).
+                                           Default is True (batched).
+                                           Batched assignment can be faster when number of the target per image is more or
+                                           less the same across the batch, but it has higher peak GPU memory usage.
+                                           Sequential assignment has lower peak GPU memory usage and preferable for cases
+                                           when number of targets per image varies a lot.
         """
         super().__init__()
         self.use_varifocal_loss = use_varifocal_loss
@@ -659,17 +674,46 @@ class PPYoloELoss(nn.Module):
         self.static_assigner = ATSSAssigner(topk=9, num_classes=num_classes)
         self.assigner = TaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
         self.use_static_assigner = use_static_assigner
-        self.reg_max = reg_max
         self.num_classes = num_classes
+        self.reg_max = reg_max
+        self.use_batched_assignment = use_batched_assignment
 
         # Same as in PPYoloE head
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
 
     @torch.no_grad()
-    def _yolox_targets_to_ppyolo(self, targets: torch.Tensor, batch_size: int) -> Mapping[str, torch.Tensor]:
+    def _get_targets_for_sequential_assigner(self, flat_targets, batch_size: int) -> Tuple[List[Tensor], List[Tensor]]:
         """
-        Convert targets from YoloX format to PPYolo since its the easiest (not the cleanest) way to
+        Unpack input targets into list of targets for each sample in batch
+        :param flat_targets: (N, 6)
+        :return: Tuple of two lists. Each list has [batch_size] elements
+                 - List of tensors holding class indexes for each target in image
+                 - List of tensors holding bbox coordinates (XYXY) for each target in image
+        """
+
+        image_index = flat_targets[:, 0]
+        gt_class = flat_targets[:, 1:2].long()
+        gt_bbox = cxcywh_to_xyxy(flat_targets[:, 2:6], image_shape=None)
+
+        gt_class_list = []
+        gt_bbox_list = []
+
+        for i in range(batch_size):
+            mask = image_index == i
+
+            image_labels = gt_class[mask]
+            image_bboxes = gt_bbox[mask, :]
+
+            gt_class_list.append(image_labels)
+            gt_bbox_list.append(image_bboxes)
+
+        return gt_class_list, gt_bbox_list
+
+    @torch.no_grad()
+    def _get_targets_for_batched_assigner(self, targets: torch.Tensor, batch_size: int) -> Mapping[str, torch.Tensor]:
+        """
+        Convert targets from YoloX format to PPYolo since it's the easiest (not the cleanest) way to
         have PP Yolo training & metrics computed
 
         :param targets: (N, 6) format of bboxes is meant to be LABEL_CXCYWH (index, c, cx, cy, w, h)
@@ -717,28 +761,20 @@ class PPYoloELoss(nn.Module):
             "pad_gt_mask": torch.stack(per_image_pad_mask, dim=0),
         }
 
-    def forward(
+    def _forward_batched(
         self,
-        outputs: Union[
-            Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor], Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]]
-        ],
+        predictions: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
         targets: Tensor,
-    ) -> Mapping[str, Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
-        :param outputs: Tuple of pred_scores, pred_distri, anchors, anchor_points, num_anchors_list, stride_tensor
-        :param targets: (Dictionary [str,Tensor]) with keys:
-         - gt_class: (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
-         - gt_bbox: (Tensor, float32): Ground truth bboxes, shape(B, n, 4) in x1y1x2y2 format
-         - pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
-        :return:
-        """
-        # in test/eval mode the model outputs a tuple where the second item is the raw predictions
-        if isinstance(outputs, tuple) and len(outputs) == 2:
-            # in test/eval mode the Yolo model outputs a tuple where the second item is the raw predictions
-            _, predictions = outputs
-        else:
-            predictions = outputs
+        Compute the loss using batched targets-anchors assignment.
+        This is the default way to compute the loss, however it may cause OOM errors when number of targets per image
+        varies a lot withing a batch or there is a lot of targets per image.
 
+        :param predictions: Model's predictions
+        :param targets:     List of targets in flat format (N, 6)
+        :return:            Tuple of (classification loss, iou loss, dfl loss, assigned scores sum)
+        """
         (
             pred_scores,
             pred_distri,
@@ -748,7 +784,7 @@ class PPYoloELoss(nn.Module):
             stride_tensor,
         ) = predictions
 
-        targets = self._yolox_targets_to_ppyolo(targets, batch_size=pred_scores.size(0))  # yolox -> ppyolo
+        targets = self._get_targets_for_batched_assigner(targets, batch_size=pred_scores.size(0))  # yolox -> ppyolo
 
         anchor_points_s = anchor_points / stride_tensor
         pred_bboxes = self._bbox_decode(anchor_points_s, pred_distri)
@@ -756,6 +792,7 @@ class PPYoloELoss(nn.Module):
         gt_labels = targets["gt_class"]
         gt_bboxes = targets["gt_bbox"]
         pad_gt_mask = targets["pad_gt_mask"]
+
         # label assignment
         if self.use_static_assigner:
             assigned_labels, assigned_bboxes, assigned_scores = self.static_assigner(
@@ -780,34 +817,158 @@ class PPYoloELoss(nn.Module):
                 bg_index=self.num_classes,
             )
             alpha_l = -1
-        # rescale bbox
-        assigned_bboxes /= stride_tensor
         # cls loss
         if self.use_varifocal_loss:
             one_hot_label = torch.nn.functional.one_hot(assigned_labels, self.num_classes + 1)[..., :-1]
-            loss_cls = self._varifocal_loss(pred_scores, assigned_scores, one_hot_label)
+            cls_loss_sum = self._varifocal_loss(pred_scores, assigned_scores, one_hot_label)
         else:
-            loss_cls = self._focal_loss(pred_scores, assigned_scores, alpha_l)
+            cls_loss_sum = self._focal_loss(pred_scores, assigned_scores, alpha_l)
 
         assigned_scores_sum = assigned_scores.sum()
-        if super_gradients.is_distributed():
-            torch.distributed.all_reduce(assigned_scores_sum, op=torch.distributed.ReduceOp.SUM)
-            assigned_scores_sum /= get_world_size()
-        assigned_scores_sum = torch.clip(assigned_scores_sum, min=1.0)
-        loss_cls /= assigned_scores_sum
 
-        loss_iou, loss_dfl = self._bbox_loss(
+        iou_loss_sum, dfl_loss_sum = self._bbox_loss(
             pred_distri,
             pred_bboxes,
             anchor_points_s,
             assigned_labels,
-            assigned_bboxes,
+            assigned_bboxes / stride_tensor,  # rescale bbox
             assigned_scores,
-            assigned_scores_sum,
         )
 
-        loss = self.classification_loss_weight * loss_cls + self.iou_loss_weight * loss_iou + self.dfl_loss_weight * loss_dfl
-        log_losses = torch.stack([loss_cls.detach(), loss_iou.detach(), loss_dfl.detach(), loss.detach()])
+        return cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum
+
+    def _forward_sequential(
+        self,
+        predictions: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
+        targets: Tensor,
+    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        """
+        Compute the loss using sequential (per-image) targets-anchors assignment.
+        It computes assignment & loss per image, which does not cause OOM errors and in some cases can be faster
+        than batched assignment (When number of targets per image varies a lot withing a batch)
+
+        :param predictions: Model's predictions
+        :param targets:     List of targets in flat format (N, 6)
+        :return:            Tuple of (classification loss, iou loss, dfl loss, assigned scores sum)
+        """
+        (
+            cls_score_list,
+            reg_distri_list,
+            anchors,
+            anchor_points,
+            num_anchors_list,
+            stride_tensor,
+        ) = predictions
+
+        anchor_points_s = anchor_points / stride_tensor
+
+        batch_size = cls_score_list.size(0)
+        gt_class_list, gt_bbox_list = self._get_targets_for_sequential_assigner(targets, batch_size=batch_size)
+
+        cls_loss_sum = 0
+        iou_loss_sum = 0
+        dfl_loss_sum = 0
+        assigned_scores_sum_total = 0
+
+        for gt_class, gt_bbox, pred_scores, pred_distri in zip(gt_class_list, gt_bbox_list, cls_score_list, reg_distri_list):
+            pred_scores = pred_scores.unsqueeze(0)  # Add dummy batch dimension
+            pred_distri = pred_distri.unsqueeze(0)  # Add dummy batch dimension
+
+            pred_bboxes = self._bbox_decode(anchor_points_s, pred_distri)
+
+            # label assignment
+            if self.use_static_assigner:
+                assigned_labels, assigned_bboxes, assigned_scores = self.static_assigner(
+                    anchor_bboxes=anchors,
+                    num_anchors_list=num_anchors_list,
+                    gt_labels=gt_class.unsqueeze(0),
+                    gt_bboxes=gt_bbox.unsqueeze(0),
+                    pad_gt_mask=None,
+                    bg_index=self.num_classes,
+                    pred_bboxes=pred_bboxes.detach() * stride_tensor,
+                )
+                alpha_l = 0.25
+            else:
+                assigned_labels, assigned_bboxes, assigned_scores = self.assigner(
+                    pred_scores=pred_scores.detach().sigmoid(),  # Pred scores are logits on training for numerical stability
+                    pred_bboxes=pred_bboxes.detach() * stride_tensor,
+                    anchor_points=anchor_points,
+                    num_anchors_list=num_anchors_list,
+                    gt_labels=gt_class.unsqueeze(0),
+                    gt_bboxes=gt_bbox.unsqueeze(0),
+                    pad_gt_mask=None,
+                    bg_index=self.num_classes,
+                )
+                alpha_l = -1
+
+            # cls loss
+            if self.use_varifocal_loss:
+                one_hot_label = torch.nn.functional.one_hot(assigned_labels, self.num_classes + 1)[..., :-1]
+                cls_loss = self._varifocal_loss(pred_scores, assigned_scores, one_hot_label)
+            else:
+                cls_loss = self._focal_loss(pred_scores, assigned_scores, alpha_l)
+
+            assigned_scores_sum = assigned_scores.sum()
+
+            loss_iou, loss_dfl = self._bbox_loss(
+                pred_distri,
+                pred_bboxes,
+                anchor_points_s,
+                assigned_labels,
+                assigned_bboxes / stride_tensor,  # rescale bbox
+                assigned_scores,
+            )
+
+            cls_loss_sum = cls_loss + cls_loss_sum
+            iou_loss_sum = loss_iou + iou_loss_sum
+            dfl_loss_sum = loss_dfl + dfl_loss_sum
+            assigned_scores_sum_total = assigned_scores_sum + assigned_scores_sum_total
+
+        return cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum_total
+
+    def forward(
+        self,
+        outputs: Union[
+            Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor], Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]]
+        ],
+        targets: Tensor,
+    ) -> Tuple[Tensor, Tensor]:
+        """
+        :param outputs: Tuple of pred_scores, pred_distri, anchors, anchor_points, num_anchors_list, stride_tensor
+        :param targets: (Dictionary [str,Tensor]) with keys:
+         - gt_class: (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
+         - gt_bbox: (Tensor, float32): Ground truth bboxes, shape(B, n, 4) in x1y1x2y2 format
+         - pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
+        :return:
+        """
+        # in test/eval mode the model outputs a tuple where the second item is the raw predictions
+        if isinstance(outputs, tuple) and len(outputs) == 2:
+            # in test/eval mode the Yolo model outputs a tuple where the second item is the raw predictions
+            _, predictions = outputs
+        else:
+            predictions = outputs
+
+        if self.use_batched_assignment:
+            cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum = self._forward_batched(predictions, targets)
+        else:
+            cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum = self._forward_sequential(predictions, targets)
+
+        if super_gradients.is_distributed():
+            torch.distributed.all_reduce(cls_loss_sum, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(iou_loss_sum, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(dfl_loss_sum, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(assigned_scores_sum, op=torch.distributed.ReduceOp.SUM)
+            # This is not an error, it will cancel out since loss is reduced using averaging in DDP
+            assigned_scores_sum /= get_world_size()
+
+        assigned_scores_sum = torch.clip(assigned_scores_sum, min=1.0)
+
+        cls_loss = self.classification_loss_weight * cls_loss_sum / assigned_scores_sum
+        iou_loss = self.iou_loss_weight * iou_loss_sum / assigned_scores_sum
+        dfl_loss = self.dfl_loss_weight * dfl_loss_sum / assigned_scores_sum
+        loss = cls_loss + iou_loss + dfl_loss
+
+        log_losses = torch.stack([cls_loss.detach(), iou_loss.detach(), dfl_loss.detach(), loss.detach()])
 
         return loss, log_losses
 
@@ -837,8 +998,18 @@ class PPYoloELoss(nn.Module):
         assigned_labels,
         assigned_bboxes,
         assigned_scores,
-        assigned_scores_sum,
-    ):
+    ) -> Tuple[Tensor, Tensor]:
+        """
+        Compute IoU and DFL terms of the loss
+        :param pred_dist:
+        :param pred_bboxes:
+        :param anchor_points:
+        :param assigned_labels:
+        :param assigned_bboxes:
+        :param assigned_scores:
+        :return: (Tensor, Tensor) Tuple if IoU and DFL losses, respectively.
+                 Both are single-element tensors with the sum of loss values for all positive targets.
+        """
         # select positive samples mask
         mask_positive = assigned_labels != self.num_classes
         num_pos = mask_positive.sum()
@@ -851,14 +1022,14 @@ class PPYoloELoss(nn.Module):
             bbox_weight = torch.masked_select(assigned_scores.sum(-1), mask_positive).unsqueeze(-1)
 
             loss_iou = self.iou_loss(pred_bboxes_pos, assigned_bboxes_pos) * bbox_weight
-            loss_iou = loss_iou.sum() / assigned_scores_sum
+            loss_iou = loss_iou.sum()
 
             dist_mask = mask_positive.unsqueeze(-1).tile([1, 1, (self.reg_max + 1) * 4])
             pred_dist_pos = torch.masked_select(pred_dist, dist_mask).reshape([-1, 4, self.reg_max + 1])
             assigned_ltrb = self._bbox2distance(anchor_points, assigned_bboxes)
             assigned_ltrb_pos = torch.masked_select(assigned_ltrb, bbox_mask).reshape([-1, 4])
             loss_dfl = self._df_loss(pred_dist_pos, assigned_ltrb_pos) * bbox_weight
-            loss_dfl = loss_dfl.sum() / assigned_scores_sum
+            loss_dfl = loss_dfl.sum()
         else:
             loss_iou = torch.zeros([], device=pred_bboxes.device)
             loss_dfl = pred_dist.sum() * 0.0
@@ -883,12 +1054,12 @@ class PPYoloELoss(nn.Module):
         if alpha > 0:
             alpha_t = alpha * label + (1 - alpha) * (1 - label)
             weight *= alpha_t
-        loss = -weight * (label * torch.nn.functional.logsigmoid(pred_logits) + (1 - label) * torch.nn.functional.logsigmoid(-pred_logits))
+        loss = weight * torch.nn.functional.binary_cross_entropy_with_logits(pred_logits, label, reduction="none")
         return loss.sum()
 
     @staticmethod
     def _varifocal_loss(pred_logits: Tensor, gt_score: Tensor, label: Tensor, alpha=0.75, gamma=2.0) -> Tensor:
         pred_score = pred_logits.sigmoid()
         weight = alpha * pred_score.pow(gamma) * (1 - label) + gt_score * label
-        loss = -weight * (gt_score * torch.nn.functional.logsigmoid(pred_logits) + (1 - gt_score) * torch.nn.functional.logsigmoid(-pred_logits))
+        loss = weight * torch.nn.functional.binary_cross_entropy_with_logits(pred_logits, gt_score, reduction="none")
         return loss.sum()
