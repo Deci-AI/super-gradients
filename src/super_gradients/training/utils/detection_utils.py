@@ -1098,6 +1098,8 @@ def compute_detection_matching(
         :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
     """
+    if matching_strategy is None:
+        raise ValueError("matching_strategy must not be None")
     if isinstance(matching_strategy, IoUMatching) and iou_thresholds is None:
         raise ValueError("iou_thresholds is required for IoU matching strategy")
 
