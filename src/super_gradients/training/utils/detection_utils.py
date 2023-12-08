@@ -1064,9 +1064,9 @@ def compute_detection_matching(
     targets: torch.Tensor,
     height: int,
     width: int,
-    iou_thresholds: torch.Tensor,
     denormalize_targets: bool,
     device: str,
+    iou_thresholds: torch.Tensor = None,
     crowd_targets: Optional[torch.Tensor] = None,
     top_k: int = 100,
     return_on_cpu: bool = True,
@@ -1098,8 +1098,8 @@ def compute_detection_matching(
         :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
     """
-    if matching_strategy is None:
-        raise ValueError("matching_strategy must not be None")
+    if isinstance(matching_strategy, IoUMatching) and iou_thresholds is None:
+        raise ValueError("iou_thresholds is required for IoU matching strategy")
 
     output = map(lambda tensor: None if tensor is None else tensor.to(device), output)
     thresholds = matching_strategy.get_thresholds()
