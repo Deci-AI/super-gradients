@@ -10,7 +10,14 @@ import super_gradients.common.environment.ddp_utils
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.utils import tensor_container_to_device
-from super_gradients.training.utils.detection_utils import compute_detection_matching, compute_detection_metrics
+from super_gradients.training.utils.detection_utils import (
+    compute_detection_matching,
+    compute_detection_metrics,
+    DistanceMetric,
+    EuclideanDistance,
+    IoUMatching,
+    DistanceMatching,
+)
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -157,6 +164,7 @@ class DetectionMetrics(Metric):
         """
         self.iou_thresholds = self.iou_thresholds.to(device)
         _, _, height, width = inputs.shape
+        iou_matcher = IoUMatching(self.iou_thresholds)
 
         targets = target.clone()
         crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.clone()
@@ -168,7 +176,8 @@ class DetectionMetrics(Metric):
             targets,
             height,
             width,
-            self.iou_thresholds,
+            iou_thresholds=iou_matcher.get_thresholds(),
+            matching_strategy=iou_matcher,
             crowd_targets=crowd_targets,
             top_k=self.top_k_predictions,
             denormalize_targets=self.denormalize_targets,
@@ -255,6 +264,86 @@ class DetectionMetrics(Metric):
 
     def _get_range_str(self):
         return "@%.2f" % self.iou_thresholds[0] if not len(self.iou_thresholds) > 1 else "@%.2f:%.2f" % (self.iou_thresholds[0], self.iou_thresholds[-1])
+
+
+@register_metric(Metrics.DETECTION_METRICS_DISTANCE_BASED)
+class DetectionMetricsDistanceBased(DetectionMetrics):
+    def __init__(
+        self,
+        num_cls: int,
+        post_prediction_callback: DetectionPostPredictionCallback,
+        normalize_targets: bool = False,
+        distance_thresholds: List[float] = [5.0],
+        distance_metric: DistanceMetric = EuclideanDistance(),
+        recall_thres: torch.Tensor = None,
+        score_thres: float = 0.1,
+        top_k_predictions: int = 100,
+        dist_sync_on_step: bool = False,
+        accumulate_on_cpu: bool = True,
+        calc_best_score_thresholds: bool = False,
+        include_classwise_ap: bool = False,
+        class_names: List[str] = None,
+    ):
+        self.distance_thresholds = distance_thresholds
+        self.distance_metric = distance_metric
+        super().__init__(
+            num_cls=num_cls,
+            post_prediction_callback=post_prediction_callback,
+            normalize_targets=normalize_targets,
+            recall_thres=recall_thres,
+            score_thres=score_thres,
+            top_k_predictions=top_k_predictions,
+            dist_sync_on_step=dist_sync_on_step,
+            accumulate_on_cpu=accumulate_on_cpu,
+            calc_best_score_thresholds=calc_best_score_thresholds,
+            include_classwise_ap=include_classwise_ap,
+            class_names=class_names,
+        )
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor, device: str, inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None) -> None:
+        """
+        Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
+        Use distance-based definition of true positives.
+
+        :param preds: torch.Tensor: Raw output of the model. The format might change from one model to another,
+                                    but has to fit the input format of the post_prediction_callback (cx, cy, wh).
+        :param target: torch.Tensor: Targets for all images of shape (total_num_targets, 6) LABEL_CXCYWH.
+                                      Format:  (index, label, cx, cy, w, h)
+        :param device: str: Device to run on.
+        :param inputs: torch.Tensor: Input image tensor of shape (batch_size, n_img, height, width).
+        :param crowd_targets: Optional[torch.Tensor]: Crowd targets for all images of shape (total_num_targets, 6), LABEL_CXCYWH.
+        """
+        _, _, height, width = inputs.shape
+
+        distance_matcher = DistanceMatching(self.distance_metric, self.distance_thresholds)
+
+        targets = target.clone()
+        crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.clone()
+
+        preds = self.post_prediction_callback(preds, device=device)
+
+        new_matching_info = compute_detection_matching(
+            output=preds,
+            targets=targets,
+            height=height,
+            width=width,
+            crowd_targets=crowd_targets,
+            top_k=self.top_k_predictions,
+            denormalize_targets=self.denormalize_targets,
+            device=self.device,
+            return_on_cpu=self.accumulate_on_cpu,
+            matching_strategy=distance_matcher,
+        )
+
+        accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
+        setattr(self, f"matching_info{self._get_range_str()}", accumulated_matching_info + new_matching_info)
+
+    def _get_range_str(self):
+        return (
+            "@DIST%.2f" % self.distance_thresholds[0]
+            if not len(self.distance_thresholds) > 1
+            else "@DIST%.2f:%.2f" % (self.distance_thresholds[0], self.distance_thresholds[-1])
+        )
 
 
 @register_metric(Metrics.DETECTION_METRICS_050)

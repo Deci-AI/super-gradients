@@ -691,7 +691,7 @@ class DetectionVisualizationCallback(PhaseCallback):
         self.last_img_idx_in_batch = last_img_idx_in_batch
 
     def __call__(self, context: PhaseContext):
-        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx:
+        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx and not context.ddp_silent_mode:
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
             preds = (context.preds[0].clone(), None)
             preds = self.post_prediction_callback(preds)

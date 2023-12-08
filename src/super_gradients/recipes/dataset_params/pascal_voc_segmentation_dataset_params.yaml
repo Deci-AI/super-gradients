@@ -29,6 +29,13 @@ train_dataset_params:
         crop_size: 512
         mode: random
 
+    - SegToTensor
+
+    - SegNormalize:
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
+
+
 val_dataset_params:
   root: /data/pascal_voc_2012
   list_file: VOCdevkit/VOC2012/ImageSets/Segmentation/val.txt
@@ -47,6 +54,13 @@ val_dataset_params:
     - SegCropImageAndMask:
         crop_size: 512
         mode: center
+
+    - SegToTensor
+
+    - SegNormalize:
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
+
 
 
 train_dataloader_params:
