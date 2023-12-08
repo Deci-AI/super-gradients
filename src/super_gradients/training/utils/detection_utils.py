@@ -1141,9 +1141,9 @@ def compute_img_detection_matching(
     crowd_targets: torch.Tensor,
     height: int,
     width: int,
-    iou_thresholds: torch.Tensor,
     device: str,
     denormalize_targets: bool,
+    iou_thresholds: torch.Tensor = None,
     top_k: int = 100,
     return_on_cpu: bool = True,
     matching_strategy: DetectionMatching = None,
@@ -1157,10 +1157,10 @@ def compute_img_detection_matching(
                             format:     (label, cx, cy, w, h) where cx,cy,w,h
     :param height:          dimensions of the image
     :param width:           dimensions of the image
-    :param iou_thresholds:  Threshold to compute the mAP
     :param device:
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h) where x,y,w,h are in range [0,1]
+    :param iou_thresholds:  Threshold to compute the mAP
     :param top_k:           Number of predictions to keep per class, ordered by confidence score
     :param device:          Device
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
@@ -1176,8 +1176,7 @@ def compute_img_detection_matching(
         :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
     """
-    # Since thresholds passed via matching_strategy class, consider to remove iou_thresholds param
-    num_thresholds = len(iou_thresholds)
+    num_thresholds = len(matching_strategy.get_thresholds())
 
     if preds is None or len(preds) == 0:
         if return_on_cpu:
