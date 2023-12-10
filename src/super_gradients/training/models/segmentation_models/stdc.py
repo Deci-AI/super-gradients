@@ -582,7 +582,11 @@ class STDCSegmentationBase(SgModule):
             self.detail_head8[0] = SegmentationHead(stage3_s8_channels, detail_head_channels, 1, dropout=dropout)
 
     def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
-        return {"cp": 0, "default": lr}
+        lr_dict = {"segmentation_head": lr, "default": 0}
+        if self.use_aux_heads:
+            lr_dict["aux_head"] = lr
+            lr_dict["detail_head"] = lr
+        return lr_dict
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
