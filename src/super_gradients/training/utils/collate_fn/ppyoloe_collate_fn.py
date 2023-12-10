@@ -20,10 +20,10 @@ class PPYoloECollateFN(DetectionCollateFN):
         self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None, random_aspect_ratio: bool = False
     ):
         """
-        :param random_resize_sizes: List of sizes to randomly resize the image to (327. If None, will not resize.
+        :param random_resize_sizes: List of sizes to randomly resize the image to. If None, will not resize.
         :param random_resize_modes: List of interpolation modes to randomly resize the image to. If None, will not resize.
         :param random_aspect_ratio: If True, will randomly choose both width and height from random_resize_sizes.
-                                    If False, will randomly choose only value wich will be the width and height of the images.
+                                    If False, will randomly choose only value which will be the width and height of the images.
         """
         super().__init__()
         self.random_resize_sizes = random_resize_sizes
