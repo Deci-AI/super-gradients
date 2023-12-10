@@ -29,8 +29,8 @@ class RepVGGBlock(nn.Module):
         build_residual_branches: bool = True,
         use_residual_connection: bool = True,
         use_alpha: bool = False,
-        kernel_size=3,
-        padding=1,
+        kernel_size: int = 3,
+        padding: int = 1,
     ):
         """
 
