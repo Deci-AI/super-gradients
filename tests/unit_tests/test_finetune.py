@@ -15,7 +15,7 @@ from super_gradients.common.object_names import Models
 class TestFineTune(unittest.TestCase):
     def test_train_with_finetune_customizable_detector(self):
         # Define Model
-        trainer = Trainer("test_yolo_nas_s_fine_tune")
+        trainer = Trainer("test_train_with_finetune_customizable_detector")
         net = models.get(Models.YOLO_NAS_S, num_classes=5, pretrained_weights="coco")
         net_before_train = deepcopy(net)
 
@@ -95,7 +95,7 @@ class TestFineTune(unittest.TestCase):
 
     def test_train_with_finetune_yolox(self):
         # Define Model
-        trainer = Trainer("test_yolox_s_fine_tune")
+        trainer = Trainer("test_train_with_finetune_yolox")
         net = models.get(Models.YOLOX_S, num_classes=5, pretrained_weights="coco")
         net_before_train = deepcopy(net)
 
@@ -236,7 +236,7 @@ class TestFineTune(unittest.TestCase):
 
     def test_train_with_finetune_segformer(self):
         # Define Model
-        trainer = Trainer("test_train_with_finetune_regseg")
+        trainer = Trainer("test_train_with_finetune_segformer")
         net = models.get(Models.SEGFORMER_B0, num_classes=5, pretrained_weights="cityscapes")
         net_before_train = deepcopy(net)
 
@@ -328,7 +328,7 @@ class TestFineTune(unittest.TestCase):
 
     def test_train_with_finetune_efficientnet(self):
         # Define Model
-        trainer = Trainer("test_train_with_finetune_beit")
+        trainer = Trainer("test_train_with_finetune_efficientnet")
         net = models.get(Models.EFFICIENTNET_B0, num_classes=5, pretrained_weights="imagenet")
         net_before_train = deepcopy(net)
 
