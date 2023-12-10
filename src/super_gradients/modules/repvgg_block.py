@@ -29,6 +29,8 @@ class RepVGGBlock(nn.Module):
         build_residual_branches: bool = True,
         use_residual_connection: bool = True,
         use_alpha: bool = False,
+        kernel_size=3,
+        padding=1,
     ):
         """
 
@@ -44,7 +46,20 @@ class RepVGGBlock(nn.Module):
         :param build_residual_branches: Whether to initialize block with already fused paramters (for deployment)
         :param use_residual_connection: Whether to add input x to the output (Enabled in RepVGG, disabled in PP-Yolo)
         :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch (PP-Yolo-E Plus)
+        :param kernel_size: The kernel size. Should be fixed to `kernel_size=3`. Used to allow API which is similar to `ConvBnAct`.
+        :param kernel_size: The padding size. Should be fixed to `padding=dilation`. Used to allow API which is similar to `ConvBnAct`.
         """
+
+        if kernel_size != 3:
+            raise ValueError(
+                f"{RepVGGBlock.__name__} only supports kernel_size=3 (got: {kernel_size}). The `kernel_size` argument is to allow NAS with different blocks"
+            )
+
+        if padding != dilation:
+            raise ValueError(
+                f"{RepVGGBlock.__name__} only supports padding=dilation (got: {padding}). The `padding` argument is to allow NAS with different blocks"
+            )
+
         super().__init__()
 
         if activation_kwargs is None:
