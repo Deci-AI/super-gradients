@@ -60,6 +60,8 @@ class QARepVGGBlock(nn.Module):
         use_alpha: bool = False,
         use_1x1_bias: bool = True,
         use_post_bn: bool = True,
+        kernel_size: int = 3,
+        padding: int = 1,
     ):
         """
         :param in_channels: Number of input channels
@@ -76,7 +78,19 @@ class QARepVGGBlock(nn.Module):
         :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch (PP-Yolo-E Plus)
         :param use_1x1_bias: If True, enables bias in the 1x1 convolution, authors don't mention it specifically
         :param use_post_bn: If True, adds BatchNorm after the sum of three branches (S4), if False, BatchNorm is not added (S3)
+        :param kernel_size: The kernel size. Should be fixed to `kernel_size=3`. Used to allow API which is similar to `ConvBnAct`.
+        :param padding: The padding size. Should be fixed to `padding=dilation`. Used to allow API which is similar to `ConvBnAct`.
         """
+        if kernel_size != 3:
+            raise ValueError(
+                f"{QARepVGGBlock.__name__} only supports kernel_size=3 (got: {kernel_size}). The `kernel_size` argument is to allow NAS with different blocks"
+            )
+
+        if padding != dilation:
+            raise ValueError(
+                f"{QARepVGGBlock.__name__} only supports padding=dilation (got: {padding}). The `padding` argument is to allow NAS with different blocks"
+            )
+
         super().__init__()
 
         if activation_kwargs is None:
