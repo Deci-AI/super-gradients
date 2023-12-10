@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.factories.optimizers_type_factory import OptimizersTypeFactory
+from super_gradients.module_interfaces import SupportsFineTune
 from super_gradients.training.params import (
     DEFAULT_OPTIMIZER_PARAMS_SGD,
     DEFAULT_OPTIMIZER_PARAMS_ADAM,
@@ -111,6 +112,10 @@ def build_optimizer(net: nn.Module, lr: float, training_params) -> optim.Optimiz
             "initial_lr training hyperparameter (i.e initial_lr={'backbone': 0.01, 'default':0.1})",
             DeprecationWarning,
         )
+    if training_params.fine_tune and isinstance(net, SupportsFineTune):
+        if not isinstance(lr, float):
+            raise RuntimeError("When training with fine_tune=True, initial_lr must be a scalar.")
+        lr = net.get_finetune_lr_dict(lr)
 
     net_named_params = initialize_param_groups(net, lr)
 
