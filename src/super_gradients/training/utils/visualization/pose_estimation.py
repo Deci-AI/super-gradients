@@ -170,6 +170,23 @@ class PoseVisualization:
         num_poses = len(poses)
 
         for pose_index in range(num_poses):
+
+            x1 = int(boxes[pose_index][0])
+            y1 = int(boxes[pose_index][1])
+            x2 = int(boxes[pose_index][2])
+            y2 = int(boxes[pose_index][3])
+
+            bbox_width = x2 - x1
+            bbox_height = y2 - y1
+            diag_length = np.sqrt(bbox_width**2 + bbox_height**2)
+
+            box_thickness = None
+            if box_thickness is None:
+                # Calculate bbox thickness as a percentage of the geometric mean of bbox width and height
+                box_thickness = int(max(1, diag_length * 0.007))
+            joint_thickness = box_thickness
+            keypoint_radius = box_thickness * 2
+
             res_image = draw_skeleton(
                 image=res_image,
                 keypoints=poses[pose_index],
@@ -194,10 +211,10 @@ class PoseVisualization:
 
                 res_image = draw_bbox(
                     image=res_image,
-                    x1=int(boxes[pose_index][0]),
-                    y1=int(boxes[pose_index][1]),
-                    x2=int(boxes[pose_index][2]),
-                    y2=int(boxes[pose_index][3]),
+                    x1=x1,
+                    y1=y1,
+                    x2=x2,
+                    y2=y2,
                     color=(255, 255, 255),
                     title=title,
                     box_thickness=box_thickness,
