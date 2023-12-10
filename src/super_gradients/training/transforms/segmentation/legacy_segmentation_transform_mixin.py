@@ -34,8 +34,8 @@ class LegacySegmentationTransformMixin:
         Convert old-style segmentation sample dict to new DetectionSample dataclass.
 
         :param sample_annotations: Input dictionary with following keys:
-                                    - image: numpy array of [H,W,C] or [C,H,W] format
-                                    - mask: numpy array of [Classes, H, W] or [H, W, Classes]
+            image:              Associated image with sample, in [H,W,C] (or H,W for greyscale) format.
+            mask:               Associated segmentation mask with sample, in [H,W]
 
         :return: An instance of SegmentationSample dataclass filled with data from input dictionary.
         """

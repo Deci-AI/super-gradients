@@ -83,6 +83,7 @@ from tests.unit_tests.training_utils_test import TestTrainingUtils
 from tests.unit_tests.dekr_loss_test import DEKRLossTest
 from tests.unit_tests.pose_estimation_metrics_test import TestPoseEstimationMetrics
 from tests.unit_tests.forward_with_sliding_window_test import SlidingWindowTest
+from tests.unit_tests.detection_metrics_distance_based_test import TestDetectionMetricsDistanceBased
 
 
 class CoreUnitTestSuiteRunner:
@@ -178,6 +179,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestClassificationAdapter))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionAdapter))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationAdapter))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionMetricsDistanceBased))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
