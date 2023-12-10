@@ -1,3 +1,4 @@
+import logging
 from typing import Type, Union, Mapping, Any, Optional
 
 import numpy as np
@@ -29,8 +30,7 @@ class RepVGGBlock(nn.Module):
         build_residual_branches: bool = True,
         use_residual_connection: bool = True,
         use_alpha: bool = False,
-        kernel_size: int = 3,
-        padding: int = 1,
+        **kwargs,
     ):
         """
 
@@ -50,15 +50,11 @@ class RepVGGBlock(nn.Module):
         :param padding: The padding size. Should be fixed to `padding=dilation`. Used to allow API which is similar to `ConvBnAct`.
         """
 
-        if kernel_size != 3:
-            raise ValueError(
-                f"{RepVGGBlock.__name__} only supports kernel_size=3 (got: {kernel_size}). The `kernel_size` argument is to allow NAS with different blocks"
-            )
+        if "kernel_size" in kwargs and kwargs.get("kernel_size") != 3:
+            logging.warning(f"{RepVGGBlock.__name__} only supports kernel_size=3. The `kernel_size` argument passed in `kwargs` will be ignored")
 
-        if padding != dilation:
-            raise ValueError(
-                f"{RepVGGBlock.__name__} only supports padding=dilation (got: {padding}). The `padding` argument is to allow NAS with different blocks"
-            )
+        if "padding" in kwargs and kwargs.get("padding") != dilation:
+            logging.warning(f"{RepVGGBlock.__name__} only supports padding=dilation. The `padding` argument passed in `kwargs` will be ignored")
 
         super().__init__()
 
