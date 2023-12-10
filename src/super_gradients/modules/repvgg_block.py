@@ -46,8 +46,6 @@ class RepVGGBlock(nn.Module):
         :param build_residual_branches: Whether to initialize block with already fused paramters (for deployment)
         :param use_residual_connection: Whether to add input x to the output (Enabled in RepVGG, disabled in PP-Yolo)
         :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch (PP-Yolo-E Plus)
-        :param kernel_size: The kernel size. Should be fixed to `kernel_size=3`. Used to allow API which is similar to `ConvBnAct`.
-        :param padding: The padding size. Should be fixed to `padding=dilation`. Used to allow API which is similar to `ConvBnAct`.
         """
 
         if "kernel_size" in kwargs and kwargs.get("kernel_size") != 3:
