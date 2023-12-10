@@ -79,6 +79,7 @@ class DetectionMetrics(Metric):
         calc_best_score_thresholds: bool = False,
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
+        state_dict_prefix: str = "",
     ):
         if class_names is None:
             if include_classwise_ap:
@@ -110,15 +111,20 @@ class DetectionMetrics(Metric):
         self.map_str = "mAP" + self._get_range_str()
         self.include_classwise_ap = include_classwise_ap
 
+        self.precision_metric_key = f"{state_dict_prefix}Precision{self._get_range_str()}"
+        self.recall_metric_key = f"{state_dict_prefix}Recall{self._get_range_str()}"
+        self.f1_metric_key = f"{state_dict_prefix}F1{self._get_range_str()}"
+        self.map_metric_key = f"{state_dict_prefix}mAP{self._get_range_str()}"
+
         greater_component_is_better = [
-            (f"Precision{self._get_range_str()}", True),
-            (f"Recall{self._get_range_str()}", True),
-            (f"mAP{self._get_range_str()}", True),
-            (f"F1{self._get_range_str()}", True),
+            (self.precision_metric_key, True),
+            (self.recall_metric_key, True),
+            (self.map_metric_key, True),
+            (self.f1_metric_key, True),
         ]
 
         if self.include_classwise_ap:
-            self.per_class_ap_names = [f"AP{self._get_range_str()}_{class_name}" for class_name in class_names]
+            self.per_class_ap_names = [f"{state_dict_prefix}AP{self._get_range_str()}_{class_name}" for class_name in class_names]
             greater_component_is_better += [(key, True) for key in self.per_class_ap_names]
 
         self.greater_component_is_better = collections.OrderedDict(greater_component_is_better)
@@ -134,7 +140,8 @@ class DetectionMetrics(Metric):
         self.denormalize_targets = not normalize_targets
         self.world_size = None
         self.rank = None
-        self.add_state(f"matching_info{self._get_range_str()}", default=[], dist_reduce_fx=None)
+        self.state_key = f"{state_dict_prefix}matching_info{self._get_range_str()}"
+        self.add_state(self.state_key, default=[], dist_reduce_fx=None)
 
         self.recall_thresholds = torch.linspace(0, 1, 101) if recall_thres is None else torch.tensor(recall_thres, dtype=torch.float32)
         self.score_threshold = score_thres
@@ -176,15 +183,15 @@ class DetectionMetrics(Metric):
             return_on_cpu=self.accumulate_on_cpu,
         )
 
-        accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
-        setattr(self, f"matching_info{self._get_range_str()}", accumulated_matching_info + new_matching_info)
+        accumulated_matching_info = getattr(self, self.state_key)
+        setattr(self, self.state_key, accumulated_matching_info + new_matching_info)
 
     def compute(self) -> Dict[str, Union[float, torch.Tensor]]:
         """Compute the metrics for all the accumulated results.
         :return: Metrics of interest
         """
         mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold, best_score_threshold_per_cls = -1.0, -1.0, -1.0, -1.0, -1.0, None
-        accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
+        accumulated_matching_info = getattr(self, self.state_key)
         mean_ap_per_class = np.zeros(self.num_cls)
 
         if len(accumulated_matching_info):
@@ -212,10 +219,10 @@ class DetectionMetrics(Metric):
                 mean_ap_per_class[class_index] = float(ap_per_class[i])
 
         output_dict = {
-            f"Precision{self._get_range_str()}": mean_precision,
-            f"Recall{self._get_range_str()}": mean_recall,
-            f"mAP{self._get_range_str()}": mean_ap,
-            f"F1{self._get_range_str()}": mean_f1,
+            self.precision_metric_key: mean_precision,
+            self.recall_metric_key: mean_recall,
+            self.map_metric_key: mean_ap,
+            self.f1_metric_key: mean_f1,
         }
 
         if self.include_classwise_ap:
@@ -247,10 +254,10 @@ class DetectionMetrics(Metric):
             torch.distributed.all_gather_object(gathered_state_dicts, local_state_dict)
             matching_info = []
             for state_dict in gathered_state_dicts:
-                matching_info += state_dict[f"matching_info{self._get_range_str()}"]
+                matching_info += state_dict[self.state_key]
             matching_info = tensor_container_to_device(matching_info, device="cpu" if self.accumulate_on_cpu else self.device)
 
-            setattr(self, f"matching_info{self._get_range_str()}", matching_info)
+            setattr(self, self.state_key, matching_info)
 
     def _get_range_str(self):
         return "@%.2f" % self.iou_thresholds[0] if not len(self.iou_thresholds) > 1 else "@%.2f:%.2f" % (self.iou_thresholds[0], self.iou_thresholds[-1])
@@ -288,6 +295,7 @@ class DetectionMetricsDistanceBased(DetectionMetrics):
             calc_best_score_thresholds=calc_best_score_thresholds,
             include_classwise_ap=include_classwise_ap,
             class_names=class_names,
+            state_dict_prefix="distance_based_",
         )
 
     def update(self, preds: torch.Tensor, target: torch.Tensor, device: str, inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None) -> None:
@@ -325,8 +333,8 @@ class DetectionMetricsDistanceBased(DetectionMetrics):
             matching_strategy=distance_matcher,
         )
 
-        accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
-        setattr(self, f"matching_info{self._get_range_str()}", accumulated_matching_info + new_matching_info)
+        accumulated_matching_info = getattr(self, self.state_key)
+        setattr(self, self.state_key, accumulated_matching_info + new_matching_info)
 
     def _get_range_str(self):
         return (
