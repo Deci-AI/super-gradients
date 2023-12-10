@@ -21,15 +21,14 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.module_interfaces import HasPreprocessingParams
-from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
+from super_gradients.training.datasets.data_formats.default_formats import LABEL_XYXY
 from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, LabelTensorSliceItem
 from super_gradients.training.transforms.detection.legacy_detection_transform_mixin import LegacyDetectionTransformMixin
 from super_gradients.training.transforms.transforms import AbstractDetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
 from super_gradients.training.utils.detection_utils import get_class_index_in_target
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
-from super_gradients.training.utils.visualization.utils import generate_color_mapping
-from super_gradients.training.utils.visualization.detection import draw_bbox
+from super_gradients.training.utils.detection_utils import DetectionVisualization
 
 
 logger = get_logger(__name__)
@@ -569,28 +568,11 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Detection dataset works with BGR images, so we have to convert to RGB
 
                 # Convert to XYXY_LABEL format
-                targets_format_converter = ConcatenatedTensorFormatConverter(input_format=input_format, output_format=XYXY_LABEL, image_shape=image.shape)
-                targets_xyxy_label = targets_format_converter(targets)
+                targets_format_converter = ConcatenatedTensorFormatConverter(input_format=input_format, output_format=LABEL_XYXY, image_shape=image.shape)
+                targets_label_xyxy = targets_format_converter(targets)
 
-                # PLOT TARGETS
-                color_mapping = generate_color_mapping(len(self.classes))
+                image = DetectionVisualization.visualize_image(image_np=image, class_names=self.classes, target_boxes=targets_label_xyxy, gt_alpha=1)
 
-                for xyxy_label in targets_xyxy_label:
-                    xyxy, class_id = xyxy_label[:4], int(xyxy_label[4])
-
-                    image = draw_bbox(
-                        image=image,
-                        title=f"{self.classes[class_id]}",
-                        color=color_mapping[class_id],
-                        box_thickness=box_thickness,
-                        x1=int(xyxy[0]),
-                        y1=int(xyxy[1]),
-                        x2=int(xyxy[2]),
-                        y2=int(xyxy[3]),
-                    )
-
-                # shape = [n_box x 4] (We remove padded boxes, which corresponds to boxes with only 0)
-                # xyxy = xyxy[(xyxy != 0).any(axis=1)]
                 plt.subplot(n_subplot, n_subplot, img_i + 1).imshow(image[:, :, ::-1])
                 plt.imshow(image)
                 plt.axis("off")
