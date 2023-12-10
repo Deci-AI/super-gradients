@@ -8,7 +8,7 @@ License: Apache Version 2.0, January 2004 http://www.apache.org/licenses/
 
 Pre-trained ImageNet model: 'deci-model-repository/mobilenet_v2/ckpt_best.pth'
 """
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 import numpy as np
 import torch
 import torch.nn as nn
@@ -31,6 +31,9 @@ class MobileNetBase(BaseClassifier):
             self.classifier = new_head
         else:
             self.classifier[-1] = nn.Linear(self.classifier[-1].in_features, new_num_classes)
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"classifier": lr, "default": 0.0}
 
 
 def conv_bn(inp, oup, stride):

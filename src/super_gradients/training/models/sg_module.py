@@ -1,4 +1,4 @@
-from typing import Union, Optional, Callable
+from typing import Union, Dict
 
 from torch import nn
 
@@ -64,5 +64,5 @@ class SgModule(nn.Module, SupportsReplaceInputChannels):
 
         raise NotImplementedError
 
-    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        raise NotImplementedError
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        raise NotImplementedError("Fine tune is not supported for this model")

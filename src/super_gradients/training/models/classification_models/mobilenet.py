@@ -3,7 +3,7 @@
 See the paper "MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications"
 for more details.
 """
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 import torch.nn as nn
 import torch.nn.functional as F
 from super_gradients.training.models import BaseClassifier
@@ -70,3 +70,6 @@ class MobileNet(BaseClassifier, SupportsReplaceInputChannels):
 
     def get_input_channels(self) -> int:
         return self.conv1.in_channels
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"linear": lr, "default": 0}
