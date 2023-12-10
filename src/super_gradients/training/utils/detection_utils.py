@@ -1010,7 +1010,7 @@ class DistanceMatching(DetectionMatching):
             pred_i = preds_idx_to_use[pred_selected_i]
             target_i = target_sorted[pred_selected_i, target_sorted_i]
 
-            distance_thresholds_tensor = torch.tensor(self.distance_thresholds)
+            distance_thresholds_tensor = torch.tensor(self.distance_thresholds, device=distances.device)
             is_distance_below_threshold = sorted_distances[pred_selected_i, target_sorted_i] < distance_thresholds_tensor
             are_candidates_free = torch.logical_and(~preds_matched[pred_i, :], ~targets_matched[target_i, :])
             are_candidates_good = torch.logical_and(is_distance_below_threshold, are_candidates_free)
@@ -1048,11 +1048,11 @@ class DistanceMatching(DetectionMatching):
         cls_mismatch_crowd = preds_cls[preds_idx_to_use].view(-1, 1) != crowd_targets_cls.view(1, -1)
 
         # Iterate over each distance metric and its corresponding threshold
-        distances = self.distance_metric.calculate_distance(crowd_target_box_xyxy, preds_box_xyxy[preds_idx_to_use])
+        distances = self.distance_metric.calculate_distance(preds_box_xyxy[preds_idx_to_use], crowd_target_box_xyxy)
         distances[cls_mismatch_crowd] = float("inf")
 
         best_distance, _ = distances.min(1)
-        is_matching_with_crowd = best_distance.view(-1, 1) < torch.tensor(self.distance_thresholds).view(1, -1)
+        is_matching_with_crowd = best_distance.view(-1, 1) < torch.tensor(self.distance_thresholds, device=distances.device).view(1, -1)
 
         preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
 
