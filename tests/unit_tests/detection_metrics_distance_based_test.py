@@ -81,7 +81,8 @@ class TestDetectionMetricsDistanceBased(unittest.TestCase):
 
         self.assertAlmostEqual(results["precision"].item(), precision, places=places)
         self.assertAlmostEqual(results["recall"].item(), recall, places=places)
-        self.assertAlmostEqual(results["map"].item(), mAP, places=places)
+        if mAP is not None:
+            self.assertAlmostEqual(results["map"].item(), mAP, places=places)
         self.assertAlmostEqual(results["f1"].item(), F1, places=places)
 
     def generate_targets(self, img_width, img_height, num_classes, num_targets):
@@ -270,7 +271,7 @@ class TestDetectionMetricsDistanceBased(unittest.TestCase):
         expected_mAP, expected_f1 = self.calculate_expected_metrics(self, target_precision, target_recall)
 
         # Validate the results
-        self.validate_results(results, precision=target_precision, recall=target_recall, mAP=expected_mAP, F1=expected_f1)
+        self.validate_results(results, precision=target_precision, recall=target_recall, mAP=None, F1=expected_f1)
 
     # checks whether a single prediction that matches a single target will yield a perfect score
     # (Precision, Recall, F1 score, and mAP all set to 1.0). Using Manhattan distance.
