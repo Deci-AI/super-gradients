@@ -51,7 +51,12 @@ def get_recommended_box_thickness(x1: int, y1: int, x2: int, y2: int) -> int:
     bbox_height = y2 - y1
     diag_length = np.sqrt(bbox_width**2 + bbox_height**2)
 
-    return int(1 + (diag_length // 100))  # This looks visually like a good heuristics
+    if diag_length <= 100:
+        return 1
+    elif diag_length <= 200:
+        return 2
+    else:
+        return 3
 
 
 def get_recommended_text_size(x1: int, y1: int, x2: int, y2: int) -> float:
@@ -62,8 +67,9 @@ def get_recommended_text_size(x1: int, y1: int, x2: int, y2: int) -> float:
 
     # This follows the heuristic (defined after some visual experiments):
     # - diag_length=100 -> base_font_size=0.4 (min text size)
-    # - diag_length=300 -> base_font_size=0.7
+    # - diag_length=300 -> base_font_size=0.7 (max text size)
     font_size = diag_length * 0.0015 + 0.25
     font_size = max(0.4, font_size)  # Min = 0.4
+    font_size = min(0.7, font_size)  # Max = 0.7
 
     return font_size
