@@ -101,8 +101,17 @@ class YoloNAS(ExportableObjectDetectionModel, CustomizableDetector):
         super().__init__(backbone, heads, neck, num_classes, bn_eps, bn_momentum, inplace_act, in_channels)
 
     @classmethod
-    def get_post_prediction_callback(cls, conf: float, iou: float) -> PPYoloEPostPredictionCallback:
-        return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
+    def get_post_prediction_callback(
+        cls, conf: float, iou: float, nms_top_k: int = 1000, max_predictions=300, multi_label_per_box=True, class_agnostic_nms=False
+    ) -> PPYoloEPostPredictionCallback:
+        return PPYoloEPostPredictionCallback(
+            score_threshold=conf,
+            nms_threshold=iou,
+            nms_top_k=nms_top_k,
+            max_predictions=max_predictions,
+            multi_label_per_box=multi_label_per_box,
+            class_agnostic_nms=class_agnostic_nms,
+        )
 
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return YoloNASDecodingModule(num_pre_nms_predictions)
@@ -132,10 +141,6 @@ class YoloNAS_S(YoloNAS):
             inplace_act=get_param(merged_arch_params, "inplace_act", None),
         )
 
-    @staticmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> PPYoloEPostPredictionCallback:
-        return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
-
     @property
     def num_classes(self):
         return self.heads.num_classes
@@ -158,10 +163,6 @@ class YoloNAS_M(YoloNAS):
             inplace_act=get_param(merged_arch_params, "inplace_act", None),
         )
 
-    @staticmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> PPYoloEPostPredictionCallback:
-        return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
-
     @property
     def num_classes(self):
         return self.heads.num_classes
@@ -183,10 +184,6 @@ class YoloNAS_L(YoloNAS):
             bn_eps=get_param(merged_arch_params, "bn_eps", None),
             inplace_act=get_param(merged_arch_params, "inplace_act", None),
         )
-
-    @staticmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> PPYoloEPostPredictionCallback:
-        return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
 
     @property
     def num_classes(self):

@@ -158,7 +158,14 @@ class CustomizableDetector(HasPredict, SgModule):
 
     @lru_cache(maxsize=1)
     def _get_pipeline(
-        self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False
+        self,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+        fuse_model: bool = True,
+        skip_image_resizing: bool = False,
+        nms_top_k: int = None,
+        max_predictions=None,
+        multi_label_per_box=None,
     ) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
@@ -187,7 +194,9 @@ class CustomizableDetector(HasPredict, SgModule):
         pipeline = DetectionPipeline(
             model=self,
             image_processor=image_processor,
-            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            post_prediction_callback=self.get_post_prediction_callback(
+                iou=iou, conf=conf, nms_top_k=nms_top_k, max_predictions=max_predictions, multi_label_per_box=multi_label_per_box
+            ),
             class_names=self._class_names,
             fuse_model=fuse_model,
         )
@@ -201,6 +210,9 @@ class CustomizableDetector(HasPredict, SgModule):
         batch_size: int = 32,
         fuse_model: bool = True,
         skip_image_resizing: bool = False,
+        nms_top_k: int = None,
+        max_predictions=None,
+        multi_label_per_box=None,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
@@ -212,7 +224,15 @@ class CustomizableDetector(HasPredict, SgModule):
         :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
+        pipeline = self._get_pipeline(
+            iou=iou,
+            conf=conf,
+            fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
+            nms_top_k=nms_top_k,
+            max_predictions=max_predictions,
+            multi_label_per_box=multi_label_per_box,
+        )
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
     def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False):

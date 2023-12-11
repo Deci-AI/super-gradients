@@ -132,13 +132,17 @@ def load_np_image_from_pil(image: PIL.Image.Image) -> np.ndarray:
 
 def load_pil_image_from_str(image_str: str) -> PIL.Image.Image:
     """Load an image based on a string (local file path or URL)."""
-
-    if is_url(image_str):
-        response = requests.get(image_str, stream=True)
-        response.raise_for_status()
-        return PIL.Image.open(io.BytesIO(response.content))
-    else:
-        return PIL.Image.open(image_str)
+    prev_max_image_pixels = PIL.Image.MAX_IMAGE_PIXELS
+    try:
+        PIL.Image.MAX_IMAGE_PIXELS = None
+        if is_url(image_str):
+            response = requests.get(image_str, stream=True)
+            response.raise_for_status()
+            return PIL.Image.open(io.BytesIO(response.content))
+        else:
+            return PIL.Image.open(image_str)
+    finally:
+        PIL.Image.MAX_IMAGE_PIXELS = prev_max_image_pixels
 
 
 def save_image(image: np.ndarray, path: str) -> None:

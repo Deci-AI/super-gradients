@@ -116,8 +116,12 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         self._default_nms_conf: Optional[float] = None
 
     @staticmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
-        return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
+    def get_post_prediction_callback(
+        conf: float, iou: float, nms_top_k: int = 1000, max_predictions=300, multi_label_per_box=True
+    ) -> DetectionPostPredictionCallback:
+        return PPYoloEPostPredictionCallback(
+            score_threshold=conf, nms_threshold=iou, nms_top_k=nms_top_k, max_predictions=max_predictions, multi_label_per_box=multi_label_per_box
+        )
 
     def get_preprocessing_callback(self, **kwargs):
         processing = self.get_processing_params()
@@ -151,7 +155,14 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     @lru_cache(maxsize=1)
     def _get_pipeline(
-        self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False
+        self,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+        fuse_model: bool = True,
+        skip_image_resizing: bool = False,
+        nms_top_k: int = None,
+        max_predictions=None,
+        multi_label_per_box=None,
     ) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
@@ -168,6 +179,9 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
+        nms_top_k = nms_top_k or 1000
+        max_predictions = max_predictions or 300
+        multi_label_per_box = True if multi_label_per_box is None else multi_label_per_box
 
         # Ensure that the image size is divisible by 32.
         if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
@@ -180,7 +194,9 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         pipeline = DetectionPipeline(
             model=self,
             image_processor=image_processor,
-            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            post_prediction_callback=self.get_post_prediction_callback(
+                iou=iou, conf=conf, nms_top_k=nms_top_k, max_predictions=max_predictions, multi_label_per_box=multi_label_per_box
+            ),
             class_names=self._class_names,
             fuse_model=fuse_model,
         )
