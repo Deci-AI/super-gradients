@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import List, Iterator, Optional
+from typing import List, Iterator, Optional, Tuple
 
 import numpy as np
 
@@ -27,9 +27,9 @@ class ImagePoseEstimationPrediction(ImagePrediction):
     def draw(
         self,
         edge_colors=None,
-        joint_thickness: int = 2,
-        keypoint_colors=None,
-        keypoint_radius: int = 5,
+        joint_thickness: Optional[int] = None,
+        keypoint_colors: Optional[List[Tuple]] = None,
+        keypoint_radius: Optional[int] = None,
         box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> np.ndarray:
@@ -38,11 +38,11 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
-        :param joint_thickness: Thickness of the joint links  (in pixels).
+        :param joint_thickness: (Optional) Thickness of the joint links  (in pixels).
         :param keypoint_colors: Optional list of tuples representing the colors for each keypoint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joints in the skeleton.
-        :param keypoint_radius: Radius of the keypoints (in pixels).
+        :param keypoint_radius: (Optional) Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :return:                Image with predicted bboxes. Note that this does not modify the original image.
@@ -66,9 +66,9 @@ class ImagePoseEstimationPrediction(ImagePrediction):
     def show(
         self,
         edge_colors=None,
-        joint_thickness: int = 2,
-        keypoint_colors=None,
-        keypoint_radius: int = 5,
+        joint_thickness: Optional[int] = None,
+        keypoint_colors: Optional[List[Tuple]] = None,
+        keypoint_radius: Optional[int] = None,
         box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
@@ -77,11 +77,11 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
-        :param joint_thickness: Thickness of the joint links  (in pixels).
+        :param joint_thickness: (Optional) Thickness of the joint links  (in pixels).
         :param keypoint_colors: Optional list of tuples representing the colors for each keypoint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joints in the skeleton.
-        :param keypoint_radius: Radius of the keypoints (in pixels).
+        :param keypoint_radius: (Optional) Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
@@ -99,9 +99,9 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         self,
         output_path: str,
         edge_colors=None,
-        joint_thickness: int = 2,
-        keypoint_colors=None,
-        keypoint_radius: int = 5,
+        joint_thickness: Optional[int] = None,
+        keypoint_colors: Optional[List[Tuple]] = None,
+        keypoint_radius: Optional[int] = None,
         box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
@@ -111,11 +111,11 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
-        :param joint_thickness: Thickness of the joint links  (in pixels).
+        :param joint_thickness: (Optional) Thickness of the joint links  (in pixels).
         :param keypoint_colors: Optional list of tuples representing the colors for each keypoint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joints in the skeleton.
-        :param keypoint_radius: Radius of the keypoints (in pixels).
+        :param keypoint_radius: (Optional) Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
@@ -135,9 +135,9 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
     def show(
         self,
         edge_colors=None,
-        joint_thickness: int = 2,
-        keypoint_colors=None,
-        keypoint_radius: int = 5,
+        joint_thickness: Optional[int] = None,
+        keypoint_colors: Optional[List[Tuple]] = None,
+        keypoint_radius: Optional[int] = None,
         box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
@@ -146,11 +146,11 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
-        :param joint_thickness: Thickness of the joint links  (in pixels).
+        :param joint_thickness: (Optional) Thickness of the joint links  (in pixels).
         :param keypoint_colors: Optional list of tuples representing the colors for each keypoint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joints in the skeleton.
-        :param keypoint_radius: Radius of the keypoints (in pixels).
+        :param keypoint_radius: (Optional) Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
@@ -168,9 +168,9 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
         self,
         output_folder: str,
         edge_colors=None,
-        joint_thickness: int = 2,
-        keypoint_colors=None,
-        keypoint_radius: int = 5,
+        joint_thickness: Optional[int] = None,
+        keypoint_colors: Optional[List[Tuple]] = None,
+        keypoint_radius: Optional[int] = None,
         box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
@@ -180,11 +180,11 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
-        :param joint_thickness: Thickness of the joint links  (in pixels).
+        :param joint_thickness: (Optional) Thickness of the joint links  (in pixels).
         :param keypoint_colors: Optional list of tuples representing the colors for each keypoint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joints in the skeleton.
-        :param keypoint_radius: Radius of the keypoints (in pixels).
+        :param keypoint_radius: (Optional) Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
@@ -219,9 +219,9 @@ class VideoPoseEstimationPrediction(VideoPredictions):
     def draw(
         self,
         edge_colors=None,
-        joint_thickness: int = 2,
-        keypoint_colors=None,
-        keypoint_radius: int = 5,
+        joint_thickness: Optional[int] = None,
+        keypoint_colors: Optional[List[Tuple]] = None,
+        keypoint_radius: Optional[int] = None,
         box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> Iterator[np.ndarray]:
@@ -231,11 +231,11 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
-        :param joint_thickness: Thickness of the joint links  (in pixels).
+        :param joint_thickness: (Optional) Thickness of the joint links  (in pixels).
         :param keypoint_colors: Optional list of tuples representing the colors for each keypoint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joints in the skeleton.
-        :param keypoint_radius: Radius of the keypoints (in pixels).
+        :param keypoint_radius: (Optional) Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
 
@@ -255,9 +255,9 @@ class VideoPoseEstimationPrediction(VideoPredictions):
     def show(
         self,
         edge_colors=None,
-        joint_thickness: int = 2,
-        keypoint_colors=None,
-        keypoint_radius: int = 5,
+        joint_thickness: Optional[int] = None,
+        keypoint_colors: Optional[List[Tuple]] = None,
+        keypoint_radius: Optional[int] = None,
         box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
@@ -266,11 +266,11 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
-        :param joint_thickness: Thickness of the joint links  (in pixels).
+        :param joint_thickness: (Optional) Thickness of the joint links  (in pixels).
         :param keypoint_colors: Optional list of tuples representing the colors for each keypoint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joints in the skeleton.
-        :param keypoint_radius: Radius of the keypoints (in pixels).
+        :param keypoint_radius: (Optional) Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
@@ -288,9 +288,9 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         self,
         output_path: str,
         edge_colors=None,
-        joint_thickness: int = 2,
-        keypoint_colors=None,
-        keypoint_radius: int = 5,
+        joint_thickness: Optional[int] = None,
+        keypoint_colors: Optional[List[Tuple]] = None,
+        keypoint_radius: Optional[int] = None,
         box_thickness: Optional[int] = None,
         show_confidence: bool = False,
     ) -> None:
@@ -300,11 +300,11 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
-        :param joint_thickness: Thickness of the joint links  (in pixels).
+        :param joint_thickness: (Optional) Thickness of the joint links  (in pixels).
         :param keypoint_colors: Optional list of tuples representing the colors for each keypoint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joints in the skeleton.
-        :param keypoint_radius: Radius of the keypoints (in pixels).
+        :param keypoint_radius: (Optional) Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         """
