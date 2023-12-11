@@ -28,7 +28,6 @@ def draw_bbox(
     """
 
     if box_thickness is None:
-        # Calculate bbox thickness as a percentage of the geometric mean of bbox width and height
         box_thickness = get_recommended_box_thickness(x1=x1, y1=y1, x2=x2, y2=y2)
 
     # Draw bbox
@@ -61,14 +60,10 @@ def get_recommended_text_size(x1: int, y1: int, x2: int, y2: int) -> float:
     bbox_height = y2 - y1
     diag_length = np.sqrt(bbox_width**2 + bbox_height**2)
 
-    # Calculate base font size relative to bbox height
-    base_font_scale_factor = 0.0025
-    base_font_size = base_font_scale_factor * diag_length
-
-    # Apply minimum and maximum bounds
-    min_font_size = 0.4
-    max_font_size = 0.7
-    font_size = max(min_font_size, base_font_size)
-    font_size = min(max_font_size, font_size)
+    # This follows the heuristic (defined after some visual experiments):
+    # - diag_length=100 -> base_font_size=0.4 (min text size)
+    # - diag_length=300 -> base_font_size=0.7
+    font_size = diag_length * 0.0015 + 0.25
+    font_size = max(0.4, font_size)  # Min = 0.4
 
     return font_size
