@@ -43,10 +43,5 @@ class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         super().__init__(adapter=adapter, base_collate_fn=base_collate_fn or base_collate_fn)
 
     def __call__(self, samples: Iterable[SupportedDataType]) -> Tuple[torch.Tensor, torch.Tensor]:
-        from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
-
-        images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
-        transform = SegmentationDataSet.get_normalize_transform()
-        images = transform(images / 255)  # images are [0-255] after the data adapter
-        targets = targets.argmax(1)
+        images, targets = super().__call__(samples=samples)
         return images, targets

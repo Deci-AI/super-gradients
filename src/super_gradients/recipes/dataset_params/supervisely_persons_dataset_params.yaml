@@ -22,6 +22,13 @@ train_dataset_params:
         crop_size: [ 320, 480 ]
         mode: random
 
+    - SegToTensor
+
+    - SegNormalize:
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
+
+
 val_dataset_params:
   root_dir: ${..dataset_dir}
   list_file: val.csv
@@ -31,6 +38,13 @@ val_dataset_params:
     - SegResize:
         h: 480
         w: 320
+
+    - SegToTensor
+
+    - SegNormalize:
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
+
 
 train_dataloader_params:
   dataset: SuperviselyPersonsDataset
