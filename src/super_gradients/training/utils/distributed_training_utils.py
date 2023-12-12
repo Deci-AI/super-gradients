@@ -219,7 +219,7 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = No
 
 
 @resolve_param("multi_gpu", TypeFactory(MultiGPUMode.dict()))
-def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None, device: str = "cuda"):
+def setup_device(multi_gpu: MultiGPUMode = None, num_gpus: int = None, device: str = "cuda"):
     """
     If required, launch ddp subprocesses.
     :param multi_gpu:   DDP, DP, Off or AUTO
