@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.factories.optimizers_type_factory import OptimizersTypeFactory
+from super_gradients.module_interfaces import SupportsFineTune
 from super_gradients.training.params import (
     DEFAULT_OPTIMIZER_PARAMS_SGD,
     DEFAULT_OPTIMIZER_PARAMS_ADAM,
@@ -111,6 +112,16 @@ def build_optimizer(net: nn.Module, lr: float, training_params) -> optim.Optimiz
             "initial_lr training hyperparameter (i.e initial_lr={'backbone': 0.01, 'default':0.1})",
             DeprecationWarning,
         )
+    if training_params.finetune:
+        if not isinstance(net, SupportsFineTune):
+            warnings.warn(
+                "training hyperparameter finetune=True but will have no effect. get_finetune_lr_dict is not implemented for this model, which is required."
+            )
+        elif not isinstance(lr, float):
+            raise RuntimeError("When training with fine_tune=True, initial_lr must be a scalar.")
+        lr = net.get_finetune_lr_dict(lr)
+        logger.info(f"Training with finetune=True: setting initial_lr to predefined mapping {lr}")
+        training_params.initial_lr = lr
 
     net_named_params = initialize_param_groups(net, lr)
 
@@ -154,12 +165,15 @@ def separate_lr_groups(model: nn.Module, lr_dict: Dict[str, float]) -> List[Dict
         else:
             param_groups.append({"named_params": named_params, "lr": lr, "name": group_name})
 
-    if default_lr != 0:
-        default_named_params = [
-            (name, param) for name, param in model.named_parameters() if all(name.startswith(group) is False for group in group_names) and param.requires_grad
-        ]
-        if default_named_params:
+    default_named_params = [
+        (name, param) for name, param in model.named_parameters() if all(name.startswith(group) is False for group in group_names) and param.requires_grad
+    ]
+    if default_named_params:
+        if default_lr != 0:
             param_groups.append({"named_params": default_named_params, "lr": default_lr, "name": "default"})
+        else:
+            for name, param in default_named_params:
+                param.requires_grad = False  # Freeze the layer
 
     return param_groups
 

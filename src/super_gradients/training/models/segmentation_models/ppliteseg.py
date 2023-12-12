@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from typing import Union, List, Optional, Callable
+from typing import Union, List, Optional, Callable, Dict
 from super_gradients.modules import ConvBNReLU
 
 from super_gradients.common.registry.registry import register_model
@@ -302,6 +302,12 @@ class PPLiteSegBase(SegmentationModule):
         for module in self.modules():
             if isinstance(module, SegmentationHead):
                 module.replace_num_classes(new_num_classes)
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        lr_dict = {"seg_head": lr, "default": 0}
+        if self.use_aux_heads:
+            lr_dict["aux_heads"] = lr
+        return lr_dict
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self.encoder.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)

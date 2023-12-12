@@ -231,3 +231,6 @@ class CustomizableDetector(HasPredict, SgModule):
         self._get_pipeline.cache_clear()
         torch.cuda.empty_cache()
         return super().train(mode)
+
+    def get_finetune_lr_dict(self, lr: float):
+        return {"heads": lr, "default": 0}
