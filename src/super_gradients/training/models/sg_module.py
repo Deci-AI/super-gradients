@@ -76,4 +76,4 @@ class SgModule(nn.Module, SupportsReplaceInputChannels, SupportsFineTune):
         :return: learning rate mapping that can be used by
          super_gradients.training.utils.optimizer_utils.initialize_param_groups
         """
-        raise NotImplementedError("Finetune is not implemented for this model, it is required to" " implement get_finetune_lr_dict.")
+        raise NotImplementedError("Finetune is not implemented for this model, it is required to implement get_finetune_lr_dict.")
