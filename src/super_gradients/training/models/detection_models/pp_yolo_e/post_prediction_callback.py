@@ -45,8 +45,16 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         :return:
         """
         nms_result = []
-        # First is model predictions, second element of tuple is logits for loss computation
-        predictions = outputs[0]
+
+        if isinstance(outputs, tuple) and len(outputs) == 2:
+            if outputs[0].shape[1] == outputs[1].shape[1] and outputs[0].shape[2] == 4:
+                predictions = outputs
+                pass
+            else:
+                # First is model predictions, second element of tuple is logits for loss computation
+                predictions = outputs[0]
+        else:
+            raise ValueError(f"Unsupported output format: {outputs}")
 
         for pred_bboxes, pred_scores in zip(*predictions):
             # Cast to float to avoid lack of fp16 support in torchvision.ops.boxes.batched_nms
