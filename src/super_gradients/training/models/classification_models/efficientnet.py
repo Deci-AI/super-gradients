@@ -18,7 +18,7 @@ import re
 import math
 import collections
 from functools import partial
-from typing import List, Tuple, Union, Optional, Callable
+from typing import List, Tuple, Union, Optional, Callable, Dict
 
 import torch
 from torch import nn
@@ -572,6 +572,9 @@ class EfficientNet(BaseClassifier):
 
         # RETURNING THE UNMODIFIED/MODIFIED STATE DICT DEPENDING ON THE backbone_mode VALUE
         super().load_state_dict(pretrained_model_weights_dict, strict)
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"_fc": lr, "default": 0.0}
 
 
 def get_efficientnet_params(width: float, depth: float, res: float, dropout: float, arch_params: HpmStruct):
