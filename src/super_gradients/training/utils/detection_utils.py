@@ -1,6 +1,7 @@
 import math
 import os
 import pathlib
+import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional
@@ -409,7 +410,8 @@ class DetectionVisualization:
         y2: int,
         class_id: int,
         pred_conf: float = None,
-        is_target: Optional[bool] = None,
+        is_target: bool = False,
+        bbox_prefix: str = "",
     ):
         """
         Draw a rectangle with class name, confidence on the image
@@ -423,18 +425,20 @@ class DetectionVisualization:
         :param y2: Y coordinate of the bottom right corner of the bounding box
         :param class_id: A corresponding class id
         :param pred_conf: Class confidence score (optional)
-        :param is_target: (Optional) Indicate if the bounding box is a ground-truth box or not. This will be displayed as [GT] or [Pred].
-
+        :param bbox_prefix: Prefix to add to the title of the bounding boxes
+        :param is_target: Not Supported Anymore. Please use  `pred_conf` and `bbox_prefix` instead.
         """
+        if is_target:
+            warnings.warn("`is_target` is not supported for `draw_box_title` function anymore. Please use `bbox_prefix` and `pred_conf` instead.")
+
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
-        if is_target is None:
-            title = class_name  # SKIP
-        elif is_target:
-            title = f"[GT] {class_name}"
-        else:
-            title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+        title = class_name
+        if bbox_prefix:
+            title = f"{bbox_prefix} {class_name}"
+        if pred_conf is not None:
+            title = f"{title} {str(round(pred_conf, 2))}"
 
         image_np = draw_bbox(image=image_np, title=title, x1=x1, y1=y1, x2=x2, y2=y2, box_thickness=box_thickness, color=color)
         return image_np
@@ -493,7 +497,7 @@ class DetectionVisualization:
                     y2=int(xyxy_score_label[3]),
                     class_id=int(xyxy_score_label[5]),
                     pred_conf=float(xyxy_score_label[4]),
-                    is_target=False if target_boxes else None,  # If Not TARGET, don't show `Pred` on the bboxes
+                    bbox_prefix="[Pred]" if target_boxes else "",  # If we have TARGETS, we want to add a prefix to distinguish.
                 )
 
         if target_boxes is not None:
@@ -516,7 +520,7 @@ class DetectionVisualization:
                     x2=int(label_xyxy[3]),
                     y2=int(label_xyxy[4]),
                     class_id=int(label_xyxy[0]),
-                    is_target=True if pred_boxes else None,  # If Not PRED, don't show `GT` on the bboxes
+                    bbox_prefix="[GT]" if target_boxes else "",  # If we have PREDICTIONS, we want to add a prefix to distinguish.
                 )
 
             if gt_alpha is not None:
