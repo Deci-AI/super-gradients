@@ -20,7 +20,7 @@ Modifications by / Copyright 2021 Ross Wightman, original copyrights below
 # --------------------------------------------------------'
 import math
 from functools import partial
-from typing import Optional, Tuple, Callable
+from typing import Optional, Tuple, Callable, Dict
 
 import torch
 import torch.nn as nn
@@ -460,6 +460,9 @@ class Beit(BaseClassifier):
 
     def get_input_channels(self) -> int:
         return self.patch_embed.get_input_channels()
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"head": lr, "default": 0.0}
 
 
 @register_model(Models.BEIT_BASE_PATCH16_224)

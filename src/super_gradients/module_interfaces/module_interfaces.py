@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING, Dict
 
 from torch import nn
 
@@ -101,3 +101,19 @@ class SupportsReplaceInputChannels(ABC):
         :return: Number of input channels.
         """
         raise NotImplementedError(f"`get_input_channels` is not implemented in the derived class `{self.__class__.__name__}`")
+
+
+class SupportsFineTune:
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        """
+        Returns a dictionary, mapping lr to the unfrozen part of the network, in the same fashion as using initial_lr in trianing_params
+         when calling Trainer.train().
+        For example:
+            def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+                return {"default": 0, "head": lr}
+
+        :param lr: float, learning rate for the part of the network to be tuned.
+        :return: learning rate mapping that can be used by
+         super_gradients.training.utils.optimizer_utils.initialize_param_groups
+        """
+        raise NotImplementedError("Fine tune is not supported for this model")
