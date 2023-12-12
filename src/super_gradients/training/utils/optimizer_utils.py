@@ -115,7 +115,7 @@ def build_optimizer(net: nn.Module, lr: float, training_params) -> optim.Optimiz
     if training_params.finetune:
         if not isinstance(net, SupportsFineTune):
             warnings.warn(
-                "training hyperparameter finetune=True but will have no effect." " get_finetune_lr_dict is not implemented for this model, which is required."
+                "training hyperparameter finetune=True but will have no effect. get_finetune_lr_dict is not implemented for this model, which is required."
             )
         elif not isinstance(lr, float):
             raise RuntimeError("When training with fine_tune=True, initial_lr must be a scalar.")
