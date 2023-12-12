@@ -260,7 +260,7 @@ def setup_cpu(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None)
     :param multi_gpu:    DDP, DP, Off or AUTO
     :param num_gpus:     Number of GPU's to use.
     """
-    if multi_gpu not in (MultiGPUMode.OFF, MultiGPUMode.AUTO):
+    if multi_gpu not in (MultiGPUMode.OFF, MultiGPUMode.AUTO, None):
         raise ValueError(f"device='cpu' and multi_gpu={multi_gpu} are not compatible together.")
 
     if num_gpus not in (0, None):
