@@ -172,14 +172,19 @@ class PoseVisualization:
 
         for pose_index in range(num_poses):
 
-            x1 = int(boxes[pose_index][0])
-            y1 = int(boxes[pose_index][1])
-            x2 = int(boxes[pose_index][2])
-            y2 = int(boxes[pose_index][3])
+            if boxes is not None:
+                x1 = int(boxes[pose_index][0])
+                y1 = int(boxes[pose_index][1])
+                x2 = int(boxes[pose_index][2])
+                y2 = int(boxes[pose_index][3])
 
-            current_box_thickness = box_thickness or get_recommended_box_thickness(x1, y1, x2, y2)
-            current_joint_thickness = joint_thickness or current_box_thickness
-            current_keypoint_radius = keypoint_radius or math.ceil(current_box_thickness * 3 / 2)
+                current_box_thickness = box_thickness or get_recommended_box_thickness(x1, y1, x2, y2)
+                current_joint_thickness = joint_thickness or current_box_thickness
+                current_keypoint_radius = keypoint_radius or math.ceil(current_box_thickness * 3 / 2)
+            else:
+                current_joint_thickness = 2
+                current_keypoint_radius = 3
+                current_box_thickness = 2
 
             res_image = draw_skeleton(
                 image=res_image,
@@ -187,16 +192,20 @@ class PoseVisualization:
                 score=scores[pose_index] if scores is not None else None,
                 edge_links=edge_links,
                 edge_colors=edge_colors,
-                joint_thickness=current_box_thickness,
+                joint_thickness=current_joint_thickness,
                 keypoint_colors=keypoint_colors,
                 keypoint_radius=current_keypoint_radius,
                 show_confidence=scores is not None and boxes is None,
                 show_keypoint_confidence=show_keypoint_confidence,
-                box_thickness=current_joint_thickness,
+                box_thickness=current_box_thickness,
                 keypoint_confidence_threshold=keypoint_confidence_threshold,
             )
 
             if boxes is not None:
+                x1 = int(boxes[pose_index][0])
+                y1 = int(boxes[pose_index][1])
+                x2 = int(boxes[pose_index][2])
+                y2 = int(boxes[pose_index][3])
                 title = ""
                 if scores is not None:
                     title += f"{scores[pose_index]:.2f}"
