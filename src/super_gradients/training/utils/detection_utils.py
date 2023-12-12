@@ -401,7 +401,7 @@ class DetectionVisualization:
     def draw_box_title(
         color_mapping: List[Tuple[int]],
         class_names: List[str],
-        box_thickness: int,
+        box_thickness: Optional[int],
         image_np: np.ndarray,
         x1: int,
         y1: int,
@@ -445,7 +445,7 @@ class DetectionVisualization:
         pred_boxes: np.ndarray,
         target_boxes: np.ndarray,
         class_names: List[str],
-        box_thickness: int,
+        box_thickness: Optional[int],
         gt_alpha: float,
         image_scale: float,
         checkpoint_dir: str,
@@ -566,7 +566,7 @@ class DetectionVisualization:
         class_names: List[str],
         checkpoint_dir: str = None,
         undo_preprocessing_func: Callable[[torch.Tensor], np.ndarray] = undo_image_preprocessing,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         image_scale: float = 1.0,
         gt_alpha: float = 0.4,
     ):
