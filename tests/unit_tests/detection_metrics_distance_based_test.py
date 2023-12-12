@@ -2,7 +2,7 @@ import math
 import unittest
 import torch
 import random
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 
 from super_gradients.training.metrics.detection_metrics import DetectionMetricsDistanceBased
 from super_gradients.training.utils.detection_utils import EuclideanDistance, ManhattanDistance
@@ -71,32 +71,19 @@ class TestDetectionMetricsDistanceBased(unittest.TestCase):
 
         return batch_transformed_preds
 
-    def validate_results(self, results, precision, recall, mAP, F1, places=4, verbose=False, description=None):
+    def validate_results(self, results: Dict, precision, recall, mAP, F1, places=4, verbose=False, description=None):
         if verbose and description:
             test_name = self.id().split(".")[-1]
             print(f"\n{test_name}():")
             print(f"Description: {description}")
 
-        case_mapping = {key.lower(): key for key in ["precision", "recall", "mAP", "F1"]}
-        status = ""
+        results = dict((k.split("@")[0].lower().replace("distance_based_", ""), v) for k, v in results.items())
 
-        for key, value in results.items():
-            original_key = case_mapping.get(key.split("@")[0].lower(), key.split("@")[0].lower())
-            got_value = round(value.item(), places)
-
-            # Checking the mAP depends on the order of scores where checked. Think about better way to verify mAP
-            if original_key == "mAP":
-                print(f" * {original_key}: {got_value:.4f}")
-                continue
-
-            expected_value = round(locals()[original_key], places)
-
-            if verbose:
-                is_close = abs(got_value - expected_value) < 10 ** (-places)
-                status = "OK" if is_close else "FAIL"
-
-                print(f" * {key}: {got_value:.4f} / ({expected_value:.4f}) - {status}")
-            self.assertAlmostEqual(got_value, expected_value, places=places)
+        self.assertAlmostEqual(results["precision"].item(), precision, places=places)
+        self.assertAlmostEqual(results["recall"].item(), recall, places=places)
+        if mAP is not None:
+            self.assertAlmostEqual(results["map"].item(), mAP, places=places)
+        self.assertAlmostEqual(results["f1"].item(), F1, places=places)
 
     def generate_targets(self, img_width, img_height, num_classes, num_targets):
         targets = []
@@ -284,7 +271,7 @@ class TestDetectionMetricsDistanceBased(unittest.TestCase):
         expected_mAP, expected_f1 = self.calculate_expected_metrics(self, target_precision, target_recall)
 
         # Validate the results
-        self.validate_results(results, precision=target_precision, recall=target_recall, mAP=expected_mAP, F1=expected_f1)
+        self.validate_results(results, precision=target_precision, recall=target_recall, mAP=None, F1=expected_f1)
 
     # checks whether a single prediction that matches a single target will yield a perfect score
     # (Precision, Recall, F1 score, and mAP all set to 1.0). Using Manhattan distance.
