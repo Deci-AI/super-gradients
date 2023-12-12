@@ -51,6 +51,7 @@ from tests.unit_tests.random_erase_test import RandomEraseTest
 from tests.unit_tests.replace_head_test import ReplaceHeadUnitTest
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.test_deprecations import DeprecationsUnitTest
+from tests.unit_tests.test_finetune import TestFineTune
 from tests.unit_tests.test_min_samples_single_node import TestMinSamplesSingleNode
 from tests.unit_tests.test_model_weight_averaging import TestModelWeightAveraging
 from tests.unit_tests.test_train_with_torch_scheduler import TrainWithTorchSchedulerTest
@@ -180,6 +181,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionAdapter))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationAdapter))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionMetricsDistanceBased))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestFineTune))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

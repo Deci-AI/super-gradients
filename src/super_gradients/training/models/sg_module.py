@@ -1,12 +1,12 @@
-from typing import Union, Optional, Callable
+from typing import Union, Dict
 
 from torch import nn
 
 from super_gradients.training.utils.utils import HpmStruct
-from super_gradients.module_interfaces import SupportsReplaceInputChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels, SupportsFineTune
 
 
-class SgModule(nn.Module, SupportsReplaceInputChannels):
+class SgModule(nn.Module, SupportsReplaceInputChannels, SupportsFineTune):
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
 
@@ -64,5 +64,16 @@ class SgModule(nn.Module, SupportsReplaceInputChannels):
 
         raise NotImplementedError
 
-    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        raise NotImplementedError
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        """
+        Returns a dictionary, mapping lr to the unfrozen part of the network, in the same fashion as using initial_lr in trianing_params
+         when calling Trainer.train().
+        For example:
+            def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+                return {"default": 0, "head": lr}
+
+        :param lr: float, learning rate for the part of the network to be tuned.
+        :return: learning rate mapping that can be used by
+         super_gradients.training.utils.optimizer_utils.initialize_param_groups
+        """
+        raise NotImplementedError("Finetune is not implemented for this model, it is required to implement get_finetune_lr_dict.")
