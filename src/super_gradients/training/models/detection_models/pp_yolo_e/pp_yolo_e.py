@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Union, Optional, List, Tuple, Any, Callable
+from typing import Union, Optional, List, Tuple, Any, Callable, Dict
 
 import torch
 from torch import Tensor
@@ -267,6 +267,9 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_input_channels(self) -> int:
         return self.backbone.get_input_channels()
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"head": lr, "default": 0}
 
 
 @register_model(Models.PP_YOLOE_S)

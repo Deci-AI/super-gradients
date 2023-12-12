@@ -1,4 +1,4 @@
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 
 import torch
 import torch.nn as nn
@@ -410,6 +410,9 @@ class SegFormer(SegmentationModule):
 
     def replace_head(self, new_num_classes: int):
         self.decode_head = SegFormerHead(encoder_dims=self.encoder_embed_dims, embed_dim=self.decoder_embed_dim, num_classes=new_num_classes)
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {}
 
     def _forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self._backbone(x)

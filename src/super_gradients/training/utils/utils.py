@@ -428,18 +428,27 @@ def get_filename_suffix_by_framework(framework: str):
     return frameworks_dict[framework.upper()]
 
 
-def check_models_have_same_weights(model_1: torch.nn.Module, model_2: torch.nn.Module):
+def check_models_have_same_weights(model_1: torch.nn.Module, model_2: torch.nn.Module, skip_bn_stats: bool = False):
     """
     Checks whether two networks have the same weights
 
     :param model_1: Net to be checked
     :param model_2: Net to be checked
+    :param skip_bn_stats: bool, whether to skip batch normazliation related stats
+
     :return: True iff the two networks have the same weights
     """
+    bn_stats_layer_names = ["running_var", "running_mean", "num_batches_tracked"]
     model_1, model_2 = model_1.to("cpu"), model_2.to("cpu")
     models_differ = 0
     for key_item_1, key_item_2 in zip(model_1.state_dict().items(), model_2.state_dict().items()):
         if torch.equal(key_item_1[1], key_item_2[1]):
+            pass
+        elif (
+            skip_bn_stats
+            and any([bn_lname in key_item_1[0]] for bn_lname in bn_stats_layer_names)
+            and any([bn_lname in key_item_1[0]] for bn_lname in bn_stats_layer_names)
+        ):
             pass
         else:
             models_differ += 1
