@@ -103,7 +103,7 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
-from super_gradients.module_interfaces import ExportableObjectDetectionModel
+from super_gradients.module_interfaces import ExportableObjectDetectionModel, SupportsInputShapeCheck
 from super_gradients.conversion import ExportQuantizationMode
 
 logger = get_logger(__name__)
@@ -1465,13 +1465,19 @@ class Trainer:
                 "Segformer"
             )
 
-        first_batch = next(iter(self.train_loader))
-        inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_batch)
+        if isinstance(model, SupportsInputShapeCheck):
+            first_train_batch = next(iter(self.train_loader))
+            inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_train_batch)
+            model.validate_input_shape(inputs.size())
+
+            first_valid_batch = next(iter(self.valid_loader))
+            inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_valid_batch)
+            model.validate_input_shape(inputs.size())
 
         log_main_training_params(
             multi_gpu=device_config.multi_gpu,
             num_gpus=get_world_size(),
-            batch_size=len(inputs),
+            batch_size=batch_size,
             batch_accumulate=self.batch_accumulate,
             train_dataset_length=len(self.train_loader.dataset),
             train_dataloader_len=len(self.train_loader),
