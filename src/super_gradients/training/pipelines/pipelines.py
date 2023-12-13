@@ -2,6 +2,8 @@ import copy
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union, Iterable
 from contextlib import contextmanager
+
+from super_gradients.module_interfaces import SupportsInputShapeCheck
 from tqdm import tqdm
 
 import numpy as np
@@ -202,6 +204,10 @@ class Pipeline(ABC):
         with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast():
             torch_inputs = torch.from_numpy(np.array(preprocessed_images)).to(self.device)
             torch_inputs = torch_inputs.to(self.dtype)
+
+            if isinstance(self.model, SupportsInputShapeCheck):
+                self.model.validate_input_shape(torch_inputs.size())
+
             if self.fuse_model:
                 self._fuse_model(torch_inputs)
             model_output = self.model(torch_inputs)
