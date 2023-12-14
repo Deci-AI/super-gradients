@@ -686,8 +686,7 @@ class PPYoloELoss(nn.Module):
         self.reg_max = reg_max
         self.use_batched_assignment = use_batched_assignment
 
-    @classmethod()
-    def get_proj_conv_for_reg_max(cls, reg_max: int, device: torch.device):
+    def get_proj_conv_for_reg_max(self, reg_max: int, device: torch.device):
         proj = torch.linspace(0, reg_max, reg_max + 1, device=device).reshape([1, reg_max + 1, 1, 1])
         return proj
 
