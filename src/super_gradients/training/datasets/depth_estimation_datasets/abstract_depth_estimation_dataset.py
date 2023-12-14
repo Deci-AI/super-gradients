@@ -4,6 +4,7 @@ from typing import List
 import random
 
 from data_gradients.common.decorators import resolve_param
+from matplotlib import pyplot as plt
 from torch.utils.data.dataloader import Dataset
 
 from super_gradients.common.factories.list_factory import ListFactory
@@ -43,3 +44,43 @@ class AbstractDepthEstimationDataset(Dataset):
         for transform in self.transforms:
             sample = transform.apply_to_sample(sample)
         return sample
+
+    def plot(self, max_samples_per_plot: int = 8, n_plots: int = 1, plot_transformed_data: bool = True):
+        """
+        Combine samples of images with depth maps into plots and display the result.
+
+        :param max_samples_per_plot:    Maximum number of samples (image with depth map) to be displayed per plot.
+        :param n_plots:                 Number of plots to display.
+        :param plot_transformed_data:   If True, the plot will be over samples after applying transforms (i.e., on __getitem__).
+                                        If False, the plot will be over the raw samples (i.e., on load_sample).
+        :return: None
+        """
+        plot_counter = 0
+
+        for plot_i in range(n_plots):
+            fig, axes = plt.subplots(2, max_samples_per_plot, figsize=(15, 5))
+            for img_i in range(max_samples_per_plot):
+                index = img_i + plot_i * max_samples_per_plot
+                if plot_transformed_data:
+                    sample = self[index]
+                else:
+                    sample = self.load_sample(index)
+
+                image, depth_map = sample.image, sample.depth_map
+
+                # Plot the image
+                axes[0, img_i].imshow(image)
+                axes[0, img_i].axis("off")
+                axes[0, img_i].set_title(f"Sample {index}")
+
+                # Plot the depth map side by side
+                axes[1, img_i].imshow(depth_map, cmap="viridis")
+                axes[1, img_i].axis("off")
+                axes[1, img_i].set_title(f"Depth Map {index}")
+
+            plt.show()
+            plt.close()
+
+            plot_counter += 1
+            if plot_counter == n_plots:
+                return

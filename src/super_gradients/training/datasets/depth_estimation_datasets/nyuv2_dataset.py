@@ -43,6 +43,9 @@ class NYUv2Dataset(AbstractDepthEstimationDataset):
     data/nyu2_train/scene_category_1/image_1.jpg,   data/nyu2_train/scene_category_1/image_1_depth.png
     data/nyu2_train/scene_category_1/image_2.jpg,   data/nyu2_train/scene_category_1/image_2_depth.png
     data/nyu2_train/scene_category_2/image_1.jpg,   data/nyu2_train/scene_category_2/image_1_depth.png
+
+    Note: As of 14/12/2023 official downlaod link is broken.
+     Data can be obtained at https://www.kaggle.com/code/shreydan/monocular-depth-estimation-nyuv2/input
     ...
     """
 
