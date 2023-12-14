@@ -424,6 +424,7 @@ class Datasets:
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
     COCO_POSE_ESTIMATION_DATASET = "COCOPoseEstimationDataset"
+    NYUV2DATASET = "NYUv2Dataset"
 
 
 class Processings:
