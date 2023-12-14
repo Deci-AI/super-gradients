@@ -686,12 +686,15 @@ class PPYoloELoss(nn.Module):
         self.reg_max = reg_max
         self.use_batched_assignment = use_batched_assignment
 
-    def get_proj_conv_for_reg_max(self, reg_max: int, device: torch.device):
+    def get_proj_conv_for_reg_max(self, reg_max: int, device: torch.device) -> Tensor:
+        """
+        Get projection convolution for regression range [0, reg_max] to convert distribution to bbox coordinates
+        :param reg_max: Number of regression bins
+        :param device: The device to create projection convolution on
+        :return: Tensor of shape (1, reg_max + 1, 1, 1)
+        """
         proj = torch.linspace(0, reg_max, reg_max + 1, device=device).reshape([1, reg_max + 1, 1, 1])
         return proj
-
-    def get_reg_max_from_pred_distri(self, x):
-        return x.shape[1] - 1
 
     @torch.no_grad()
     def _get_targets_for_sequential_assigner(self, flat_targets, batch_size: int) -> Tuple[List[Tensor], List[Tensor]]:
