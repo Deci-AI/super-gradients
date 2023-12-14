@@ -47,9 +47,8 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         nms_result = []
 
         if isinstance(outputs, tuple) and len(outputs) == 2:
-            if outputs[0].shape[1] == outputs[1].shape[1] and outputs[0].shape[2] == 4:
+            if torch.is_tensor(outputs[0]) and torch.is_tensor(outputs[1]) and outputs[0].shape[1] == outputs[1].shape[1] and outputs[0].shape[2] == 4:
                 predictions = outputs
-                pass
             else:
                 # First is model predictions, second element of tuple is logits for loss computation
                 predictions = outputs[0]
