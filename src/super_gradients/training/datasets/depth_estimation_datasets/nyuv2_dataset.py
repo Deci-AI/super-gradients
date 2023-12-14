@@ -1,3 +1,5 @@
+import warnings
+
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry import register_dataset
 from super_gradients.training.datasets.depth_estimation_datasets.abstract_depth_estimation_dataset import AbstractDepthEstimationDataset
@@ -108,7 +110,7 @@ class NYUv2Dataset(AbstractDepthEstimationDataset):
             if paths_exist:
                 valid_paths.append(row)
             else:
-                print(f"Warning: Removed the following line as one or more paths do not exist: {row}")
+                warnings.warn(f"Warning: Removed the following line as one or more paths do not exist: {row}")
 
         if not valid_paths:
             raise FileNotFoundError("All lines in the dataset have been removed as some paths do not exist. " "Please check the paths and dataset structure.")
