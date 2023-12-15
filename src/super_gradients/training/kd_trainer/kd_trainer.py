@@ -1,4 +1,4 @@
-from typing import Union, Dict, Mapping, Any
+from typing import Union, Dict, Mapping, Any, Optional
 
 import hydra
 import torch.nn
@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 
 from super_gradients.common import MultiGPUMode, StrictLoad
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.module_interfaces import HasPredict, HasPreprocessingParams
 from super_gradients.training import utils as core_utils, models
 from super_gradients.training.dataloaders import dataloaders
 from super_gradients.common.exceptions.kd_trainer_exceptions import (
@@ -76,6 +77,8 @@ class KDTrainer(Trainer):
             pretrained_weights=cfg.student_checkpoint_params.pretrained_weights,
             checkpoint_path=cfg.student_checkpoint_params.checkpoint_path,
             load_backbone=cfg.student_checkpoint_params.load_backbone,
+            checkpoint_num_classes=get_param(cfg.student_checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.student_arch_params, "num_input_channels"),
         )
 
         teacher = models.get(
@@ -85,6 +88,8 @@ class KDTrainer(Trainer):
             pretrained_weights=cfg.teacher_checkpoint_params.pretrained_weights,
             checkpoint_path=cfg.teacher_checkpoint_params.checkpoint_path,
             load_backbone=cfg.teacher_checkpoint_params.load_backbone,
+            checkpoint_num_classes=get_param(cfg.teacher_checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.teacher_arch_params, "num_input_channels"),
         )
 
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
@@ -326,3 +331,20 @@ class KDTrainer(Trainer):
             valid_loader=valid_loader,
             additional_configs_to_log=additional_configs_to_log,
         )
+
+    def _get_preprocessing_from_valid_loader(self) -> Optional[dict]:
+        valid_loader = self.valid_loader
+
+        if isinstance(unwrap_model(self.net).student, HasPredict) and isinstance(valid_loader.dataset, HasPreprocessingParams):
+            try:
+                return valid_loader.dataset.get_dataset_preprocessing_params()
+            except Exception as e:
+                logger.warning(
+                    f"Could not set preprocessing pipeline from the validation dataset:\n {e}.\n Before calling"
+                    "predict make sure to call set_dataset_processing_params."
+                )
+
+    def _maybe_set_preprocessing_params_for_model_from_dataset(self):
+        processing_params = self._get_preprocessing_from_valid_loader()
+        if processing_params is not None:
+            unwrap_model(self.net).student.set_dataset_processing_params(**processing_params)

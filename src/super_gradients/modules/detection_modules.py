@@ -1,16 +1,19 @@
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import Union, List, Optional, Callable
 
 import torch
+from torch import nn
 from omegaconf import DictConfig
 from omegaconf.listconfig import ListConfig
+
 from super_gradients.common.registry.registry import register_detection_module
 from super_gradients.modules.base_modules import BaseDetectionModule
 from super_gradients.modules.multi_output_modules import MultiOutputModule
 from super_gradients.training.models import MobileNet, MobileNetV2
 from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
 from super_gradients.training.utils.utils import HpmStruct
-from torch import nn
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
+
 
 __all__ = [
     "PANNeck",
@@ -28,7 +31,7 @@ __all__ = [
 
 
 @register_detection_module()
-class NStageBackbone(BaseDetectionModule):
+class NStageBackbone(BaseDetectionModule, SupportsReplaceInputChannels):
     """
     A backbone with a stem -> N stages -> context module
     Returns outputs of the layers listed in out_layers
@@ -82,6 +85,18 @@ class NStageBackbone(BaseDetectionModule):
                 outputs.append(x)
 
         return outputs
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        if isinstance(self.stem, SupportsReplaceInputChannels):
+            self.stem.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        else:
+            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_input_channels`")
+
+    def get_input_channels(self) -> int:
+        if isinstance(self.stem, SupportsReplaceInputChannels):
+            return self.stem.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `get_input_channels`")
 
 
 @register_detection_module()
@@ -176,14 +191,14 @@ class NHeads(BaseDetectionModule):
         return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
 
 
-class MultiOutputBackbone(BaseDetectionModule):
+class MultiOutputBackbone(BaseDetectionModule, SupportsReplaceInputChannels):
     """
     Defines a backbone using MultiOutputModule with the interface of BaseDetectionModule
     """
 
     def __init__(self, in_channels: int, backbone: nn.Module, out_layers: List):
         super().__init__(in_channels)
-        self.multi_output_backbone = MultiOutputModule(backbone, out_layers)
+        self.multi_output_backbone = MultiOutputModule(module=backbone, output_paths=out_layers)
         self._out_channels = [x.shape[1] for x in self.forward(torch.empty((1, in_channels, 64, 64)))]
 
     @property
@@ -192,6 +207,12 @@ class MultiOutputBackbone(BaseDetectionModule):
 
     def forward(self, x):
         return self.multi_output_backbone(x)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.multi_output_backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.multi_output_backbone.get_input_channels()
 
 
 @register_detection_module()

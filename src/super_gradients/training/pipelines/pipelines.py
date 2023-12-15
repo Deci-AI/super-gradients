@@ -29,12 +29,12 @@ from super_gradients.training.utils.predict import (
     VideoSegmentationPrediction,
 )
 from super_gradients.training.utils.utils import generate_batch, infer_model_device, resolve_torch_device
-from super_gradients.training.utils.media.video import load_video, includes_video_extension
+from super_gradients.training.utils.media.video import includes_video_extension, lazy_load_video
 from super_gradients.training.utils.media.image import ImageSource, check_image_typing
 from super_gradients.training.utils.media.stream import WebcamStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.processing.processing import Processing, ComposeProcessing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, ImagePermute
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
@@ -56,11 +56,11 @@ class Pipeline(ABC):
     """An abstract base class representing a processing pipeline for a specific task.
     The pipeline includes loading images, preprocessing, prediction, and postprocessing.
 
-    :param model:           The model used for making predictions.
-    :param image_processor: A single image processor or a list of image processors for preprocessing and postprocessing the images.
-    :param device:          The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
-    :param dtype:           Specify the dtype of the inputs. If None, will use the dtype of the model's parameters.
-    :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    :param model:               The model used for making predictions.
+    :param image_processor:     A single image processor or a list of image processors for preprocessing and postprocessing the images.
+    :param device:              The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
+    :param dtype:               Specify the dtype of the inputs. If None, will use the dtype of the model's parameters.
+    :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
     """
 
     def __init__(
@@ -83,6 +83,7 @@ class Pipeline(ABC):
 
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
+
         self.image_processor = image_processor
 
         self.fuse_model = fuse_model  # If True, the model will be fused in the first forward pass, to make sure it gets the right input_size
@@ -137,9 +138,10 @@ class Pipeline(ABC):
         :param batch_size:  The size of each batch.
         :return:            Results of the prediction.
         """
-        video_frames, fps = load_video(file_path=video_path)
+        video_frames, fps, num_frames = lazy_load_video(file_path=video_path)
         result_generator = self._generate_prediction_result(images=video_frames, batch_size=batch_size)
-        return self._combine_image_prediction_to_video(result_generator, fps=fps, n_images=len(video_frames))
+        return self._combine_image_prediction_to_video(result_generator, fps=fps, n_images=num_frames)
+        # return self._combine_image_prediction_to_video(result_generator, fps=fps, n_images=len(video_frames))
 
     def predict_webcam(self) -> None:
         """Predict using webcam"""
@@ -191,6 +193,14 @@ class Pipeline(ABC):
             preprocessed_image, processing_metadata = self.image_processor.preprocess_image(image=image.copy())
             preprocessed_images.append(preprocessed_image)
             processing_metadatas.append(processing_metadata)
+
+        reference_shape = preprocessed_images[0].shape
+        for img in preprocessed_images:
+            if img.shape != reference_shape:
+                raise ValueError(
+                    f"Images have different shapes ({img.shape} != {reference_shape})!\n"
+                    f"Either resize the images to the same size, set `skip_image_resizing=False` or pass one image at a time."
+                )
 
         # Predict
         with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast():
@@ -273,10 +283,23 @@ class DetectionPipeline(Pipeline):
         class_names: List[str],
         post_prediction_callback: DetectionPostPredictionCallback,
         device: Optional[str] = None,
-        image_processor: Optional[Processing] = None,
+        image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
+        if isinstance(image_processor, list):
+            image_processor = ComposeProcessing(image_processor)
+
+        has_image_permute = any(isinstance(image_processing, ImagePermute) for image_processing in image_processor.processings)
+        if not has_image_permute:
+            image_processor.processings.append(ImagePermute())
+
+        super().__init__(
+            model=model,
+            device=device,
+            image_processor=image_processor,
+            class_names=class_names,
+            fuse_model=fuse_model,
+        )
         self.post_prediction_callback = post_prediction_callback
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
@@ -321,8 +344,7 @@ class DetectionPipeline(Pipeline):
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoDetectionPrediction:
-        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
-        return VideoDetectionPrediction(_images_prediction_lst=images_predictions, fps=fps)
+        return VideoDetectionPrediction(_images_prediction_gen=images_predictions, fps=fps, n_frames=n_images)
 
 
 class PoseEstimationPipeline(Pipeline):
@@ -344,10 +366,19 @@ class PoseEstimationPipeline(Pipeline):
         keypoint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
         post_prediction_callback,
         device: Optional[str] = None,
-        image_processor: Optional[Processing] = None,
+        image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=None, fuse_model=fuse_model)
+        if isinstance(image_processor, list):
+            image_processor = ComposeProcessing(image_processor)
+
+        super().__init__(
+            model=model,
+            device=device,
+            image_processor=image_processor,
+            class_names=None,
+            fuse_model=fuse_model,
+        )
         self.post_prediction_callback = post_prediction_callback
         self.edge_links = np.asarray(edge_links, dtype=int)
         self.edge_colors = np.asarray(edge_colors, dtype=int)
@@ -396,8 +427,7 @@ class PoseEstimationPipeline(Pipeline):
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoPoseEstimationPrediction:
-        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
-        return VideoPoseEstimationPrediction(_images_prediction_lst=images_predictions, fps=fps)
+        return VideoPoseEstimationPrediction(_images_prediction_gen=images_predictions, fps=fps, n_frames=n_images)
 
 
 class ClassificationPipeline(Pipeline):
@@ -416,10 +446,16 @@ class ClassificationPipeline(Pipeline):
         model: SgModule,
         class_names: List[str],
         device: Optional[str] = None,
-        image_processor: Optional[Processing] = None,
+        image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
+        super().__init__(
+            model=model,
+            device=device,
+            image_processor=image_processor,
+            class_names=class_names,
+            fuse_model=fuse_model,
+        )
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[ClassificationPrediction]:
         """Decode the model output

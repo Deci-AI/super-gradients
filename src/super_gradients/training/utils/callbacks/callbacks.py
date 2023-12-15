@@ -1,6 +1,7 @@
 import copy
 import csv
 import math
+import numbers
 import os
 import signal
 import time
@@ -236,8 +237,10 @@ class LRCallbackBase(PhaseCallback):
 
     def __init__(self, phase, initial_lr, update_param_groups, train_loader_len, net, training_params, **kwargs):
         super(LRCallbackBase, self).__init__(phase)
+        if not isinstance(initial_lr, dict):
+            initial_lr = {"default": float(initial_lr)}
         self.initial_lr = initial_lr
-        self.lr = initial_lr
+        self.lr = initial_lr.copy()
         self.update_param_groups = update_param_groups
         self.train_loader_len = train_loader_len
         self.net = net
@@ -265,15 +268,8 @@ class LRCallbackBase(PhaseCallback):
         raise NotImplementedError
 
     def update_lr(self, optimizer, epoch, batch_idx=None):
-        if self.update_param_groups:
-            param_groups = unwrap_model(self.net).update_param_groups(
-                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
-            )
-            optimizer.param_groups = param_groups
-        else:
-            # UPDATE THE OPTIMIZERS PARAMETER
-            for param_group in optimizer.param_groups:
-                param_group["lr"] = self.lr
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = self.lr[param_group["name"]]
 
 
 @register_lr_warmup(LRWarmups.LINEAR_EPOCH_STEP, deprecated_name="linear_epoch_step")
@@ -287,30 +283,49 @@ class LinearEpochLRWarmup(LRCallbackBase):
 
     def __init__(self, **kwargs):
         super().__init__(Phase.TRAIN_EPOCH_START, **kwargs)
-        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
-        self.warmup_step_size = (
-            (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs if self.training_params.lr_warmup_epochs > 0 else 0
-        )
+        warmup_initial_lr = {}
+        if self.training_params.warmup_initial_lr is not None:
+            if isinstance(self.training_params.warmup_initial_lr, float):
+                for group_name in self.initial_lr.keys():
+                    warmup_initial_lr[group_name] = self.training_params.warmup_initial_lr
+            elif isinstance(self.training_params.warmup_initial_lr, Mapping):
+                warmup_initial_lr = self.training_params.warmup_initial_lr
+            else:
+                raise TypeError("Warmup initial lr expected to be of type float or Mapping.")
+        else:
+            for group_name in self.initial_lr.keys():
+                warmup_initial_lr[group_name] = self.initial_lr[group_name] / (self.training_params.lr_warmup_epochs + 1)
+        self.warmup_initial_lr = warmup_initial_lr
+
+        warmup_step_size = {}
+        for group_name in self.initial_lr.keys():
+            warmup_step_size[group_name] = (
+                (self.initial_lr[group_name] - self.warmup_initial_lr[group_name]) / self.training_params.lr_warmup_epochs
+                if self.training_params.lr_warmup_epochs > 0
+                else 0
+            )
+        self.warmup_step_size = warmup_step_size
 
     def perform_scheduling(self, context):
-        self.lr = self.warmup_initial_lr + context.epoch * self.warmup_step_size
+        for group_name in self.initial_lr.keys():
+            self.lr[group_name] = self.warmup_initial_lr[group_name] + context.epoch * self.warmup_step_size[group_name]
         self.update_lr(context.optimizer, context.epoch, None)
 
     def is_lr_scheduling_enabled(self, context):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
 class EpochStepWarmupLRCallback(LinearEpochLRWarmup):
     ...
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
 class LinearLRWarmup(LinearEpochLRWarmup):
     ...
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
 class LinearStepWarmupLRCallback(LinearEpochLRWarmup):
     ...
 
@@ -327,7 +342,6 @@ class LinearBatchLRWarmup(Callback):
         warmup_initial_lr: float,
         initial_lr: float,
         train_loader_len: int,
-        update_param_groups: bool,
         lr_warmup_steps: int,
         training_params,
         net,
@@ -350,12 +364,23 @@ class LinearBatchLRWarmup(Callback):
                 f"Warmup steps will be capped to number of steps in epoch to avoid interfering with any pre-epoch LR schedulers."
             )
 
-        lr_warmup_steps = min(lr_warmup_steps, train_loader_len)
-        learning_rates = np.linspace(start=warmup_initial_lr, stop=initial_lr, num=lr_warmup_steps, endpoint=True)
-
-        self.lr = initial_lr
+        if isinstance(initial_lr, numbers.Number):
+            initial_lr = {"default": initial_lr}
         self.initial_lr = initial_lr
-        self.update_param_groups = update_param_groups
+        self.lr = initial_lr.copy()
+
+        if isinstance(warmup_initial_lr, numbers.Number):
+            warmup_initial_lr = {group_name: warmup_initial_lr for group_name in self.lr.keys()}
+        elif isinstance(warmup_initial_lr, Mapping):
+            warmup_initial_lr = warmup_initial_lr
+        else:
+            raise TypeError("Warmup initial lr expected to be of type float or Mapping.")
+
+        lr_warmup_steps = min(lr_warmup_steps, train_loader_len)
+        learning_rates = {
+            group_name: np.linspace(start=warmup_initial_lr[group_name], stop=initial_lr[group_name], num=lr_warmup_steps, endpoint=True)
+            for group_name in self.initial_lr.keys()
+        }
         self.training_params = training_params
         self.net = net
         self.learning_rates = learning_rates
@@ -365,7 +390,8 @@ class LinearBatchLRWarmup(Callback):
     def on_train_batch_start(self, context: PhaseContext) -> None:
         global_training_step = context.batch_idx + context.epoch * self.train_loader_len
         if global_training_step < self.lr_warmup_steps:
-            self.lr = float(self.learning_rates[global_training_step])
+            for group_name in self.initial_lr.keys():
+                self.lr[group_name] = float(self.learning_rates[group_name][global_training_step])
             self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def update_lr(self, optimizer, epoch, batch_idx=None):
@@ -376,18 +402,12 @@ class LinearBatchLRWarmup(Callback):
         :param batch_idx:
         :return:
         """
-        if self.update_param_groups:
-            param_groups = unwrap_model(self.net).update_param_groups(
-                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
-            )
-            optimizer.param_groups = param_groups
-        else:
-            # UPDATE THE OPTIMIZERS PARAMETER
-            for param_group in optimizer.param_groups:
-                param_group["lr"] = self.lr
+        # UPDATE THE OPTIMIZERS PARAMETER
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = self.lr[param_group["name"]]
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearBatchLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearBatchLRWarmup)
 class BatchStepLinearWarmupLRCallback(LinearBatchLRWarmup):
     ...
 
@@ -416,14 +436,15 @@ class StepLRScheduler(LRCallbackBase):
 
     def perform_scheduling(self, context):
         num_updates_passed = [x for x in self.lr_updates if x <= context.epoch]
-        self.lr = self.initial_lr * self.lr_decay_factor ** len(num_updates_passed)
+        for group_name in self.lr.keys():
+            self.lr[group_name] = self.initial_lr[group_name] * self.lr_decay_factor ** len(num_updates_passed)
         self.update_lr(context.optimizer, context.epoch, None)
 
     def is_lr_scheduling_enabled(self, context):
         return self.training_params.lr_warmup_epochs <= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=StepLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=StepLRScheduler)
 class StepLRCallback(StepLRScheduler):
     ...
 
@@ -441,7 +462,8 @@ class ExponentialLRScheduler(LRCallbackBase):
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
         current_iter = self.train_loader_len * effective_epoch + context.batch_idx
-        self.lr = self.initial_lr * self.lr_decay_factor ** (current_iter / self.train_loader_len)
+        for group_name in self.lr.keys():
+            self.lr[group_name] = self.initial_lr[group_name] * self.lr_decay_factor ** (current_iter / self.train_loader_len)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
@@ -449,7 +471,7 @@ class ExponentialLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=ExponentialLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=ExponentialLRScheduler)
 class ExponentialLRCallback(ExponentialLRScheduler):
     ...
 
@@ -469,7 +491,8 @@ class PolyLRScheduler(LRCallbackBase):
         effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
         current_iter = (self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
         max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
-        self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
+        for group_name in self.lr.keys():
+            self.lr[group_name] = self.initial_lr[group_name] * pow((1.0 - (current_iter / max_iter)), 0.9)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
@@ -477,7 +500,7 @@ class PolyLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=PolyLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=PolyLRScheduler)
 class PolyLRCallback(PolyLRScheduler):
     ...
 
@@ -498,9 +521,9 @@ class CosineLRScheduler(LRCallbackBase):
         effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
         current_iter = max(0, self.train_loader_len * effective_epoch + context.batch_idx - self.training_params.lr_warmup_steps)
         max_iter = self.train_loader_len * effective_max_epochs - self.training_params.lr_warmup_steps
+        for group_name in self.lr.keys():
+            self.lr[group_name] = float(self.compute_learning_rate(current_iter, max_iter, self.initial_lr[group_name], self.cosine_final_lr_ratio))
 
-        lr = self.compute_learning_rate(current_iter, max_iter, self.initial_lr, self.cosine_final_lr_ratio)
-        self.lr = float(lr)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
@@ -520,7 +543,7 @@ class CosineLRScheduler(LRCallbackBase):
         return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=CosineLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=CosineLRScheduler)
 class CosineLRCallback(CosineLRScheduler):
     ...
 
@@ -531,7 +554,7 @@ class FunctionLRScheduler(LRCallbackBase):
     Hard coded rate scheduling for user defined lr scheduling function.
     """
 
-    @deprecated(deprecated_since="3.2.0", removed_from="3.5.0", reason="This callback is deprecated and will be removed in future versions.")
+    @deprecated(deprecated_since="3.2.0", removed_from="3.6.0", reason="This callback is deprecated and will be removed in future versions.")
     def __init__(self, max_epochs, lr_schedule_function, **kwargs):
         super().__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
         assert callable(lr_schedule_function), "self.lr_function must be callable"
@@ -545,17 +568,18 @@ class FunctionLRScheduler(LRCallbackBase):
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
         effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        self.lr = self.lr_schedule_function(
-            initial_lr=self.initial_lr,
-            epoch=effective_epoch,
-            iter=context.batch_idx,
-            max_epoch=effective_max_epochs,
-            iters_per_epoch=self.train_loader_len,
-        )
+        for group_name in self.lr.keys():
+            self.lr[group_name] = self.lr_schedule_function(
+                initial_lr=self.initial_lr[group_name],
+                epoch=effective_epoch,
+                iter=context.batch_idx,
+                max_epoch=effective_max_epochs,
+                iters_per_epoch=self.train_loader_len,
+            )
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=FunctionLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=FunctionLRScheduler)
 class FunctionLRCallback(FunctionLRScheduler):
     ...
 
@@ -667,7 +691,7 @@ class DetectionVisualizationCallback(PhaseCallback):
         self.last_img_idx_in_batch = last_img_idx_in_batch
 
     def __call__(self, context: PhaseContext):
-        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx:
+        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx and not context.ddp_silent_mode:
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
             preds = (context.preds[0].clone(), None)
             preds = self.post_prediction_callback(preds)
@@ -1208,7 +1232,6 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             self.metric.reset()
 
         else:
-
             # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
             loss_tuple = context.loss_log_items
             if self._first_call:
@@ -1369,7 +1392,7 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
                 "No classes have been passed to ExtremeBatchDetectionVisualizationCallback. "
                 "Will try to fetch them through context.valid_loader.dataset classes attribute if it exists."
             )
-        self.classes = classes
+        self.classes = list(classes) if classes is not None else None
         self.normalize_targets = normalize_targets
 
     @staticmethod

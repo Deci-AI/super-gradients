@@ -5,11 +5,11 @@ import time
 from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union, Dict, Sequence, Callable, Optional
+from typing import Tuple, Union, Dict, Sequence, Callable, Optional, List
 import random
 
 import inspect
-
+from torch import nn
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from treelib import Tree
 from termcolor import colored
@@ -20,8 +20,6 @@ from torch.utils.tensorboard import SummaryWriter
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
 from super_gradients.common.data_types.enum import MultiGPUMode
-
-
 from enum import Enum
 
 
@@ -446,20 +444,109 @@ def get_callable_param_names(obj: callable) -> Tuple[str]:
     return tuple(inspect.signature(obj).parameters)
 
 
+def _format_value(value: float) -> str:
+    if value >= 1e6:
+        return f"{value / 1e6:.2f}M"
+    elif value >= 1e3:
+        return f"{value / 1e3:.2f}K"
+    else:
+        return f"{int(value)}"
+
+
+def get_lr_info(model: nn.Module, param_groups: List[Dict[str, Union[str, float, List[tuple]]]]) -> str:
+    """
+    Generate a string with information about the model and learning rates for each parameter group.
+
+    :param model: (nn.Module): The PyTorch model.
+    :param param_groups: (List[Dict[str, Union[str, float, List[tuple]]]]): List of dictionaries containing information about
+            each parameter group, including the group name, learning rate, and named parameters.
+
+    Returns:
+        str: A formatted string with information about the model and learning rates.
+    """
+    total_params = sum(p.numel() for p in model.parameters())
+    optimized_params = sum(p.numel() for group in param_groups for p in group["params"])
+
+    info_str = f"    - Model: {type(model).__name__}  ({_format_value(total_params)} parameters"
+    info_str += f", {_format_value(optimized_params)} optimized)\n"
+    info_str += "    - Learning Rates and Weight Decays:\n"
+
+    lr_wd_groups = {}
+    max_group_name_len = max(len(group["name"]) for group in param_groups)
+    max_lr_len = 0
+    max_wd_len = 0
+
+    for group in param_groups:
+        group_name = group["name"]
+        group_lr = group["lr"]
+        group_wd = group["weight_decay"]
+        group_params = sum(p.numel() for p in group["params"])
+
+        if group_name not in lr_wd_groups:
+            lr_wd_groups[group_name] = {"params": 0, "lr_params": {}, "wd_params": {}}
+        lr_wd_groups[group_name]["params"] += group_params
+
+        if group_lr not in lr_wd_groups[group_name]["lr_params"].keys():
+            lr_wd_groups[group_name]["lr_params"][group_lr] = group_params
+        else:
+            lr_wd_groups[group_name]["lr_params"][group_lr] += group_params
+        max_lr_len = max(max_lr_len, len(f"LR: {group_lr} ({_format_value(group_params)} parameters)"))
+
+        if group_wd not in lr_wd_groups[group_name]["wd_params"].keys():
+            lr_wd_groups[group_name]["wd_params"][group_wd] = group_params
+        else:
+            lr_wd_groups[group_name]["wd_params"][group_wd] += group_params
+        max_wd_len = max(max_wd_len, len(f"WD: {group_wd}, ({_format_value(group_params)} parameters)"))
+
+    for group_name, info in lr_wd_groups.items():
+        all_group_params = info["params"]
+        lr_str = ", ".join([f"LR: {lr_val} ({_format_value(lr_params)} parameters)" for lr_val, lr_params in info["lr_params"].items()])
+        wd_str = ", ".join([f"WD: {wd_val}, ({_format_value(wd_params)} parameters)" for wd_val, wd_params in info["wd_params"].items()])
+
+        # Calculate padding for alignment
+        padding_len = max_group_name_len - len(group_name)
+        padded_group_name = f"{group_name}:{' ' * padding_len}"
+
+        lr_padding = " " * (max_lr_len - len(lr_str))
+        wd_padding = " " * (max_wd_len - len(wd_str))
+
+        info_str += f"      - {padded_group_name} ({_format_value(all_group_params)} parameters). {lr_str}{lr_padding} {wd_str}{wd_padding}\n"
+
+    return info_str
+
+
 def log_main_training_params(
-    multi_gpu: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, train_dataset_length: int, train_dataloader_len: int
+    multi_gpu: MultiGPUMode,
+    num_gpus: int,
+    batch_size: int,
+    batch_accumulate: int,
+    train_dataset_length: int,
+    train_dataloader_len: int,
+    model: nn.Module,
+    param_groups: List[Dict[str, Union[str, float, List[tuple]]]],
+    max_train_batches: Optional[int] = None,
 ):
     """Log training parameters"""
+
+    iterations_per_epoch = int(train_dataloader_len) if max_train_batches is None else max_train_batches
+    gradients_updates_per_epoch = int(iterations_per_epoch / batch_accumulate)
+    what_used_str = "len(train_loader)" if max_train_batches is None else "max_train_batches"
+
     msg = (
         "TRAINING PARAMETERS:\n"
         f"    - Mode:                         {multi_gpu.name if multi_gpu else 'Single GPU'}\n"
-        f"    - Number of GPUs:               {num_gpus if 'cuda' in device_config.device  else 0:<10} ({torch.cuda.device_count()} available on the machine)\n"
-        f"    - Dataset size:                 {train_dataset_length:<10} (len(train_set))\n"
+        f"    - Number of GPUs:               {num_gpus if 'cuda' in device_config.device else 0:<10} ({torch.cuda.device_count()} available on the machine)\n"
+        f"    - Full dataset size:            {train_dataset_length:<10} (len(train_set))\n"
         f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n"
         f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n"
         f"    - Total batch size:             {num_gpus * batch_size:<10} (num_gpus * batch_size)\n"
         f"    - Effective Batch size:         {num_gpus * batch_size * batch_accumulate:<10} (num_gpus * batch_size * batch_accumulate)\n"
-        f"    - Iterations per epoch:         {int(train_dataloader_len):<10} (len(train_loader))\n"
-        f"    - Gradient updates per epoch:   {int(train_dataloader_len / batch_accumulate):<10} (len(train_loader) / batch_accumulate)\n"
+        f"    - Iterations per epoch:         {iterations_per_epoch:<10} ({what_used_str})\n"
+        f"    - Gradient updates per epoch:   {gradients_updates_per_epoch:<10} ({what_used_str} / batch_accumulate)\n"
     )
+    msg += get_lr_info(model, param_groups)
+
     logger.info(msg)
+
+    if max_train_batches:
+        logger.warning(f"max_train_batch is set to {max_train_batches}. This limits the number of iterations per epoch and gradient updates per epoch.")

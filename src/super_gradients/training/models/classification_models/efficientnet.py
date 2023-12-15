@@ -18,7 +18,7 @@ import re
 import math
 import collections
 from functools import partial
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union, Optional, Callable, Dict
 
 import torch
 from torch import nn
@@ -539,6 +539,14 @@ class EfficientNet(BaseClassifier):
         else:
             self._fc = nn.Linear(self._fc.in_features, new_num_classes)
 
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self._conv_stem = replace_conv2d_input_channels(conv=self._conv_stem, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self._conv_stem.in_channels
+
     def load_state_dict(self, state_dict: dict, strict: bool = True):
         """
         load_state_dict - Overloads the base method and calls it to load a modified dict for usage as a backbone
@@ -564,6 +572,9 @@ class EfficientNet(BaseClassifier):
 
         # RETURNING THE UNMODIFIED/MODIFIED STATE DICT DEPENDING ON THE backbone_mode VALUE
         super().load_state_dict(pretrained_model_weights_dict, strict)
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"_fc": lr, "default": 0.0}
 
 
 def get_efficientnet_params(width: float, depth: float, res: float, dropout: float, arch_params: HpmStruct):

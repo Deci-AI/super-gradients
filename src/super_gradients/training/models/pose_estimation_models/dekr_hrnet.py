@@ -12,7 +12,7 @@ from __future__ import print_function
 
 import copy
 from functools import lru_cache
-from typing import Mapping, Any, Tuple, Optional, List, Union
+from typing import Mapping, Any, Tuple, Optional, List, Union, Callable
 
 import numpy as np
 import torch
@@ -34,9 +34,9 @@ __all__ = ["DEKRPoseEstimationModel", "DEKRW32NODC"]
 
 from super_gradients.training.pipelines.pipelines import PoseEstimationPipeline
 
-from super_gradients.training.processing.processing import Processing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, KeypointsAutoPadding
 
-from super_gradients.training.utils import HpmStruct, DEKRPoseEstimationDecodeCallback
+from super_gradients.training.utils import HpmStruct, DEKRPoseEstimationDecodeCallback, get_param
 from super_gradients.training.utils.media.image import ImageSource
 
 logger = get_logger(__name__)
@@ -308,7 +308,8 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
         super(DEKRPoseEstimationModel, self).__init__()
 
         # stem net
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1, bias=False)
+        in_channels = get_param(arch_params, "in_channels", 3)
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(64)
@@ -354,6 +355,14 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
         self.head_heatmap = self._make_heatmap_head(self.config_heatmap)
         self.transition_offset = self._make_transition_for_head(self.head_inp_channels, offset_channels)
         self.offset_feature_layers, self.offset_final_layer = self._make_separete_regression_head(self.config_offset)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self.conv1 = replace_conv2d_input_channels(conv=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.conv1.in_channels
 
     def _make_transition_for_head(self, inplanes: int, outplanes: int) -> nn.Module:
         transition_layer = [nn.Conv2d(inplanes, outplanes, 1, 1, 0, bias=False), nn.BatchNorm2d(outplanes), nn.ReLU(True)]
@@ -574,12 +583,13 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
         self._default_nms_conf = conf or self._default_nms_conf
 
     @lru_cache(maxsize=1)
-    def _get_pipeline(self, conf: Optional[float] = None, fuse_model: bool = True) -> PoseEstimationPipeline:
+    def _get_pipeline(self, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False) -> PoseEstimationPipeline:
         """Instantiate the prediction pipeline of this model.
 
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
         if None in (self._edge_links, self._image_processor, self._default_nms_conf):
             raise RuntimeError(
@@ -597,9 +607,15 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
                 "The number of colors for the joints ({}) does not match the number of joint links ({})".format(len(self._edge_colors), len(self._edge_links))
             )
 
+        # Ensure that the image size is divisible by 32.
+        if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = self._image_processor.get_equivalent_compose_without_resizing(KeypointsAutoPadding(shape_multiple=(32, 32), pad_value=0))
+        else:
+            image_processor = self._image_processor
+
         pipeline = PoseEstimationPipeline(
             model=self,
-            image_processor=self._image_processor,
+            image_processor=image_processor,
             edge_links=self._edge_links,
             edge_colors=self._edge_colors,
             keypoint_colors=self._keypoint_colors,
@@ -608,26 +624,30 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
         )
         return pipeline
 
-    def predict(self, images: ImageSource, conf: Optional[float] = None, batch_size: int = 32, fuse_model: bool = True) -> ImagesPoseEstimationPrediction:
+    def predict(
+        self, images: ImageSource, conf: Optional[float] = None, batch_size: int = 32, fuse_model: bool = True, skip_image_resizing: bool = False
+    ) -> ImagesPoseEstimationPrediction:
         """Predict an image or a list of images.
 
         :param images:  Images to predict.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
         :param batch_size:  Maximum number of images to process at the same time.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
-    def predict_webcam(self, conf: Optional[float] = None, fuse_model: bool = True):
+    def predict_webcam(self, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False):
         """Predict using webcam.
 
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
         pipeline.predict_webcam()
 
     def train(self, mode: bool = True):

@@ -283,8 +283,10 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
                 h = int(self.eval_size[0] / stride)
                 w = int(self.eval_size[1] / stride)
 
-            shift_x = torch.arange(end=w, dtype=dtype) + self.grid_cell_offset
-            shift_y = torch.arange(end=h, dtype=dtype) + self.grid_cell_offset
+            # ONNX export does not support arange with float16, so it is created as fp32 and then casted to fp16
+            # This produce correct fp16 weights in ONNX model when exported
+            shift_x = torch.arange(end=w, dtype=torch.float32, device=device) + self.grid_cell_offset
+            shift_y = torch.arange(end=h, dtype=torch.float32, device=device) + self.grid_cell_offset
 
             if torch_version_is_greater_or_equal(1, 10):
                 shift_y, shift_x = torch.meshgrid(shift_y, shift_x, indexing="ij")
@@ -293,11 +295,8 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
             anchor_point = torch.stack([shift_x, shift_y], dim=-1).to(dtype=dtype)
             anchor_points.append(anchor_point.reshape([-1, 2]))
-            stride_tensor.append(torch.full([h * w, 1], stride, dtype=dtype))
+            stride_tensor.append(torch.full([h * w, 1], stride, dtype=dtype, device=device))
+
         anchor_points = torch.cat(anchor_points)
         stride_tensor = torch.cat(stride_tensor)
-
-        if device is not None:
-            anchor_points = anchor_points.to(device)
-            stride_tensor = stride_tensor.to(device)
         return anchor_points, stride_tensor

@@ -3,6 +3,7 @@ import random
 from typing import Tuple, List, Union
 
 import numpy as np
+from omegaconf import ListConfig
 from torch.utils.data.dataloader import Dataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -32,9 +33,9 @@ class AbstractPoseEstimationDataset(Dataset, HasPreprocessingParams):
         self,
         transforms: List[AbstractKeypointTransform],
         num_joints: int,
-        edge_links: Union[List[Tuple[int, int]], np.ndarray],
-        edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
-        keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
+        edge_links: Union[ListConfig, List[Tuple[int, int]], np.ndarray],
+        edge_colors: Union[ListConfig, List[Tuple[int, int, int]], np.ndarray, None],
+        keypoint_colors: Union[ListConfig, List[Tuple[int, int, int]], np.ndarray, None],
     ):
         """
 
@@ -50,6 +51,18 @@ class AbstractPoseEstimationDataset(Dataset, HasPreprocessingParams):
             load_sample_fn=self.load_random_sample,
         )
         self.num_joints = num_joints
+
+        # Explicitly convert edge_links, keypoint_colors and edge_colors to lists of tuples
+        # This is necessary to ensure ListConfig objects do not leak to these properties
+        # and from there - to checkpoint's state_dict.
+        # Otherwise, through ListConfig instances a whole configuration file will leak to state_dict
+        # and torch.load will attempt to unpickle lot of unnecessary classes.
+        edge_links = [(int(from_idx), int(to_idx)) for from_idx, to_idx in edge_links]
+        if edge_colors is not None:
+            edge_colors = [(int(r), int(g), int(b)) for r, g, b in edge_colors]
+        if keypoint_colors is not None:
+            keypoint_colors = [(int(r), int(g), int(b)) for r, g, b in keypoint_colors]
+
         self.edge_links = edge_links
         self.edge_colors = edge_colors or generate_color_mapping(len(edge_links))
         self.keypoint_colors = keypoint_colors or generate_color_mapping(num_joints)
@@ -63,7 +76,7 @@ class AbstractPoseEstimationDataset(Dataset, HasPreprocessingParams):
         """
         Read a sample from the disk and return a PoseEstimationSample
         :param index: Sample index
-        :return: Returns an instance of PoseEstimationSample that holds complete sample (image and annotations)
+        :return:      Returns an instance of PoseEstimationSample that holds complete sample (image and annotations)
         """
         raise NotImplementedError()
 

@@ -1,11 +1,12 @@
-from typing import Union, Tuple, Type
+from typing import Union, Tuple, Type, Callable, Optional
 
 from torch import nn
 
 from super_gradients.modules.utils import autopad
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
-class ConvBNAct(nn.Module):
+class ConvBNAct(nn.Module, SupportsReplaceInputChannels):
     """
     Class for Convolution2d-Batchnorm2d-Activation layer.
         Default behaviour is Conv-BN-Act. To exclude Batchnorm module use
@@ -67,8 +68,16 @@ class ConvBNAct(nn.Module):
     def forward(self, x):
         return self.seq(x)
 
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
 
-class Conv(nn.Module):
+        self.seq[0] = replace_conv2d_input_channels(conv=self.seq[0], in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.seq[0].in_channels
+
+
+class Conv(nn.Module, SupportsReplaceInputChannels):
     # STANDARD CONVOLUTION
     # TODO: This class is illegaly similar to ConvBNAct, and the only reason it exists is due to fact that some models were using it
     # previosly and one have to find a bulletproof way drop this class but still be able to load models that were using it. Perhaps
@@ -85,3 +94,11 @@ class Conv(nn.Module):
 
     def fuseforward(self, x):
         return self.act(self.conv(x))
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self.conv = replace_conv2d_input_channels(conv=self.conv, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.conv.in_channels

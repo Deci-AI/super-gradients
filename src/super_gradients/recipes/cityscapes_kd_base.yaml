@@ -1,7 +1,9 @@
 # Distillation for semantic segmentation on Cityscapes dataset.
 #
 # Instructions:
-#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   0. Make sure that the data is stored in dataset_params.[train/val]_dataset_params.root_dir or
+#      add "dataset_params.[train/val]_dataset_params.root_dir=<PATH-TO-DATASET>" at the end of the
+#      command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
 #      DDRNet23:        python -m super_gradients.train_from_kd_recipe --config-name=cityscapes_kd_base student_architecture=ddrnet_23
@@ -48,14 +50,26 @@ resume: False
 training_hyperparams:
   sync_bn: True
   max_epochs: 500
-  initial_lr: 0.0075   # batch size 24
+
+  initial_lr: # batch size 24
+    default: 0.075
+    # backbone layers
+    _backbone: 0.0075
+    compression3: 0.0075
+    compression4: 0.0075
+    down3: 0.0075
+    down4: 0.0075
+    layer3_skip: 0.0075
+    layer4_skip: 0.0075
+    layer5_skip: 0.0075
+
   resume: ${resume}
   loss:
     _target_: super_gradients.training.losses.seg_kd_loss.SegKDLoss
     weights: [ 1. ]
     kd_loss_weights: [1., 6.]
 
-    KDLogitsLoss:
+    kd_loss:
       _target_: super_gradients.training.losses.cwd_loss.ChannelWiseKnowledgeDistillationLoss
       temperature: 3.
       normalization_mode: channel_wise

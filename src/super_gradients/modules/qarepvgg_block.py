@@ -316,7 +316,7 @@ class QARepVGGBlock(nn.Module):
     def from_repvgg(self, src: RepVGGBlock):
         raise NotImplementedError
 
-    def prep_model_for_conversion(self, input_size: Optional[Union[tuple, list]] = None, full_fusion: bool = True, **kwargs):
+    def prep_model_for_conversion(self, input_size: Optional[Union[tuple, list]] = None, full_fusion: bool = False, **kwargs):
         """Prepare the QARepVGGBlock for conversion.
 
         :WARNING: the default `full_fusion=True` will make the block non-trainable.

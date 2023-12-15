@@ -30,7 +30,7 @@ class DetectionPrediction(Prediction):
         :param image_shape: Shape of the image the prediction is made on, (H, W). This is used to convert bboxes to xyxy format
 
         :param target_bboxes: np.ndarray, ground truth bounding boxes as np.ndarray of shape (image_i_object_count, 4)
-         When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one).
+         When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one)
 
         :param target_labels: np.ndarray, ground truth target class indices as an np.ndarray of shape (image_i_object_count).
 
@@ -76,7 +76,7 @@ class PoseEstimationPrediction(Prediction):
 
     poses: np.ndarray
     scores: np.ndarray
-    boxes: Optional[np.ndarray]
+    bboxes_xyxy: Optional[np.ndarray]
     edge_links: np.ndarray
     edge_colors: np.ndarray
     keypoint_colors: np.ndarray
@@ -101,7 +101,7 @@ class PoseEstimationPrediction(Prediction):
         self._validate_input(poses, scores, bboxes_xyxy, edge_links, edge_colors, keypoint_colors)
         self.poses = poses
         self.scores = scores
-        self.bboxes = bboxes_xyxy
+        self.bboxes_xyxy = bboxes_xyxy
         self.edge_links = edge_links
         self.edge_colors = edge_colors
         self.image_shape = image_shape

@@ -1,9 +1,6 @@
 import os
-from typing import Callable, Iterable, Optional, Tuple
 
-import numpy as np
-import torch
-import torchvision.transforms as transform
+from typing import Callable, Iterable, Optional, Tuple
 from PIL import Image
 from tqdm import tqdm
 
@@ -12,6 +9,7 @@ from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.sg_dataset import DirectoryDataSet, ListDataset
+from super_gradients.training.samples import SegmentationSample
 
 
 @register_dataset(Datasets.SEGMENTATION_DATASET)
@@ -55,9 +53,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
                 file=list_file,
                 target_extension=target_extension,
                 sample_loader=self.sample_loader,
-                sample_transform=self.sample_transform,
                 target_loader=self.target_loader,
-                target_transform=self.target_transform,
                 collate_fn=collate_fn,
             )
         else:
@@ -68,13 +64,11 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
                 targets_sub_directory=targets_sub_directory,
                 target_extension=target_extension,
                 sample_loader=self.sample_loader,
-                sample_transform=self.sample_transform,
                 target_loader=self.target_loader,
-                target_transform=self.target_transform,
                 collate_fn=collate_fn,
             )
 
-        self.transforms = transform.Compose(transforms if transforms else [])
+        self.transforms = transforms if transforms else []
 
     def __getitem__(self, index):
         sample_path, target_path = self.samples_targets_tuples_list[index]
@@ -93,8 +87,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
 
         # MAKE SURE THE TRANSFORM WORKS ON BOTH IMAGE AND MASK TO ALIGN THE AUGMENTATIONS
         sample, target = self._transform_image_and_mask(sample, target)
-
-        return self.sample_transform(sample), self.target_transform(target)
+        return sample, target
 
     @staticmethod
     def sample_loader(sample_path: str) -> Image:
@@ -107,18 +100,6 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         return image
 
     @staticmethod
-    def sample_transform(image):
-        """
-        sample_transform - Transforms the sample image
-
-            :param image:  The input image to transform
-            :return:       The transformed image
-        """
-        sample_transform = transform.Compose([transform.ToTensor(), transform.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-
-        return sample_transform(image)
-
-    @staticmethod
     def target_loader(target_path: str) -> Image:
         """
         target_loader
@@ -127,16 +108,6 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         """
         target = Image.open(target_path)
         return target
-
-    @staticmethod
-    def target_transform(target):
-        """
-        target_transform - Transforms the sample image
-
-            :param target: The target mask to transform
-            :return:       The transformed target mask
-        """
-        return torch.from_numpy(np.array(target)).long()
 
     def _generate_samples_and_targets(self):
         """
@@ -204,8 +175,10 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         :param mask:            The input mask
         :return:                The transformed image, mask
         """
-        transformed = self.transforms({"image": image, "mask": mask})
-        return transformed["image"], transformed["mask"]
+        sample = SegmentationSample(image=image, mask=mask)
+        for t in self.transforms:
+            sample = t.apply_to_sample(sample)
+        return sample.image, sample.mask
 
     @property
     def _original_dataset_image_shape(self) -> Optional[Tuple[int, int]]:

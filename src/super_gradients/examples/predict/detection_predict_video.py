@@ -17,6 +17,10 @@ with open(video_path, mode="wb") as f:
     f.write(response.content)
 
 predictions = model.predict(video_path)
-predictions.show()
 predictions.save("pose_elephant_flip_prediction.mp4")
+
+predictions = model.predict(video_path)
 predictions.save("pose_elephant_flip_prediction.gif")  # Can also be saved as a gif.
+
+predictions = model.predict(video_path)
+predictions.show()

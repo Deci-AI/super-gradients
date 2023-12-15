@@ -1,10 +1,11 @@
 import os
 import tempfile
-from typing import Tuple
+from typing import Tuple, Optional, Mapping
 
 import numpy as np
 import onnx
 import onnx.shape_inference
+import onnxsim
 import torch
 from onnx import TensorProto
 from torch import nn, Tensor
@@ -13,7 +14,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
 from super_gradients.conversion.conversion_utils import numpy_dtype_to_torch_dtype
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
-from super_gradients.conversion.onnx.utils import append_graphs
+from super_gradients.conversion.onnx.utils import append_graphs, iteratively_infer_shapes
 
 logger = get_logger(__name__)
 
@@ -24,6 +25,17 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
     __constants__ = ("batch_size", "max_predictions_per_image")
 
     def __init__(self, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int):
+        """
+        Select the predictions from ONNX NMS node and return them in batch format.
+
+        :param batch_size:                A fixed batch size for the model
+        :param num_pre_nms_predictions:   The number of predictions before NMS step
+        :param max_predictions_per_image: Maximum number of predictions per image
+        """
+        if max_predictions_per_image > num_pre_nms_predictions:
+            raise ValueError(
+                f"max_predictions_per_image ({max_predictions_per_image}) cannot be greater than num_pre_nms_predictions ({num_pre_nms_predictions})"
+            )
         super().__init__()
         self.batch_size = batch_size
         self.num_pre_nms_predictions = num_pre_nms_predictions
@@ -32,49 +44,78 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
     def forward(self, pred_boxes: Tensor, pred_scores: Tensor, selected_indexes: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
         Select the predictions that are output by the NMS plugin.
-        :param pred_boxes: [B, N, 4] tensor, float32
-        :param pred_scores: [B, N, C] tensor, float32
+        :param pred_boxes:       [B, N, 4] tensor, float32 in XYXY format
+        :param pred_scores:      [B, N, C] tensor, float32
         :param selected_indexes: [num_selected_indices, 3], int64 - each row is [batch_indexes, label_indexes, boxes_indexes]
-        :return: A tuple of 4 tensors (num_detections, detection_boxes, detection_scores, detection_classes) will be returned:
-            - A tensor of [batch_size, 1] containing the image indices for each detection.
-            - A tensor of [batch_size, max_output_boxes, 4] containing the bounding box coordinates for each detection in [x1, y1, x2, y2] format.
-            - A tensor of [batch_size, max_output_boxes] containing the confidence scores for each detection.
-            - A tensor of [batch_size, max_output_boxes] containing the class indices for each detection.
+        :return:                 A tuple of 4 tensors (num_detections, detection_boxes, detection_scores, detection_classes) will be returned:
+                                 - A tensor of [batch_size, 1] containing the image indices for each detection.
+                                 - A tensor of [batch_size, max_predictions_per_image, 4] containing the bounding box coordinates
+                                   for each detection in [x1, y1, x2, y2] format.
+                                 - A tensor of [batch_size, max_predictions_per_image] containing the confidence scores for each detection.
+                                 - A tensor of [batch_size, max_predictions_per_image] containing the class indices for each detection.
 
         """
-        batch_indexes, label_indexes, boxes_indexes = selected_indexes[:, 0], selected_indexes[:, 1], selected_indexes[:, 2]
+        batch_indexes = selected_indexes[:, 0]
+        label_indexes = selected_indexes[:, 1]
+        boxes_indexes = selected_indexes[:, 2]
 
         selected_boxes = pred_boxes[batch_indexes, boxes_indexes]
         selected_scores = pred_scores[batch_indexes, boxes_indexes, label_indexes]
 
-        predictions = torch.cat([batch_indexes.unsqueeze(1), selected_boxes, selected_scores.unsqueeze(1), label_indexes.unsqueeze(1)], dim=1)
+        if self.batch_size == 1:
+            pred_boxes = selected_boxes[: self.max_predictions_per_image]
+            pred_scores = selected_scores[: self.max_predictions_per_image]
+            pred_classes = label_indexes[: self.max_predictions_per_image].long()
+            num_predictions = pred_boxes.size(0).reshape(1, 1)
 
-        predictions = torch.nn.functional.pad(
-            predictions, (0, 0, 0, self.max_predictions_per_image * self.batch_size - predictions.size(0)), value=-1, mode="constant"
-        )
+            pad_size = self.max_predictions_per_image - pred_boxes.size(0)
+            pred_boxes = torch.nn.functional.pad(pred_boxes, [0, 0, 0, pad_size], value=-1, mode="constant")
+            pred_scores = torch.nn.functional.pad(pred_scores, [0, pad_size], value=-1, mode="constant")
+            pred_classes = torch.nn.functional.pad(pred_classes, [0, pad_size], value=-1, mode="constant")
 
-        batch_predictions = torch.zeros((self.batch_size, self.max_predictions_per_image, 6), dtype=predictions.dtype, device=predictions.device)
+            return num_predictions, pred_boxes.unsqueeze(0), pred_scores.unsqueeze(0), pred_classes.unsqueeze(0)
+        else:
+            predictions = torch.cat([selected_boxes, selected_scores.unsqueeze(1), label_indexes.unsqueeze(1)], dim=1)
 
-        batch_indexes = torch.arange(start=0, end=self.batch_size, step=1, device=predictions.device).to(dtype=predictions.dtype)
-        masks = batch_indexes.view(-1, 1).eq(predictions[:, 0].view(1, -1))  # [B, N]
+            batch_predictions = torch.zeros((self.batch_size, self.max_predictions_per_image, 6), dtype=predictions.dtype, device=predictions.device)
 
-        num_predictions = torch.sum(masks, dim=1).long()
+            image_indexes = torch.arange(start=0, end=self.batch_size, step=1, device=predictions.device)
+            masks = image_indexes.view(self.batch_size, 1) == batch_indexes.view(1, selected_indexes.size(0))  # [B, L]
 
-        for i in range(self.batch_size):
-            selected_predictions = predictions[masks[i]]
-            selected_predictions = selected_predictions[:, 1:]
-            batch_predictions[i] = torch.nn.functional.pad(
-                selected_predictions, (0, 0, 0, self.max_predictions_per_image - selected_predictions.size(0)), value=0, mode="constant"
-            )
+            # Add dummy row to mask and predictions to ensure that we always have at least one prediction per image
+            # ONNX/TRT deals poorly with tensors that has zero dims, and we need to ensure that we always have at least one prediction per image
+            masks = torch.cat([masks, torch.zeros((self.batch_size, 1), dtype=masks.dtype, device=predictions.device)], dim=1)  # [B, L+1]
+            predictions = torch.cat([predictions, torch.zeros((1, 6), dtype=predictions.dtype, device=predictions.device)], dim=0)  # [L+1, 6]
 
-        pred_boxes = batch_predictions[:, :, 0:4]
-        pred_scores = batch_predictions[:, :, 4]
-        pred_classes = batch_predictions[:, :, 5].long()
+            num_predictions = torch.sum(masks, dim=1, keepdim=True).long()
+            num_predictions_capped = torch.clamp_max(num_predictions, self.max_predictions_per_image)
 
-        return num_predictions.unsqueeze(1), pred_boxes, pred_scores, pred_classes
+            for i in range(self.batch_size):
+                selected_predictions = predictions[masks[i]]
+                pad_size = self.num_pre_nms_predictions - selected_predictions.size(0)
+                selected_predictions = torch.nn.functional.pad(selected_predictions, [0, 0, 0, pad_size], value=-1, mode="constant")
+                selected_predictions = selected_predictions[0 : self.max_predictions_per_image]
+
+                batch_predictions[i] = selected_predictions
+
+            pred_boxes = batch_predictions[:, :, 0:4]
+            pred_scores = batch_predictions[:, :, 4]
+            pred_classes = batch_predictions[:, :, 5].long()
+
+            return num_predictions_capped, pred_boxes, pred_scores, pred_classes
 
     @classmethod
-    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image, dtype: torch.dtype, device: torch.device) -> gs.Graph:
+    def as_graph(
+        cls,
+        batch_size: int,
+        num_pre_nms_predictions: int,
+        max_predictions_per_image: int,
+        dtype: torch.dtype,
+        device: torch.device,
+        onnx_export_kwargs: Optional[Mapping] = None,
+    ) -> gs.Graph:
+        if onnx_export_kwargs is None:
+            onnx_export_kwargs = {}
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "PickNMSPredictionsAndReturnAsBatchedResult.onnx")
             pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
@@ -101,13 +142,27 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
                     },
                     "selected_indexes": {0: "num_predictions"},
                 },
+                **onnx_export_kwargs,
             )
 
+            model_opt, check_ok = onnxsim.simplify(onnx_file)
+            if not check_ok:
+                raise RuntimeError(f"Failed to simplify ONNX model {onnx_file}")
+            onnx.save(model_opt, onnx_file)
+
             convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
+            convert_format_graph = convert_format_graph.fold_constants().cleanup().toposort()
+            convert_format_graph = iteratively_infer_shapes(convert_format_graph)
             return convert_format_graph
 
 
 class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
+    """
+    Select the output from ONNX NMS node and return them in flat format.
+
+    This module is NOT compatible with TensorRT engine (Tested on TensorRT 8.4.2, 8.5.3 and 8.6.1) when using batch size > 1.
+    """
+
     __constants__ = ("batch_size", "num_pre_nms_predictions", "max_predictions_per_image")
 
     def __init__(self, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int):
@@ -116,33 +171,68 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
         self.num_pre_nms_predictions = num_pre_nms_predictions
         self.max_predictions_per_image = max_predictions_per_image
 
-    def forward(self, pred_boxes: Tensor, pred_scores: Tensor, selected_indexes: Tensor):
+    def forward(self, pred_boxes: Tensor, pred_scores: Tensor, selected_indexes: Tensor) -> Tensor:
         """
         Select the predictions that are output by the NMS plugin.
-        :param pred_boxes: [B, N, 4] tensor
-        :param pred_scores: [B, N, C] tensor
+        :param pred_boxes:       [B, N, 4] tensor
+        :param pred_scores:      [B, N, C] tensor
         :param selected_indexes: [num_selected_indices, 3] - each row is [batch_indexes, label_indexes, boxes_indexes]
-        :return: A single tensor of [Nout, 7] shape, where Nout is the total number of detections across all images in the batch.
-        Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
+                                 Indexes of predictions from same image (same batch_index) corresponds to sorted predictions (Confident first).
+        :return:                 A single tensor of [Nout, 7] shape, where Nout is the total number of detections across all images in the batch.
+                                 Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
+                                 Each image will have at most max_predictions_per_image detections.
 
         """
-        batch_indexes, label_indexes, boxes_indexes = selected_indexes[:, 0], selected_indexes[:, 1], selected_indexes[:, 2]
+        batch_indexes = selected_indexes[:, 0]
+        label_indexes = selected_indexes[:, 1]
+        boxes_indexes = selected_indexes[:, 2]
 
         selected_boxes = pred_boxes[batch_indexes, boxes_indexes]
         selected_scores = pred_scores[batch_indexes, boxes_indexes, label_indexes]
+        dtype = selected_scores.dtype
 
-        return torch.cat(
-            [
-                batch_indexes.unsqueeze(1).to(selected_boxes.dtype),
-                selected_boxes,
-                selected_scores.unsqueeze(1),
-                label_indexes.unsqueeze(1).to(selected_boxes.dtype),
-            ],
-            dim=1,
-        )
+        flat_results = torch.cat(
+            [batch_indexes.unsqueeze(-1).to(dtype), selected_boxes, selected_scores.unsqueeze(-1), label_indexes.unsqueeze(-1).to(dtype)], dim=1
+        )  # [N, 7]
+
+        if self.batch_size > 1:
+            # Compute a mask of shape [N,B] where each row contains True if the corresponding prediction belongs to the corresponding batch index
+            image_index = torch.arange(self.batch_size, dtype=batch_indexes.dtype, device=batch_indexes.device)
+
+            detections_in_images_mask = image_index.view(1, self.batch_size) == batch_indexes.view(-1, 1)  # [num_selected_indices, B]
+
+            # Compute total number of detections per image
+            num_detections_per_image = torch.sum(detections_in_images_mask, dim=0, keepdim=True)  # [1, B]
+
+            # Cap the number of detections per image to max_predictions_per_image
+            num_detections_per_image = torch.clamp_max(num_detections_per_image, self.max_predictions_per_image)  # [1, B]
+
+            # Calculate cumulative count of selected predictions for each batch index
+            # This will give us a tensor of shape [num_selected_indices, B] where the value at each position
+            # represents the number of predictions for the corresponding batch index up to that position.
+            cumulative_counts = detections_in_images_mask.float().cumsum(dim=0)  # [num_selected_indices, B]
+
+            # Create a mask to ensure we only keep max_predictions_per_image detections per image
+            mask = ((cumulative_counts <= num_detections_per_image) & detections_in_images_mask).any(dim=1, keepdim=False)  # [N]
+
+            final_results = flat_results[mask > 0]
+        else:
+            final_results = flat_results[: self.max_predictions_per_image]
+
+        return final_results
 
     @classmethod
-    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int, dtype: torch.dtype, device: torch.device) -> gs.Graph:
+    def as_graph(
+        cls,
+        batch_size: int,
+        num_pre_nms_predictions: int,
+        max_predictions_per_image: int,
+        dtype: torch.dtype,
+        device: torch.device,
+        onnx_export_kwargs: Optional[Mapping] = None,
+    ) -> gs.Graph:
+        if onnx_export_kwargs is None:
+            onnx_export_kwargs = {}
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "PickNMSPredictionsAndReturnAsFlatTensor.onnx")
             pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
@@ -161,11 +251,20 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
                     "pred_boxes": {},
                     "pred_scores": {2: "num_classes"},
                     "selected_indexes": {0: "num_predictions"},
-                    "flat_predictions": {0: "num_predictions"},
+                    "flat_predictions": {0: "num_output_predictions"},
                 },
+                **onnx_export_kwargs,
             )
 
+            model_opt, check_ok = onnxsim.simplify(onnx_file)
+            if not check_ok:
+                raise RuntimeError(f"Failed to simplify ONNX model {onnx_file}")
+            onnx.save(model_opt, onnx_file)
+
             convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
+            convert_format_graph = convert_format_graph.fold_constants().cleanup().toposort()
+            convert_format_graph = iteratively_infer_shapes(convert_format_graph)
+
             return convert_format_graph
 
 
@@ -179,6 +278,7 @@ def attach_onnx_nms(
     batch_size: int,
     output_predictions_format: DetectionOutputFormatMode,
     device: torch.device,
+    onnx_export_kwargs: Optional[Mapping] = None,
 ):
     """
     Attach ONNX NMS plugin to the detection model.
@@ -210,7 +310,6 @@ def attach_onnx_nms(
     :return: None
     """
     graph = gs.import_onnx(onnx.load(onnx_model_path))
-    graph.fold_constants()
 
     pred_boxes, pred_scores = graph.outputs
 
@@ -244,7 +343,7 @@ def attach_onnx_nms(
     graph.layer(op="Transpose", name="permute_scores", inputs=[pred_scores], outputs=[permute_scores], attrs={"perm": [0, 2, 1]})
 
     op_inputs = [pred_boxes, permute_scores] + [
-        gs.Constant(name="max_output_boxes_per_class", values=np.array([max_predictions_per_image], dtype=np.int64)),
+        gs.Constant(name="max_output_boxes_per_class", values=np.array([num_pre_nms_predictions], dtype=np.int64)),
         gs.Constant(name="iou_threshold", values=np.array([nms_threshold], dtype=np.float32)),
         gs.Constant(name="score_threshold", values=np.array([confidence_threshold], dtype=np.float32)),
     ]
@@ -279,6 +378,7 @@ def attach_onnx_nms(
             max_predictions_per_image=max_predictions_per_image,
             dtype=numpy_dtype_to_torch_dtype(np.float32),
             device=device,
+            onnx_export_kwargs=onnx_export_kwargs,
         )
         graph = append_graphs(graph, convert_format_graph)
     elif output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
@@ -288,20 +388,17 @@ def attach_onnx_nms(
             max_predictions_per_image=max_predictions_per_image,
             dtype=numpy_dtype_to_torch_dtype(np.float32),
             device=device,
+            onnx_export_kwargs=onnx_export_kwargs,
         )
         graph = append_graphs(graph, convert_format_graph)
     else:
         raise ValueError(f"Invalid output_predictions_format: {output_predictions_format}")
 
     # Final cleanup & save
-    graph.cleanup().toposort()
-
-    # iteratively_infer_shapes(graph)
+    graph = graph.toposort().fold_constants().cleanup()
+    graph = iteratively_infer_shapes(graph)
 
     model = gs.export_onnx(graph)
-    onnx.shape_inference.infer_shapes(model)
+    model = onnx.shape_inference.infer_shapes(model)
     onnx.save(model, output_onnx_model_path)
     logger.debug(f"Saved ONNX model to {output_onnx_model_path}")
-
-    # onnxsim.simplify(output_onnx_model_path)
-    # logger.debug(f"Ran onnxsim.simplify on {output_onnx_model_path}")

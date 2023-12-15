@@ -1,6 +1,8 @@
 from torch.nn.modules.loss import _Loss, KLDivLoss
 import torch
 
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 
@@ -19,6 +21,7 @@ class KDklDivLoss(KLDivLoss):
 class KDLogitsLoss(_Loss):
     """Knowledge distillation loss, wraps the task loss and distillation loss"""
 
+    @resolve_param("task_loss_fn", LossesFactory())
     def __init__(self, task_loss_fn: _Loss, distillation_loss_fn: _Loss = KDklDivLoss(), distillation_loss_coeff: float = 0.5):
         """
         :param task_loss_fn: task loss. E.g., CrossEntropyLoss

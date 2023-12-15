@@ -51,6 +51,7 @@ DEFAULT_TRAINING_PARAMS = {
     "warmup_mode": "LinearEpochLRWarmup",
     "step_lr_update_freq": None,
     "lr_updates": [],
+    "initial_lr": None,
     "clip_grad_norm": None,
     "pre_prediction_callback": None,
     "ckpt_best_name": "ckpt_best.pth",
@@ -80,6 +81,8 @@ DEFAULT_TRAINING_PARAMS = {
         "options": None,  # A dictionary of options to pass to the backend.
         "disable": False,  # Turn torch.compile() into a no-op for testing
     },  # torch.compile options from https://pytorch.org/docs/stable/generated/torch.compile.html
+    "finetune": False  # Whether to freeze a fixed part of the model (supported only for models that implement
+    # get_finetune_lr_dict, see SgModule.get_finetune_lr_dict. Tailored for each model class.)
 }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}
@@ -98,7 +101,12 @@ TRAINING_PARAM_SCHEMA = {
         # "lr_updates": {"type": "array", "minItems": 1},
         "lr_decay_factor": {"type": "number", "minimum": 0, "maximum": 1},
         "lr_warmup_epochs": {"type": "number", "minimum": 0, "maximum": 10},
-        "initial_lr": {"type": "number", "exclusiveMinimum": 0, "maximum": 10},
+        "initial_lr": {
+            "anyOf": [
+                {"type": ["number", "string", "boolean", "null"]},
+                {"type": "object", "patternProperties": {"^[a-zA-Z0-9_.]+$": {"type": "number"}}, "additionalProperties": False},
+            ]
+        },
     },
     "if": {"properties": {"lr_mode": {"const": "StepLRScheduler"}}},
     "then": {"required": ["lr_updates", "lr_decay_factor"]},

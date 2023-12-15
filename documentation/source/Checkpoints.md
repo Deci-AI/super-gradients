@@ -1,5 +1,8 @@
 # Model Checkpoints
 
+*If you are not familiar on how experiments are managed, you can check [this tutorial](experiment_management.md)*
+
+
 The first question that arises is: what is a checkpoint?
 
 From the [Pytorch Lightning](https://pytorch-lightning.readthedocs.io/en/stable/) documentation:

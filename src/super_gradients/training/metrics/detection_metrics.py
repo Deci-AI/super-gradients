@@ -10,7 +10,14 @@ import super_gradients.common.environment.ddp_utils
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.utils import tensor_container_to_device
-from super_gradients.training.utils.detection_utils import compute_detection_matching, compute_detection_metrics
+from super_gradients.training.utils.detection_utils import (
+    compute_detection_matching,
+    compute_detection_metrics,
+    DistanceMetric,
+    EuclideanDistance,
+    IoUMatching,
+    DistanceMatching,
+)
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -56,6 +63,13 @@ class DetectionMetrics(Metric):
     :param class_names:                     Array of class names. When include_classwise_ap=True, will use these names to make
                                             per-class APs keys in the output metrics dictionary.
                                             If None, will use dummy names `class_{idx}` instead.
+    :param state_dict_prefix:               A prefix to append to the state dict of the metric. A state dict used to synchronize metric in DDP mode.
+                                            It was empirically found that if you have two metric classes A and B(A) that has same state key, for
+                                            some reason torchmetrics attempts to sync their states all toghether which causes an error.
+                                            In this case adding a prefix to the name of the synchronized state seems to help,
+                                            but it is still unclear why it happens.
+
+
     """
 
     def __init__(
@@ -72,14 +86,18 @@ class DetectionMetrics(Metric):
         calc_best_score_thresholds: bool = False,
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
+        state_dict_prefix: str = "",
     ):
-        if class_names is None and include_classwise_ap:
-            logger.warning(
-                "Parameter 'include_classwise_ap' is set to True, but no class names are provided. "
-                "We will generate dummy class names, but we recommend to provide class names explicitly to"
-                "have meaningful names in reported metrics."
-            )
+        if class_names is None:
+            if include_classwise_ap:
+                logger.warning(
+                    "Parameter 'include_classwise_ap' is set to True, but no class names are provided. "
+                    "We will generate dummy class names, but we recommend to provide class names explicitly to"
+                    "have meaningful names in reported metrics."
+                )
             class_names = ["class_" + str(i) for i in range(num_cls)]
+        else:
+            class_names = list(class_names)
 
         if class_names is not None and len(class_names) != num_cls:
             raise ValueError(f"Number of class names ({len(class_names)}) does not match number of classes ({num_cls})")
@@ -87,6 +105,7 @@ class DetectionMetrics(Metric):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.num_cls = num_cls
         self.iou_thres = iou_thres
+        self.class_names = class_names
 
         if isinstance(iou_thres, IouThreshold):
             self.iou_thresholds = iou_thres.to_tensor()
@@ -99,15 +118,20 @@ class DetectionMetrics(Metric):
         self.map_str = "mAP" + self._get_range_str()
         self.include_classwise_ap = include_classwise_ap
 
+        self.precision_metric_key = f"{state_dict_prefix}Precision{self._get_range_str()}"
+        self.recall_metric_key = f"{state_dict_prefix}Recall{self._get_range_str()}"
+        self.f1_metric_key = f"{state_dict_prefix}F1{self._get_range_str()}"
+        self.map_metric_key = f"{state_dict_prefix}mAP{self._get_range_str()}"
+
         greater_component_is_better = [
-            (f"Precision{self._get_range_str()}", True),
-            (f"Recall{self._get_range_str()}", True),
-            (f"mAP{self._get_range_str()}", True),
-            (f"F1{self._get_range_str()}", True),
+            (self.precision_metric_key, True),
+            (self.recall_metric_key, True),
+            (self.map_metric_key, True),
+            (self.f1_metric_key, True),
         ]
 
         if self.include_classwise_ap:
-            self.per_class_ap_names = [f"AP{self._get_range_str()}_{class_name}" for class_name in class_names]
+            self.per_class_ap_names = [f"{state_dict_prefix}AP{self._get_range_str()}_{class_name}" for class_name in class_names]
             greater_component_is_better += [(key, True) for key in self.per_class_ap_names]
 
         self.greater_component_is_better = collections.OrderedDict(greater_component_is_better)
@@ -123,9 +147,10 @@ class DetectionMetrics(Metric):
         self.denormalize_targets = not normalize_targets
         self.world_size = None
         self.rank = None
-        self.add_state(f"matching_info{self._get_range_str()}", default=[], dist_reduce_fx=None)
+        self.state_key = f"{state_dict_prefix}matching_info{self._get_range_str()}"
+        self.add_state(self.state_key, default=[], dist_reduce_fx=None)
 
-        self.recall_thresholds = torch.linspace(0, 1, 101) if recall_thres is None else recall_thres
+        self.recall_thresholds = torch.linspace(0, 1, 101) if recall_thres is None else torch.tensor(recall_thres, dtype=torch.float32)
         self.score_threshold = score_thres
         self.top_k_predictions = top_k_predictions
 
@@ -144,6 +169,7 @@ class DetectionMetrics(Metric):
         """
         self.iou_thresholds = self.iou_thresholds.to(device)
         _, _, height, width = inputs.shape
+        iou_matcher = IoUMatching(self.iou_thresholds)
 
         targets = target.clone()
         crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.clone()
@@ -155,7 +181,8 @@ class DetectionMetrics(Metric):
             targets,
             height,
             width,
-            self.iou_thresholds,
+            iou_thresholds=iou_matcher.get_thresholds(),
+            matching_strategy=iou_matcher,
             crowd_targets=crowd_targets,
             top_k=self.top_k_predictions,
             denormalize_targets=self.denormalize_targets,
@@ -163,15 +190,15 @@ class DetectionMetrics(Metric):
             return_on_cpu=self.accumulate_on_cpu,
         )
 
-        accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
-        setattr(self, f"matching_info{self._get_range_str()}", accumulated_matching_info + new_matching_info)
+        accumulated_matching_info = getattr(self, self.state_key)
+        setattr(self, self.state_key, accumulated_matching_info + new_matching_info)
 
     def compute(self) -> Dict[str, Union[float, torch.Tensor]]:
         """Compute the metrics for all the accumulated results.
         :return: Metrics of interest
         """
         mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold, best_score_threshold_per_cls = -1.0, -1.0, -1.0, -1.0, -1.0, None
-        accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
+        accumulated_matching_info = getattr(self, self.state_key)
         mean_ap_per_class = np.zeros(self.num_cls)
 
         if len(accumulated_matching_info):
@@ -199,10 +226,10 @@ class DetectionMetrics(Metric):
                 mean_ap_per_class[class_index] = float(ap_per_class[i])
 
         output_dict = {
-            f"Precision{self._get_range_str()}": mean_precision,
-            f"Recall{self._get_range_str()}": mean_recall,
-            f"mAP{self._get_range_str()}": mean_ap,
-            f"F1{self._get_range_str()}": mean_f1,
+            self.precision_metric_key: mean_precision,
+            self.recall_metric_key: mean_recall,
+            self.map_metric_key: mean_ap,
+            self.f1_metric_key: mean_f1,
         }
 
         if self.include_classwise_ap:
@@ -234,13 +261,94 @@ class DetectionMetrics(Metric):
             torch.distributed.all_gather_object(gathered_state_dicts, local_state_dict)
             matching_info = []
             for state_dict in gathered_state_dicts:
-                matching_info += state_dict[f"matching_info{self._get_range_str()}"]
+                matching_info += state_dict[self.state_key]
             matching_info = tensor_container_to_device(matching_info, device="cpu" if self.accumulate_on_cpu else self.device)
 
-            setattr(self, f"matching_info{self._get_range_str()}", matching_info)
+            setattr(self, self.state_key, matching_info)
 
     def _get_range_str(self):
         return "@%.2f" % self.iou_thresholds[0] if not len(self.iou_thresholds) > 1 else "@%.2f:%.2f" % (self.iou_thresholds[0], self.iou_thresholds[-1])
+
+
+@register_metric(Metrics.DETECTION_METRICS_DISTANCE_BASED)
+class DetectionMetricsDistanceBased(DetectionMetrics):
+    def __init__(
+        self,
+        num_cls: int,
+        post_prediction_callback: DetectionPostPredictionCallback,
+        normalize_targets: bool = False,
+        distance_thresholds: List[float] = [5.0],
+        distance_metric: DistanceMetric = EuclideanDistance(),
+        recall_thres: torch.Tensor = None,
+        score_thres: float = 0.1,
+        top_k_predictions: int = 100,
+        dist_sync_on_step: bool = False,
+        accumulate_on_cpu: bool = True,
+        calc_best_score_thresholds: bool = False,
+        include_classwise_ap: bool = False,
+        class_names: List[str] = None,
+    ):
+        self.distance_thresholds = distance_thresholds
+        self.distance_metric = distance_metric
+        super().__init__(
+            num_cls=num_cls,
+            post_prediction_callback=post_prediction_callback,
+            normalize_targets=normalize_targets,
+            recall_thres=recall_thres,
+            score_thres=score_thres,
+            top_k_predictions=top_k_predictions,
+            dist_sync_on_step=dist_sync_on_step,
+            accumulate_on_cpu=accumulate_on_cpu,
+            calc_best_score_thresholds=calc_best_score_thresholds,
+            include_classwise_ap=include_classwise_ap,
+            class_names=class_names,
+            state_dict_prefix="distance_based_",
+        )
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor, device: str, inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None) -> None:
+        """
+        Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
+        Use distance-based definition of true positives.
+
+        :param preds: torch.Tensor: Raw output of the model. The format might change from one model to another,
+                                    but has to fit the input format of the post_prediction_callback (cx, cy, wh).
+        :param target: torch.Tensor: Targets for all images of shape (total_num_targets, 6) LABEL_CXCYWH.
+                                      Format:  (index, label, cx, cy, w, h)
+        :param device: str: Device to run on.
+        :param inputs: torch.Tensor: Input image tensor of shape (batch_size, n_img, height, width).
+        :param crowd_targets: Optional[torch.Tensor]: Crowd targets for all images of shape (total_num_targets, 6), LABEL_CXCYWH.
+        """
+        _, _, height, width = inputs.shape
+
+        distance_matcher = DistanceMatching(self.distance_metric, self.distance_thresholds)
+
+        targets = target.clone()
+        crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.clone()
+
+        preds = self.post_prediction_callback(preds, device=device)
+
+        new_matching_info = compute_detection_matching(
+            output=preds,
+            targets=targets,
+            height=height,
+            width=width,
+            crowd_targets=crowd_targets,
+            top_k=self.top_k_predictions,
+            denormalize_targets=self.denormalize_targets,
+            device=self.device,
+            return_on_cpu=self.accumulate_on_cpu,
+            matching_strategy=distance_matcher,
+        )
+
+        accumulated_matching_info = getattr(self, self.state_key)
+        setattr(self, self.state_key, accumulated_matching_info + new_matching_info)
+
+    def _get_range_str(self):
+        return (
+            "@DIST%.2f" % self.distance_thresholds[0]
+            if not len(self.distance_thresholds) > 1
+            else "@DIST%.2f:%.2f" % (self.distance_thresholds[0], self.distance_thresholds[-1])
+        )
 
 
 @register_metric(Metrics.DETECTION_METRICS_050)
@@ -259,7 +367,6 @@ class DetectionMetrics_050(DetectionMetrics):
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
-
         super().__init__(
             num_cls=num_cls,
             post_prediction_callback=post_prediction_callback,
@@ -292,7 +399,6 @@ class DetectionMetrics_075(DetectionMetrics):
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
-
         super().__init__(
             num_cls=num_cls,
             post_prediction_callback=post_prediction_callback,
@@ -325,7 +431,6 @@ class DetectionMetrics_050_095(DetectionMetrics):
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
-
         super().__init__(
             num_cls=num_cls,
             post_prediction_callback=post_prediction_callback,
