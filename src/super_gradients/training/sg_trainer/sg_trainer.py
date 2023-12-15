@@ -1174,6 +1174,19 @@ class Trainer:
                        IMPORTANT: Only works for experiments that were ran with sg_logger_params.save_checkpoints_remote=True.
                        IMPORTANT: For WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
 
+                -   `finetune`: bool (default=False)
+
+                     Whether to freeze a fixed part of the model. Supported only for models that implement get_finetune_lr_dict.
+                      The model's class method get_finetune_lr_dict should return a dictionary, mapping lr to the
+                      unfrozen part of the network, in the same fashion as using initial_lr.
+
+                      For example:
+                        def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+                            return {"default": 0, "head": lr}
+
+                        Will raise an error if initial_lr is a mapping already.
+
+
 
 
         :return:

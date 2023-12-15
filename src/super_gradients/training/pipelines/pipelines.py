@@ -285,13 +285,7 @@ class DetectionPipeline(Pipeline):
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
 
-        has_image_permute = False
-
-        for image_processing in image_processor.processings:
-            if isinstance(image_processing, ImagePermute):
-                has_image_permute = True
-                break
-
+        has_image_permute = any(isinstance(image_processing, ImagePermute) for image_processing in image_processor.processings)
         if not has_image_permute:
             image_processor.processings.append(ImagePermute())
 

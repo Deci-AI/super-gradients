@@ -63,6 +63,13 @@ class DetectionMetrics(Metric):
     :param class_names:                     Array of class names. When include_classwise_ap=True, will use these names to make
                                             per-class APs keys in the output metrics dictionary.
                                             If None, will use dummy names `class_{idx}` instead.
+    :param state_dict_prefix:               A prefix to append to the state dict of the metric. A state dict used to synchronize metric in DDP mode.
+                                            It was empirically found that if you have two metric classes A and B(A) that has same state key, for
+                                            some reason torchmetrics attempts to sync their states all toghether which causes an error.
+                                            In this case adding a prefix to the name of the synchronized state seems to help,
+                                            but it is still unclear why it happens.
+
+
     """
 
     def __init__(

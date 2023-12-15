@@ -401,7 +401,7 @@ class DetectionVisualization:
     def draw_box_title(
         color_mapping: List[Tuple[int]],
         class_names: List[str],
-        box_thickness: int,
+        box_thickness: Optional[int],
         image_np: np.ndarray,
         x1: int,
         y1: int,
@@ -443,7 +443,7 @@ class DetectionVisualization:
         pred_boxes: np.ndarray,
         target_boxes: np.ndarray,
         class_names: List[str],
-        box_thickness: int,
+        box_thickness: Optional[int],
         gt_alpha: float,
         image_scale: float,
         checkpoint_dir: str,
@@ -510,7 +510,7 @@ class DetectionVisualization:
         class_names: List[str],
         checkpoint_dir: str = None,
         undo_preprocessing_func: Callable[[torch.Tensor], np.ndarray] = undo_image_preprocessing,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         image_scale: float = 1.0,
         gt_alpha: float = 0.4,
     ):
@@ -1348,7 +1348,7 @@ def compute_detection_metrics(
     precision = torch.zeros((n_class, nb_iou_thrs), device=device)
     recall = torch.zeros((n_class, nb_iou_thrs), device=device)
 
-    nb_score_thrs = 101
+    nb_score_thrs = len(recall_thresholds)
     all_score_thresholds = torch.linspace(0, 1, nb_score_thrs, device=device)
     f1_per_class_per_threshold = torch.zeros((n_class, nb_score_thrs), device=device) if calc_best_score_thresholds else None
     best_score_threshold_per_cls = dict() if calc_best_score_thresholds else None
@@ -1364,7 +1364,6 @@ def compute_detection_metrics(
             score_threshold=score_threshold,
             device=device,
             calc_best_score_thresholds=calc_best_score_thresholds,
-            nb_score_thrs=nb_score_thrs,
         )
         ap[cls_i, :] = cls_ap
         precision[cls_i, :] = cls_precision
@@ -1392,7 +1391,6 @@ def compute_detection_metrics_per_cls(
     score_threshold: float,
     device: str,
     calc_best_score_thresholds: bool = False,
-    nb_score_thrs: int = 101,
 ):
     """
     Compute the list of precision, recall and MaP of a given class for every recall threshold.
@@ -1418,6 +1416,7 @@ def compute_detection_metrics_per_cls(
             :best_score_threshold:      torch.float if calc_best_score_thresholds is True else None
     """
     nb_iou_thrs = preds_matched.shape[-1]
+    nb_score_thrs = len(recall_thresholds)
 
     mean_f1_per_threshold = torch.zeros(nb_score_thrs, device=device) if calc_best_score_thresholds else None
     best_score_threshold = torch.tensor(0.0, dtype=torch.float, device=device) if calc_best_score_thresholds else None
