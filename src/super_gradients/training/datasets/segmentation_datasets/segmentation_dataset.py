@@ -187,7 +187,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         Default shape (model's input) should be defined for additional processing that might be needed
         when using "predict" any input-image/s can be used, the images should be rescaled to match the model's training-data shape
         """
-        return
+        return None
 
     def get_dataset_preprocessing_params(self):
         """
@@ -195,12 +195,12 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
          image_processor as returned as a list of dicts to be resolved by processing factory.
         :return:
         """
-        pipeline = [Processings.ImagePermute()]
-        pipeline += [{Processings.NormalizeImage: {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}}]
+        pipeline = []
+
         if self._original_dataset_image_shape:
             pipeline += [{Processings.SegResizeWithPadding: {"output_shape": self._original_dataset_image_shape, "pad_value": 0}}]
             # Resize image to same image-shape as model input. default shape should be defined in dataset class under "output_image_shape"
-        pipeline += [Processings.StandardizeImage()]
+
         for t in self.transforms:
             pipeline += t.get_equivalent_preprocessing()
         params = dict(class_names=self.classes, image_processor={Processings.ComposeProcessing: {"processings": pipeline}})

@@ -109,7 +109,6 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
         mask = np.zeros((h, w), dtype=np.uint8)
 
         for i, instance in enumerate(target_coco_annotations):
-
             rle = pycocotools_mask.frPyObjects(instance["segmentation"], h, w)
             coco_segementation_mask = pycocotools_mask.decode(rle)
 

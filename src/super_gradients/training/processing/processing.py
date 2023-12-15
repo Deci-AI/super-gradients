@@ -1110,11 +1110,11 @@ def default_vit_imagenet_processing_params() -> dict:
     return params
 
 
-def default_ppliteseg75_cityscapes_processing_params() -> dict:
-    """Processing parameters commonly used for training ppliteseg on Cityscapes dataset."""
+def default_cityscapes_processing_params(scale: float = 1) -> dict:
+    """Processing parameters commonly used for training segmentation models on Cityscapes dataset."""
     image_processor = ComposeProcessing(
         [
-            SegResizeWithPadding(output_shape=(768, 1536), pad_value=0),
+            SegResizeWithPadding(output_shape=(int(1024 * scale), int(2048 * scale)), pad_value=0),
             NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             StandardizeImage(),
             ImagePermute(),
@@ -1127,28 +1127,12 @@ def default_ppliteseg75_cityscapes_processing_params() -> dict:
     return params
 
 
-def default_ppliteseg50_cityscapes_processing_params() -> dict:
-    """Processing parameters commonly used for training ppliteseg on Cityscapes dataset."""
+def default_segformer_cityscapes_processing_params() -> dict:
+    """Processing parameters commonly used for training Segformer on Cityscapes dataset."""
     image_processor = ComposeProcessing(
         [
-            SegResizeWithPadding(output_shape=(512, 1024), pad_value=0),
-            NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            StandardizeImage(),
-            ImagePermute(),
-        ]
-    )
-    params = dict(
-        class_names=CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST,
-        image_processor=image_processor,
-    )
-    return params
-
-
-def default_ddrnet23_cityscapes_processing_params() -> dict:
-    """Processing parameters commonly used for training ppliteseg on Cityscapes dataset."""
-    image_processor = ComposeProcessing(
-        [
-            SegResizeWithPadding(output_shape=(1024, 2048), pad_value=0),
+            SegmentationRescale(long_size=1024),
+            SegmentationPadShortToCropSize(crop_size=(1024, 2048)),
             NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             StandardizeImage(),
             ImagePermute(),
@@ -1186,11 +1170,12 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
         return default_imagenet_processing_params()
 
     if pretrained_weights == "cityscapes":
-        if model_name == "pp_lite_t_seg75":
-            return default_ppliteseg75_cityscapes_processing_params()
-        elif model_name == "pp_lite_t_seg50":
-            return default_ppliteseg50_cityscapes_processing_params()
-        elif model_name == "ddrnet_23":
-            return default_ddrnet23_cityscapes_processing_params()
-
+        if model_name in {"pp_lite_t_seg75", "pp_lite_b_seg75", "stdc1_seg75", "stdc2_seg75"}:
+            return default_cityscapes_processing_params(0.75)
+        elif model_name in {"pp_lite_t_seg50", "pp_lite_b_seg50", "stdc1_seg50", "stdc2_seg50"}:
+            return default_cityscapes_processing_params(0.50)
+        elif model_name in {"ddrnet_23", "ddrnet_23_slim", "ddrnet_39"}:
+            return default_cityscapes_processing_params()
+        elif model_name in {"segformer_b0", "segformer_b1", "segformer_b2", "segformer_b3", "segformer_b4", "segformer_b5"}:
+            return default_segformer_cityscapes_processing_params()
     return dict()
