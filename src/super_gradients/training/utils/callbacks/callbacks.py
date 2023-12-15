@@ -1225,7 +1225,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             ]
             images_to_save = np.stack(images_to_save, axis=0)
 
-            context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=1 + context.epoch, data_format="NHWC")
+            context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=context.epoch, data_format="NHWC")
 
     def _on_batch_end(self, context: PhaseContext) -> None:
         if self.metric is not None:
