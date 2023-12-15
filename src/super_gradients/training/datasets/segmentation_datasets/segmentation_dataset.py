@@ -8,12 +8,13 @@ from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.module_interfaces import HasPreprocessingParams
 from super_gradients.training.datasets.sg_dataset import DirectoryDataSet, ListDataset
 from super_gradients.training.samples import SegmentationSample
 
 
 @register_dataset(Datasets.SEGMENTATION_DATASET)
-class SegmentationDataSet(DirectoryDataSet, ListDataset):
+class SegmentationDataSet(DirectoryDataSet, ListDataset, HasPreprocessingParams):
     @resolve_param("transforms", factory=TransformsFactory())
     def __init__(
         self,

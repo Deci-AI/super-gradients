@@ -526,7 +526,11 @@ class SegmentationPipeline(Pipeline):
 
         if type(model_output) is tuple:
             model_output = model_output(0)
-        class_predication = torch.argmax(model_output, dim=1)
+
+        if model_output.size(1) == 1:
+            class_predication = torch.sigmoid(model_output).gt(0.5).squeeze(1).long()
+        else:
+            class_predication = torch.argmax(model_output, dim=1)
         class_predication = class_predication.detach().cpu().numpy()
         predictions = []
         for prediction, image in zip(class_predication, model_input):

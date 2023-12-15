@@ -6,10 +6,10 @@ from typing import Optional, Union, Tuple, List, Sequence, Dict, Iterable
 
 import cv2
 import numpy as np
+import torch
 import torch.nn
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as _transforms
-from torchvision.transforms.functional import to_tensor, normalize
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -34,7 +34,6 @@ from super_gradients.training.transforms.utils import (
 )
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat, change_bbox_bounds_for_image_size
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
-import torch
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
 MASK_RESAMPLE_MODE = Image.NEAREST
@@ -93,6 +92,9 @@ class SegRandomFlip(AbstractSegmentationTransform, LegacySegmentationTransformMi
             sample.mask = mask
 
         return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
 @register_transform(Transforms.SegRescale)
@@ -194,6 +196,9 @@ class SegRandomRescale(AbstractSegmentationTransform, LegacySegmentationTransfor
             self.scales = (self.scales[1], self.scales[0])
         return self.scales
 
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
+
 
 @register_transform(Transforms.SegRandomRotate)
 class SegRandomRotate(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
@@ -225,6 +230,9 @@ class SegRandomRotate(AbstractSegmentationTransform, LegacySegmentationTransform
 
     def check_valid_arguments(self):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
 @register_transform(Transforms.SegCropImageAndMask)
@@ -278,6 +286,9 @@ class SegCropImageAndMask(AbstractSegmentationTransform, LegacySegmentationTrans
         if self.crop_size[0] <= 0 or self.crop_size[1] <= 0:
             raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
 
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
+
 
 @register_transform(Transforms.SegRandomGaussianBlur)
 class SegRandomGaussianBlur(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
@@ -300,6 +311,9 @@ class SegRandomGaussianBlur(AbstractSegmentationTransform, LegacySegmentationTra
         sample.mask = mask
 
         return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
 @register_transform(Transforms.SegPadShortToCropSize)
@@ -402,6 +416,9 @@ class SegColorJitter(AbstractSegmentationTransform, LegacySegmentationTransformM
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
         sample.image = self._color_jitter(sample.image)
         return sample
+
+    def get_equivalent_preprocessing(self):
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
 def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple, List]):
@@ -766,7 +783,15 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
 
 
 @register_transform(Transforms.SegToTensor)
-class SegToTensor(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
+class SegToTensor:
+    def __init__(self, mask_output_dtype: Optional[torch.dtype] = None, add_mask_dummy_dim: bool = False):
+        raise NotImplementedError(
+            "SegToTensor has been deprecated. Please remove it from your pipeline and add SegConvertToTensor as a LAST transformation instead ."
+        )
+
+
+@register_transform(Transforms.SegConvertToTensor)
+class SegConvertToTensor(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
     """
     Converts SegmentationSample images and masks to PyTorch tensors.
 
@@ -774,25 +799,50 @@ class SegToTensor(AbstractSegmentationTransform, LegacySegmentationTransformMixi
     :param add_mask_dummy_dim (bool): Whether to add a dummy channels dimension to the mask tensor.
     """
 
+    @resolve_param("image_output_dtype", TorchDtypeFactory())
     @resolve_param("mask_output_dtype", TorchDtypeFactory())
-    def __init__(self, mask_output_dtype: Optional[torch.dtype] = None, add_mask_dummy_dim: bool = False):
+    def __init__(self, image_output_dtype=torch.float32, mask_output_dtype: Optional[torch.dtype] = None, add_mask_dummy_dim: bool = False):
+        self.image_output_dtype = image_output_dtype
         self.mask_output_dtype = mask_output_dtype
         self.add_mask_dummy_dim = add_mask_dummy_dim
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
-        sample.image = to_tensor(sample.image)
+        sample.image = torch.from_numpy(sample.image).permute(2, 0, 1).to(self.image_output_dtype)
+        sample.mask = torch.from_numpy(np.array(sample.mask))
 
         # Convert mask to torch tensor with specified dtype
         if self.mask_output_dtype is not None:
             sample.mask = torch.from_numpy(np.array(sample.mask)).to(dtype=self.mask_output_dtype)
-        else:
-            sample.mask = torch.from_numpy(np.array(sample.mask))
 
         # Add dummy channels dimension if needed
-        if self.add_mask_dummy_dim:
+        if self.add_mask_dummy_dim and len(sample.mask.shape) == 2:
             sample.mask = sample.mask.unsqueeze(0)
 
         return sample
+
+    def get_equivalent_preprocessing(self):
+        return [{Processings.ImagePermute: {"permutation": (2, 0, 1)}}]
+
+
+@register_transform(Transforms.SegStandardize)
+class SegStandardize(AbstractSegmentationTransform, LegacySegmentationTransformMixin):
+    """
+    Standardize image pixel values with img/max_val
+
+    :param max_value: Current maximum value of the image pixels. (usually 255)
+    """
+
+    def __init__(self, max_value=255):
+        self.max_value = max_value
+
+    def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
+        if not isinstance(sample.image, np.ndarray):
+            sample.image = np.array(sample.image)
+        sample.image = (sample.image / self.max_value).astype(np.float32)
+        return sample
+
+    def get_equivalent_preprocessing(self):
+        return [{Processings.StandardizeImage: {"max_value": self.max_value}}]
 
 
 @register_transform(Transforms.SegNormalize)
@@ -800,18 +850,22 @@ class SegNormalize(AbstractSegmentationTransform, LegacySegmentationTransformMix
     """
     Normalization to be applied on the segmentation sample's image.
 
-    A call to SegToTensor prior to this transform is required.
     :param mean (sequence): Sequence of means for each channel.
     :param std (sequence): Sequence of standard deviations for each channel.
     """
 
     def __init__(self, mean: Sequence[float], std: Sequence[float]):
-        self.mean = list(mean)
-        self.std = list(std)
+        self.mean = np.array(mean).reshape(1, 1, -1).astype(np.float32)
+        self.std = np.array(std).reshape(1, 1, -1).astype(np.float32)
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
-        sample.image = normalize(sample.image, self.mean, self.std)
+        if not isinstance(sample.image, np.ndarray):
+            sample.image = np.array(sample.image)
+        sample.image = (sample.image - self.mean) / self.std
         return sample
+
+    def get_equivalent_preprocessing(self):
+        return [{Processings.NormalizeImage: {"mean": self.mean, "std": self.std}}]
 
 
 @register_transform(Transforms.DetectionImagePermute)

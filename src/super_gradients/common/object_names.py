@@ -42,7 +42,9 @@ class Transforms:
 
     # From SG
     SegNormalize = "SegNormalize"
+    SegStandardize = "SegStandardize"
     SegToTensor = "SegToTensor"
+    SegConvertToTensor = "SegConvertToTensor"
     SegRandomFlip = "SegRandomFlip"
     SegResize = "SegResize"
     SegRescale = "SegRescale"

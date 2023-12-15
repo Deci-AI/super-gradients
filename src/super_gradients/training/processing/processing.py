@@ -1,12 +1,13 @@
+import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Tuple, List, Union, Optional
 
-import numpy as np
-import math
 import cv2
+import numpy as np
 from torch import nn
 
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_processing
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST, IMAGENET_CLASSES, CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST
@@ -24,7 +25,6 @@ from super_gradients.training.transforms.utils import (
     _compute_scale_factor,
 )
 from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction, SegmentationPrediction
-from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -305,7 +305,8 @@ class NormalizeImage(Processing):
         self.std = np.array(std).reshape((1, 1, -1)).astype(np.float32)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
-        return (image - self.mean) / self.std, None
+        processed_image = (image - self.mean) / self.std
+        return processed_image, None
 
     def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
         return predictions
@@ -798,6 +799,10 @@ class SegmentationResize(Processing):
 
     def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
         return None
+
+    @property
+    def resizes_image(self) -> bool:
+        return True
 
 
 @register_processing(Processings.SegmentationPadShortToCropSize)

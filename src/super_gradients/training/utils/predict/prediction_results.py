@@ -321,10 +321,13 @@ class ImageSegmentationPrediction(ImagePrediction):
         :return:                Image with predicted segmentation. Note that this does not modify the original image.
         """
         image = self.image.copy()
-        color_mapping = color_mapping or generate_color_mapping(len(self.class_names))
+        class_names = class_names or self.class_names
+        if len(class_names) == 1:
+            class_names = ["background"] + class_names
+        color_mapping = color_mapping or generate_color_mapping(len(class_names))
 
         return overlay_segmentation(
-            image=image, pred_mask=self.prediction, num_classes=len(self.class_names), alpha=alpha, colors=color_mapping, class_names=class_names
+            image=image, pred_mask=self.prediction, num_classes=len(class_names), alpha=alpha, colors=color_mapping, class_names=class_names
         )
 
     def show(self, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
