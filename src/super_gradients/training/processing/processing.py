@@ -724,6 +724,10 @@ class SegResizeWithPadding(Processing):
     def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
         return None
 
+    @property
+    def resizes_image(self) -> bool:
+        return True
+
 
 @register_processing(Processings.SegmentationRescale)
 class SegmentationRescale(Processing):
@@ -762,6 +766,11 @@ class SegmentationRescale(Processing):
 
     def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
         return None
+
+    @property
+    def resizes_image(self) -> bool:
+        """Return True if the processing resizes the image, False otherwise."""
+        return True
 
 
 @register_processing(Processings.SegmentationResize)
@@ -823,6 +832,10 @@ class SegmentationPadShortToCropSize(Processing):
     def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
         return None
 
+    @property
+    def resizes_image(self) -> bool:
+        return True
+
 
 @register_processing(Processings.SegmentationPadToDivisible)
 class SegmentationPadToDivisible(Processing):
@@ -856,6 +869,10 @@ class SegmentationPadToDivisible(Processing):
 
     def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
         return None
+
+    @property
+    def resizes_image(self) -> bool:
+        return True
 
 
 def default_yolox_coco_processing_params() -> dict:
@@ -1132,7 +1149,7 @@ def default_segformer_cityscapes_processing_params() -> dict:
     image_processor = ComposeProcessing(
         [
             SegmentationRescale(long_size=1024),
-            SegmentationPadShortToCropSize(crop_size=(1024, 2048)),
+            SegmentationPadShortToCropSize(crop_size=(1024, 2048), fill_image=0),
             NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             StandardizeImage(),
             ImagePermute(),

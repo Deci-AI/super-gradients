@@ -93,8 +93,32 @@ class TestModelPredict(unittest.TestCase):
                     target_bboxes_format="xyxy",
                 )
 
-    def test_segmentation_model(self):
+    def test_segmentation_predict_pplite_t_seg75(self):
         model = models.get(model_name=Models.PP_LITE_T_SEG75, arch_params={"use_aux_heads": False}, num_classes=19, pretrained_weights="cityscapes")
+
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            predictions = model.predict(self.images)
+            predictions.show()
+            predictions.save(output_folder=tmp_dirname)
+
+    def test_segmentation_predict_stdc1_seg50(self):
+        model = models.get(model_name=Models.STDC1_SEG50, pretrained_weights="cityscapes")
+
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            predictions = model.predict(self.images)
+            predictions.show()
+            predictions.save(output_folder=tmp_dirname)
+
+    def test_segmentation_predict_ddrnet23_slim(self):
+        model = models.get(model_name=Models.DDRNET_23_SLIM, pretrained_weights="cityscapes")
+
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            predictions = model.predict(self.images)
+            predictions.show()
+            predictions.save(output_folder=tmp_dirname)
+
+    def test_segmentation_predict_segformer_b0(self):
+        model = models.get(model_name=Models.SEGFORMER_B0, pretrained_weights="cityscapes")
 
         with tempfile.TemporaryDirectory() as tmp_dirname:
             predictions = model.predict(self.images)
@@ -116,7 +140,6 @@ class TestModelPredict(unittest.TestCase):
             video_path = os.path.join(tmp_dirname, "test.mp4")
             self._prepare_video(video_path)
             for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.YOLO_NAS_POSE_S]:
-
                 pretrained_weights = "coco"
                 if model_name == Models.YOLO_NAS_POSE_S:
                     pretrained_weights += "_pose"
