@@ -6,6 +6,18 @@ from super_gradients.training.metrics.segmentation_metrics import PreprocessSegm
 from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimationMetrics
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import METRICS
+from super_gradients.training.metrics.depth_estimation_metrics import (
+    DeltaMetric,
+    Delta1,
+    Delta2,
+    Delta3,
+    MAE,
+    MAPE,
+    MSE,
+    RMSE,
+    MSLE,
+    MeanSquaredErrorWithIgnored,
+)
 
 __all__ = [
     "METRICS",
@@ -25,4 +37,14 @@ __all__ = [
     "DetectionMetrics_075",
     "DetectionMetrics_050_095",
     "PoseEstimationMetrics",
+    "DeltaMetric",
+    "Delta1",
+    "Delta2",
+    "Delta3",
+    "MAE",
+    "MAPE",
+    "MSE",
+    "RMSE",
+    "MSLE",
+    "MeanSquaredErrorWithIgnored",
 ]

@@ -3,6 +3,8 @@ from typing import Tuple, Sequence, Union, Optional
 import torch
 from torch import Tensor
 from torchmetrics import MeanSquaredError, MeanSquaredLogError, MeanAbsoluteError, MeanAbsolutePercentageError, Metric
+from super_gradients.common.object_names import Metrics
+from super_gradients.common.registry import register_metric
 
 
 class DepthEstimationMetricMixin:
@@ -47,6 +49,7 @@ class DepthEstimationMetricMixin:
         return preds, target
 
 
+@register_metric(Metrics.MeanSquaredErrorWithIgnored)
 class MeanSquaredErrorWithIgnored(MeanSquaredError, DepthEstimationMetricMixin):
     """MeanAbsoluteError, MeanAbsolutePercentageError
     Mean Squared Error metric for depth estimation with support for ignored values.
@@ -71,6 +74,7 @@ class MeanSquaredErrorWithIgnored(MeanSquaredError, DepthEstimationMetricMixin):
         super().update(preds, target)
 
 
+@register_metric(Metrics.MSE)
 class MSE(MeanSquaredErrorWithIgnored):
     """
     Mean Squared Error metric (squared) for depth estimation with support for ignored values.
@@ -83,6 +87,7 @@ class MSE(MeanSquaredErrorWithIgnored):
         super().__init__(squared=True, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
+@register_metric(Metrics.RMSE)
 class RMSE(MeanSquaredErrorWithIgnored):
     """
     Root Mean Squared Error metric for depth estimation with support for ignored values.
@@ -95,6 +100,7 @@ class RMSE(MeanSquaredErrorWithIgnored):
         super().__init__(squared=False, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
+@register_metric(Metrics.MSLE)
 class MSLE(MeanSquaredLogError, DepthEstimationMetricMixin):
     """
     Mean Squared Logarithmic Error metric for depth estimation with support for ignored values.
@@ -118,6 +124,7 @@ class MSLE(MeanSquaredLogError, DepthEstimationMetricMixin):
         super().update(preds, target)
 
 
+@register_metric(Metrics.MAE)
 class MAE(MeanAbsoluteError, DepthEstimationMetricMixin):
     """
     Mean Absolute Error (MAE) metric for depth estimation with support for ignored values.
@@ -141,6 +148,7 @@ class MAE(MeanAbsoluteError, DepthEstimationMetricMixin):
         super().update(preds, target)
 
 
+@register_metric(Metrics.MAPE)
 class MAPE(MeanAbsolutePercentageError, DepthEstimationMetricMixin):
     """
     Mean Absolute Percentage Error (MAPE) metric for depth estimation with support for ignored values.
@@ -164,6 +172,7 @@ class MAPE(MeanAbsolutePercentageError, DepthEstimationMetricMixin):
         super().update(preds, target)
 
 
+@register_metric(Metrics.DELTAMETRIC)
 class DeltaMetric(Metric, DepthEstimationMetricMixin):
     """
     Delta metrics for depth estimation with support for ignored values.
@@ -202,6 +211,7 @@ class DeltaMetric(Metric, DepthEstimationMetricMixin):
         return self.total_delta_pixels / self.total_pixels
 
 
+@register_metric(Metrics.DELTA1)
 class Delta1(DeltaMetric):
     """
     Delta1 metric for depth estimation with support for ignored values.
@@ -214,6 +224,7 @@ class Delta1(DeltaMetric):
         super().__init__(delta=1.25, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
+@register_metric(Metrics.DELTA2)
 class Delta2(DeltaMetric):
     """
     Delta2 metric for depth estimation with support for ignored values.
@@ -226,6 +237,7 @@ class Delta2(DeltaMetric):
         super().__init__(delta=1.25**2, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
+@register_metric(Metrics.DELTA3)
 class Delta3(DeltaMetric):
     """
     Delta3 metric for depth estimation with support for ignored values.

@@ -35,6 +35,16 @@ class Metrics:
     PIXEL_ACCURACY = "PixelAccuracy"
     POSE_ESTIMATION_METRICS = "PoseEstimationMetrics"
     DETECTION_METRICS_DISTANCE_BASED = "DetectionMetricsDistanceBased"
+    DELTAMETRIC = "DeltaMetric"
+    DELTA1 = "Delta1"
+    DELTA2 = "Delta2"
+    DELTA3 = "Delta3"
+    MAE = "MAE"
+    MAPE = "MAPE"
+    MSE = "MSE"
+    MeanSquaredErrorWithIgnored = "MeanSquaredErrorWithIgnored"
+    RMSE = "RMSE"
+    MSLE = "MSLE"
 
 
 class Transforms:
@@ -424,7 +434,6 @@ class Datasets:
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
     COCO_POSE_ESTIMATION_DATASET = "COCOPoseEstimationDataset"
-    NYUV2DATASET = "NYUv2Dataset"
 
 
 class Processings:

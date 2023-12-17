@@ -1,7 +1,7 @@
 import torch
 import unittest
 
-from super_gradients.training.metrics.depth_estimation_metrics import Delta1, Delta2, Delta3, MAE, MAPE, MSE, RMSE, MSLE
+from super_gradients.training.metrics import Delta1, Delta2, Delta3, MAE, MAPE, MSE, RMSE, MSLE
 
 
 class TestDepthEstimationMetrics(unittest.TestCase):
