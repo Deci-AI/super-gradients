@@ -1,4 +1,5 @@
 from typing import Union, Mapping
+from copy import deepcopy
 
 from omegaconf import ListConfig, DictConfig, OmegaConf
 
@@ -46,6 +47,7 @@ class AlbumentationsTransformsFactory(BaseFactory):
                 if "bbox_params" in conf[_type].keys():
                     bbox_params = conf[_type]["bbox_params"]
                     self._check_bbox_params(bbox_params)
+                    conf = deepcopy(conf)  # Avoid changing the original config.
                     conf[_type]["bbox_params"].update(self.FIXED_BBOX_PARAMS)
 
         return super(AlbumentationsTransformsFactory, self).get(conf)

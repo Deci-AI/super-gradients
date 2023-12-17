@@ -91,7 +91,7 @@ class KeypointsCompose(AbstractKeypointTransform):
         """
         applied_transforms_so_far = []
         for t in transforms:
-            if t.additional_samples_count == 0:
+            if not hasattr(t, "additional_samples_count") or t.additional_samples_count == 0:
                 sample = t.apply_to_sample(sample)
                 applied_transforms_so_far.append(t)
             else:

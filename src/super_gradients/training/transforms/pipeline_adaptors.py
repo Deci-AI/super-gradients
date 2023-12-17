@@ -3,12 +3,15 @@ from typing import Callable
 from abc import abstractmethod, ABC
 import numpy as np
 from PIL import Image
-from super_gradients.training.samples import DetectionSample, SegmentationSample
+
+from super_gradients.training.samples import DetectionSample, SegmentationSample, PoseEstimationSample
+from super_gradients.training.datasets.data_formats.bbox_formats import XYWHCoordinateFormat
 
 
 class SampleType(Enum):
     DETECTION = "DETECTION"
     SEGMENTATION = "SEGMENTATION"
+    POSE_ESTIMATION = "POSE_ESTIMATION"
     IMAGE_ONLY = "IMAGE_ONLY"
 
 
@@ -39,6 +42,18 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             self.sample_type = SampleType.DETECTION
         elif isinstance(sample, SegmentationSample):
             self.sample_type = SampleType.SEGMENTATION
+        elif isinstance(sample, PoseEstimationSample):
+            self.sample_type = SampleType.POSE_ESTIMATION
+
+            from albumentations.augmentations import HorizontalFlip
+
+            if any(isinstance(t, HorizontalFlip) for t in self.composed_transforms):
+                raise TypeError(
+                    "`HorizontalFlip` from Albumentation is not supported. "
+                    "Please use the `KeypointsRandomHorizontalFlip` from SuperGradients instead.\n"
+                    "Note: You should set it like other SuperGradients transforms, and not like other Albumentations."
+                )
+
         else:
             self.sample_type = SampleType.IMAGE_ONLY
 
@@ -55,6 +70,18 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             sample = {"image": sample.image, "bboxes": sample.bboxes_xyxy, "labels": sample.labels, "is_crowd": sample.is_crowd}
         elif self.sample_type == SampleType.SEGMENTATION:
             sample = {"image": np.array(sample.image), "mask": np.array(sample.mask)}
+        elif self.sample_type == SampleType.POSE_ESTIMATION:
+            # FIXME: areas, additional_samples are not included!!!
+            bboxes_xyxy = XYWHCoordinateFormat().to_xyxy(bboxes=np.array(sample.bboxes_xywh), image_shape=sample.image.shape, inplace=False)
+
+            sample = {
+                "image": sample.image,
+                "bboxes": bboxes_xyxy,
+                "labels": np.zeros(sample.bboxes_xywh.shape[0]),  # Dummy value, this is required for Albumentation
+                "mask": np.array(sample.mask),
+                "is_crowd": sample.is_crowd,
+                "keypoints": sample.joints,  # TODO: pleae check
+            }
         else:
             sample = {"image": np.array(sample)}
         return sample
@@ -76,7 +103,23 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             )
         elif self.sample_type == SampleType.SEGMENTATION:
             sample = SegmentationSample(image=Image.fromarray(sample["image"]), mask=Image.fromarray(sample["mask"]))
+        elif self.sample_type == SampleType.POSE_ESTIMATION:
 
+            if len(sample["bboxes"]) == 0:
+                sample["bboxes"] = np.zeros((0, 4))
+            if len(sample["is_crowd"]) == 0:
+                sample["is_crowd"] = np.zeros((0))
+
+            bboxes_xywh = XYWHCoordinateFormat().from_xyxy(bboxes=np.array(sample["bboxes"]), image_shape=sample["image"].shape, inplace=False)
+            sample = PoseEstimationSample(
+                image=sample["image"],
+                mask=np.array(sample["mask"]),
+                joints=np.array(sample["keypoints"]),  # TODO: check
+                areas=None,
+                bboxes_xywh=bboxes_xywh,
+                is_crowd=np.array(sample["is_crowd"]),
+                additional_samples=None,
+            )
         else:
             sample = sample["image"]
 
