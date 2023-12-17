@@ -1,5 +1,7 @@
 import warnings
 
+import numpy as np
+
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry import register_dataset
 from super_gradients.training.datasets.depth_estimation_datasets.abstract_depth_estimation_dataset import AbstractDepthEstimationDataset
@@ -116,3 +118,23 @@ class NYUv2Dataset(AbstractDepthEstimationDataset):
             raise FileNotFoundError("All lines in the dataset have been removed as some paths do not exist. " "Please check the paths and dataset structure.")
 
         self.df = pd.DataFrame(valid_paths, columns=[0, 1])
+
+    def check_depth_map_properties(self):
+        """
+        Check properties of the depth maps in the dataset.
+
+        :return: True if all depth maps are finite and greater than 0, False otherwise.
+        """
+        for index in range(len(self)):
+            depth_map = self.load_sample(index).depth_map
+            if not np.all(np.isfinite(depth_map)) or np.any(depth_map <= 0):
+                print(f"Invalid values found in depth map for sample {index}.")
+                return False
+
+        print("All depth maps have valid properties.")
+        return True
+
+
+dstrain = NYUv2Dataset(root="/home/shay.aharon/data/nyu_data/", df_path="/home/shay.aharon/data/nyu_data/data/nyu2_train.csv", transforms=None)
+
+dstest = NYUv2Dataset(root="/home/shay.aharon/data/nyu_data/", df_path="/home/shay.aharon/data/nyu_data/data/nyu2_test.csv", transforms=None)
