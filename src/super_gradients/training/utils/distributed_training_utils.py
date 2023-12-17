@@ -154,7 +154,7 @@ def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoad
         bn.momentum = momentums[i]
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_get_local_rank)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_get_local_rank)
 def get_local_rank():
     """
     Returns the local rank if running in DDP, and 0 otherwise
@@ -163,12 +163,12 @@ def get_local_rank():
     return _get_local_rank()
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_is_ddp_subprocess)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_is_ddp_subprocess)
 def is_ddp_subprocess():
     return _is_ddp_subprocess()
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_get_world_size)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_get_world_size)
 def get_world_size() -> int:
     """
     Returns the world size if running in DDP, and 1 otherwise
@@ -177,17 +177,17 @@ def get_world_size() -> int:
     return _get_world_size()
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_get_device_ids)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_get_device_ids)
 def get_device_ids() -> List[int]:
     return _get_device_ids()
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_count_used_devices)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_count_used_devices)
 def count_used_devices() -> int:
     return _count_used_devices()
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_require_ddp_setup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_require_ddp_setup)
 def require_ddp_setup() -> bool:
     return _require_ddp_setup()
 
@@ -219,7 +219,7 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = No
 
 
 @resolve_param("multi_gpu", TypeFactory(MultiGPUMode.dict()))
-def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None, device: str = "cuda"):
+def setup_device(multi_gpu: MultiGPUMode = None, num_gpus: int = None, device: str = "cuda"):
     """
     If required, launch ddp subprocesses.
     :param multi_gpu:   DDP, DP, Off or AUTO
@@ -260,7 +260,7 @@ def setup_cpu(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None)
     :param multi_gpu:    DDP, DP, Off or AUTO
     :param num_gpus:     Number of GPU's to use.
     """
-    if multi_gpu not in (MultiGPUMode.OFF, MultiGPUMode.AUTO):
+    if multi_gpu not in (MultiGPUMode.OFF, MultiGPUMode.AUTO, None):
         raise ValueError(f"device='cpu' and multi_gpu={multi_gpu} are not compatible together.")
 
     if num_gpus not in (0, None):

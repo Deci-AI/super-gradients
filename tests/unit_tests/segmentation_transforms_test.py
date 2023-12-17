@@ -1,10 +1,14 @@
 import unittest
+from pathlib import Path
 
+import numpy as np
 import torch
+from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, ToTensor
+
+from super_gradients.training.datasets import CoCoSegmentationDataSet
 from super_gradients.training.transforms.transforms import SegRescale, SegRandomRescale, SegCropImageAndMask, SegPadShortToCropSize
 from PIL import Image
-from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
 
 class SegmentationTransformsTest(unittest.TestCase):
@@ -145,7 +149,7 @@ class SegmentationTransformsTest(unittest.TestCase):
         padding = SegPadShortToCropSize(crop_size=out_size, fill_mask=fill_mask_value, fill_image=fill_image_value)
         out = padding(sample)
 
-        out_mask = SegmentationDataSet.target_transform(out["mask"])
+        out_mask = torch.from_numpy(np.array(out["mask"]))
         # same as SegmentationDataset transform just without normalization to easily keep track of values.
         out_image = image_to_tensor(out["image"])
 
@@ -215,6 +219,51 @@ class SegmentationTransformsTest(unittest.TestCase):
 
         out = transform(sample)
         self.assertEqual(crop_size, out["image"].size)
+
+    def test_segtotensor_loss_integration(self):
+        mini_coco_data_dir = str(Path(__file__).parent.parent / "data" / "tinycoco")
+        dataset = CoCoSegmentationDataSet(
+            root_dir=mini_coco_data_dir,
+            list_file="instances_val2017.json",
+            samples_sub_directory="images/val2017",
+            targets_sub_directory="annotations",
+            transforms=[
+                {"SegRescale": {"short_size": 512}},
+                {
+                    "SegCropImageAndMask": {"crop_size": 256, "mode": "center"},
+                },
+                {"SegToTensor": {"mask_output_dtype": torch.float32}},
+            ],
+        )
+
+        dataloader = DataLoader(dataset, batch_size=4)
+        batch = next(iter(dataloader))
+        pred = torch.randn(batch[1].shape)
+        loss = torch.nn.BCEWithLogitsLoss()
+        loss(pred, batch[1])
+
+    def test_segtotensor_with_dummy_dim_integration(self):
+        mini_coco_data_dir = str(Path(__file__).parent.parent / "data" / "tinycoco")
+        dataset = CoCoSegmentationDataSet(
+            root_dir=mini_coco_data_dir,
+            list_file="instances_val2017.json",
+            samples_sub_directory="images/val2017",
+            targets_sub_directory="annotations",
+            transforms=[
+                {"SegRescale": {"short_size": 512}},
+                {
+                    "SegCropImageAndMask": {"crop_size": 256, "mode": "center"},
+                },
+                {"SegToTensor": {"mask_output_dtype": "float32", "add_mask_dummy_dim": True}},
+            ],
+            dataset_classes_inclusion_tuples_list=[(1, "person")],
+        )
+
+        dataloader = DataLoader(dataset, batch_size=4)
+        batch = next(iter(dataloader))
+        pred = torch.sigmoid(torch.randn((4, 1, 256, 256)))
+        loss = torch.nn.BCELoss()
+        loss(pred, batch[1])
 
 
 if __name__ == "__main__":

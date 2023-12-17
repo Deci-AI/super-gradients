@@ -1,4 +1,4 @@
-from .module_interfaces import HasPredict, HasPreprocessingParams, SupportsReplaceNumClasses, SupportsReplaceInputChannels
+from .module_interfaces import HasPredict, HasPreprocessingParams, SupportsReplaceNumClasses, SupportsReplaceInputChannels, SupportsFineTune
 from .exceptions import ModelHasNoPreprocessingParamsException
 from .exportable_detector import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule
 from .exportable_pose_estimation import ExportablePoseEstimationModel, PoseEstimationModelExportResult, AbstractPoseEstimationDecodingModule
@@ -17,4 +17,5 @@ __all__ = [
     "ExportablePoseEstimationModel",
     "PoseEstimationModelExportResult",
     "AbstractPoseEstimationDecodingModule",
+    "SupportsFineTune",
 ]

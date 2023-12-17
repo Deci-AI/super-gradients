@@ -39,8 +39,9 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         predictions = outputs[0]
 
         for pred_bboxes, pred_scores in zip(*predictions):
-            # pred_bboxes [Anchors, 4],
-            # pred_scores [Anchors, C]
+            # Cast to float to avoid lack of fp16 support in torchvision.ops.boxes.batched_nms
+            pred_bboxes = pred_bboxes.float()  # [Anchors, 4]
+            pred_scores = pred_scores.float()  # [Anchors, C]
 
             # Filter all predictions by self.score_threshold
             if self.multi_label_per_box:

@@ -1,3 +1,4 @@
+import os.path
 import unittest
 import tempfile
 import shutil
@@ -10,6 +11,7 @@ from data_gradients.managers.detection_manager import DetectionAnalysisManager
 from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 from data_gradients.managers.classification_manager import ClassificationAnalysisManager
 from data_gradients.dataset_adapters.config.data_config import SegmentationDataConfig
+from data_gradients.utils.data_classes.image_channels import ImageChannels
 
 from super_gradients.training.dataloaders.adapters import (
     DetectionDataloaderAdapterFactory,
@@ -20,7 +22,10 @@ from super_gradients.training.dataloaders.adapters import (
 
 class DataloaderAdapterTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.tmp_dir = tempfile.mkdtemp()
+        if os.getenv("DEBUG_DIR"):  # This is useful when debugging locally, to avoid downloading the dataset everytime
+            self.tmp_dir = os.path.join(os.getenv("DEBUG_DIR"), "DataloaderAdapterNonRegressionTest")
+        else:
+            self.tmp_dir = tempfile.mkdtemp()
 
     def tearDown(self):
         shutil.rmtree(self.tmp_dir)
@@ -38,8 +43,10 @@ class DataloaderAdapterTest(unittest.TestCase):
             log_dir=self.tmp_dir,
             report_title="Caltech101",
             class_names=train_set.categories,
+            image_channels=ImageChannels.from_str("RGB"),
+            is_batch=False,
+            labels_extractor="[1]",  # dataset returns (image, label)
             batches_early_stop=4,
-            n_image_channels=3,
             use_cache=True,
         )
         analyzer.run()
@@ -121,7 +128,8 @@ class DataloaderAdapterTest(unittest.TestCase):
             train_data=train_set,
             val_data=val_set,
             labels_extractor=voc_format_to_bbox,
-            class_names=PASCAL_VOC_CLASS_NAMES,
+            class_names=list(PASCAL_VOC_CLASS_NAMES),
+            image_channels=ImageChannels.from_str("RGB"),
             # class_names=train_set,
             batches_early_stop=20,
             use_cache=True,  # With this we will be asked about the dataset information only once
@@ -181,7 +189,8 @@ class DataloaderAdapterTest(unittest.TestCase):
             log_dir=self.tmp_dir,
             train_data=train_set,
             val_data=val_set,
-            class_names=list(range(256)),
+            class_names=[f"class_{i}" for i in range(256)],
+            image_channels=ImageChannels.from_str("RGB"),
             # class_names=train_set,
             batches_early_stop=20,
             use_cache=True,  # With this we will be asked about the dataset information only once

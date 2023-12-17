@@ -1,7 +1,7 @@
 import collections
 import math
 import warnings
-from typing import Union, Type, List, Tuple, Optional, Any, Callable
+from typing import Union, Type, List, Tuple, Optional, Any, Callable, Dict
 from functools import lru_cache
 
 import numpy as np
@@ -732,6 +732,9 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
             self._check_strides()
             self._initialize_biases()
             self._initialize_weights()
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"_head": lr, "default": 0}
 
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return YoloXDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions, **kwargs)

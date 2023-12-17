@@ -177,10 +177,16 @@ def calc_bbox_iou_matrix(pred: torch.Tensor):
     return ious
 
 
-def change_bbox_bounds_for_image_size(boxes, img_shape):
-    # CLIP BOUNDING XYXY BOUNDING BOXES TO IMAGE SHAPE (HEIGHT, WIDTH)
-    boxes[:, [0, 2]] = boxes[:, [0, 2]].clamp(min=0, max=img_shape[1])
-    boxes[:, [1, 3]] = boxes[:, [1, 3]].clamp(min=0, max=img_shape[0])
+def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, int]) -> np.ndarray:
+    """
+    Clips bboxes to image boundaries.
+
+    :param bboxes:     (np.ndarray) Input bounding boxes in XYXY format of [..., 4] shape
+    :param img_shape:  Tuple[int,int] of image shape (height, width).
+    :return:           (np.ndarray)clipped bboxes in XYXY format of [..., 4] shape
+    """
+    boxes[..., [0, 2]] = boxes[..., [0, 2]].clip(min=0, max=img_shape[1])
+    boxes[..., [1, 3]] = boxes[..., [1, 3]].clip(min=0, max=img_shape[0])
     return boxes
 
 
@@ -273,7 +279,6 @@ def non_max_suppression(
     output = [None] * prediction.shape[0]
 
     for image_idx, pred in enumerate(prediction):
-
         pred = pred[candidates_above_thres[image_idx]]  # confident
 
         if not pred.shape[0]:  # If none remain process next image
@@ -396,7 +401,7 @@ class DetectionVisualization:
     def draw_box_title(
         color_mapping: List[Tuple[int]],
         class_names: List[str],
-        box_thickness: int,
+        box_thickness: Optional[int],
         image_np: np.ndarray,
         x1: int,
         y1: int,
@@ -438,7 +443,7 @@ class DetectionVisualization:
         pred_boxes: np.ndarray,
         target_boxes: np.ndarray,
         class_names: List[str],
-        box_thickness: int,
+        box_thickness: Optional[int],
         gt_alpha: float,
         image_scale: float,
         checkpoint_dir: str,
@@ -505,7 +510,7 @@ class DetectionVisualization:
         class_names: List[str],
         checkpoint_dir: str = None,
         undo_preprocessing_func: Callable[[torch.Tensor], np.ndarray] = undo_image_preprocessing,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         image_scale: float = 1.0,
         gt_alpha: float = 0.4,
     ):
@@ -692,9 +697,8 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     :param h_max: (int) height border
     :return: modified bbox (np.array)
     """
-    bbox[:, 0::2] = np.clip(bbox[:, 0::2] * scale_ratio + padw, 0, w_max)
-    bbox[:, 1::2] = np.clip(bbox[:, 1::2] * scale_ratio + padh, 0, h_max)
-    return bbox
+    scaled_bboxes = bbox * scale_ratio + np.array([[padw, padh, padw, padh]])
+    return change_bbox_bounds_for_image_size(scaled_bboxes, img_shape=(h_max, w_max))
 
 
 @deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_DatasetItemsException)
@@ -748,45 +752,360 @@ def crowd_ioa(det_box: torch.Tensor, crowd_box: torch.Tensor) -> torch.Tensor:
     return inter / det_area[:, None]  # crowd_ioa = inter / det_area
 
 
+class DetectionMatching(ABC):
+    """
+    DetectionMatching is an abstract base class that defines the interface for matching detections
+    in object detection models. It includes methods for computing targets for both regular and crowd
+    scenarios, as well as getting thresholds for matching.
+    """
+
+    @abstractmethod
+    def get_thresholds(self) -> torch.Tensor:
+        """
+        Abstract method to get the thresholds used for detection matching.
+
+        :return: (torch.Tensor) The thresholds used in the matching process.
+        """
+        pass
+
+    @abstractmethod
+    def compute_targets(
+        self,
+        preds_box_xyxy: torch.Tensor,
+        preds_cls: torch.Tensor,
+        targets_box_xyxy: torch.Tensor,
+        targets_cls: torch.Tensor,
+        preds_matched: torch.Tensor,
+        targets_matched: torch.Tensor,
+        preds_idx_to_use: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Abstract method to compute targets for regular scenarios.
+
+        :param preds_box_xyxy: (torch.Tensor) Predicted bounding boxes in XYXY format.
+        :param preds_cls: (torch.Tensor) Predicted classes.
+        :param targets_box_xyxy: (torch.Tensor) Target bounding boxes in XYXY format.
+        :param targets_cls: (torch.Tensor) Target classes.
+        :param preds_matched: (torch.Tensor) Tensor indicating which predictions are matched.
+        :param targets_matched: (torch.Tensor) Tensor indicating which targets are matched.
+        :param preds_idx_to_use: (torch.Tensor) Indices of predictions to use.
+        :return: (torch.Tensor) Computed targets.
+        """
+        pass
+
+    @abstractmethod
+    def compute_crowd_targets(
+        self,
+        preds_box_xyxy: torch.Tensor,
+        preds_cls: torch.Tensor,
+        crowd_targets_cls: torch.Tensor,
+        crowd_target_box_xyxy: torch.Tensor,
+        preds_matched: torch.Tensor,
+        preds_to_ignore: torch.Tensor,
+        preds_idx_to_use: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Abstract method to compute targets for crowd scenarios.
+
+        :param preds_box_xyxy: (torch.Tensor) Predicted bounding boxes in XYXY format.
+        :param preds_cls: (torch.Tensor) Predicted classes.
+        :param crowd_targets_cls: (torch.Tensor) Crowd target classes.
+        :param crowd_target_box_xyxy: (torch.Tensor) Crowd target bounding boxes in XYXY format.
+        :param preds_matched: (torch.Tensor) Tensor indicating which predictions are matched.
+        :param preds_to_ignore: (torch.Tensor) Tensor indicating which predictions to ignore.
+        :param preds_idx_to_use: (torch.Tensor) Indices of predictions to use.
+        :return: (Tuple[torch.Tensor, torch.Tensor]) Computed targets for crowd scenarios.
+        """
+        pass
+
+
+class IoUMatching(DetectionMatching):
+    """
+    IoUMatching is a subclass of DetectionMatching that uses Intersection over Union (IoU)
+    for matching detections in object detection models.
+    """
+
+    def __init__(self, iou_thresholds: torch.Tensor):
+        """
+        Initializes the IoUMatching instance with IoU thresholds.
+
+        :param iou_thresholds: (torch.Tensor) The IoU thresholds for matching.
+        """
+        self.iou_thresholds = iou_thresholds
+
+    def get_thresholds(self) -> torch.Tensor:
+        """
+        Returns the IoU thresholds used for detection matching.
+
+        :return: (torch.Tensor) The IoU thresholds.
+        """
+        return self.iou_thresholds
+
+    def compute_targets(
+        self,
+        preds_box_xyxy: torch.Tensor,
+        preds_cls: torch.Tensor,
+        targets_box_xyxy: torch.Tensor,
+        targets_cls: torch.Tensor,
+        preds_matched: torch.Tensor,
+        targets_matched: torch.Tensor,
+        preds_idx_to_use: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Computes the matching targets based on IoU for regular scenarios.
+
+        :param preds_box_xyxy: (torch.Tensor) Predicted bounding boxes in XYXY format.
+        :param preds_cls: (torch.Tensor) Predicted classes.
+        :param targets_box_xyxy: (torch.Tensor) Target bounding boxes in XYXY format.
+        :param targets_cls: (torch.Tensor) Target classes.
+        :param preds_matched: (torch.Tensor) Tensor indicating which predictions are matched.
+        :param targets_matched: (torch.Tensor) Tensor indicating which targets are matched.
+        :param preds_idx_to_use: (torch.Tensor) Indices of predictions to use.
+        :return: (torch.Tensor) Computed matching targets.
+        """
+        # shape = (n_preds x n_targets)
+        iou = box_iou(preds_box_xyxy[preds_idx_to_use], targets_box_xyxy)
+
+        # Fill IoU values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
+        # Filling with 0 is equivalent to ignore these values since with want IoU > iou_threshold > 0
+        cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1)
+        iou[cls_mismatch] = 0
+
+        # The matching priority is first detection confidence and then IoU value.
+        # The detection is already sorted by confidence in NMS, so here for each prediction we order the targets by iou.
+        sorted_iou, target_sorted = iou.sort(descending=True, stable=True)
+
+        # Only iterate over IoU values higher than min threshold to speed up the process
+        for pred_selected_i, target_sorted_i in (sorted_iou > self.iou_thresholds[0]).nonzero(as_tuple=False):
+            # pred_selected_i and target_sorted_i are relative to filters/sorting, so we extract their absolute indexes
+            pred_i = preds_idx_to_use[pred_selected_i]
+            target_i = target_sorted[pred_selected_i, target_sorted_i]
+
+            # Vector[j], True when IoU(pred_i, target_i) is above the (j)th threshold
+            is_iou_above_threshold = sorted_iou[pred_selected_i, target_sorted_i] > self.iou_thresholds
+
+            # Vector[j], True when both pred_i and target_i are not matched yet for the (j)th threshold
+            are_candidates_free = torch.logical_and(~preds_matched[pred_i, :], ~targets_matched[target_i, :])
+
+            # Vector[j], True when (pred_i, target_i) can be matched for the (j)th threshold
+            are_candidates_good = torch.logical_and(is_iou_above_threshold, are_candidates_free)
+
+            # For every threshold (j) where target_i and pred_i can be matched together ( are_candidates_good[j]==True )
+            # fill the matching placeholders with True
+            targets_matched[target_i, are_candidates_good] = True
+            preds_matched[pred_i, are_candidates_good] = True
+
+            # When all the targets are matched with a prediction for every IoU Threshold, stop.
+            if targets_matched.all():
+                break
+
+        return preds_matched
+
+    def compute_crowd_targets(
+        self,
+        preds_box_xyxy: torch.Tensor,
+        preds_cls: torch.Tensor,
+        crowd_targets_cls: torch.Tensor,
+        crowd_target_box_xyxy: torch.Tensor,
+        preds_matched: torch.Tensor,
+        preds_to_ignore: torch.Tensor,
+        preds_idx_to_use: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Computes the matching targets based on IoU for crowd scenarios.
+
+        :param preds_box_xyxy: (torch.Tensor) Predicted bounding boxes in XYXY format.
+        :param preds_cls: (torch.Tensor) Predicted classes.
+        :param crowd_targets_cls: (torch.Tensor) Crowd target classes.
+        :param crowd_target_box_xyxy: (torch.Tensor) Crowd target bounding boxes in XYXY format.
+        :param preds_matched: (torch.Tensor) Tensor indicating which predictions are matched.
+        :param preds_to_ignore: (torch.Tensor) Tensor indicating which predictions to ignore.
+        :param preds_idx_to_use: (torch.Tensor) Indices of predictions to use.
+        :return: (Tuple[torch.Tensor, torch.Tensor]) Computed matching targets for crowd scenarios.
+        """
+        # Crowd targets can be matched with many predictions.
+        # Therefore, for every prediction we just need to check if it has IoA large enough with any crowd target.
+
+        # shape = (n_preds_to_use x n_crowd_targets)
+        ioa = crowd_ioa(preds_box_xyxy[preds_idx_to_use], crowd_target_box_xyxy)
+
+        # Fill IoA values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
+        # Filling with 0 is equivalent to ignore these values since with want IoA > threshold > 0
+        cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != crowd_targets_cls.view(1, -1)
+        ioa[cls_mismatch] = 0
+
+        # For each prediction, we keep it's highest score with any crowd target (of same class)
+        # shape = (n_preds_to_use)
+        best_ioa, _ = ioa.max(1)
+
+        # If a prediction has IoA higher than threshold (with any target of same class), then there is a match
+        # shape = (n_preds_to_use x iou_thresholds)
+        is_matching_with_crowd = best_ioa.view(-1, 1) > self.iou_thresholds.view(1, -1)
+
+        preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
+
+        return preds_matched, preds_to_ignore
+
+
+class DistanceMatching(DetectionMatching):
+    """
+    DistanceMatching is a subclass of DetectionMatching that uses a distance metric
+    for matching detections in object detection models.
+    """
+
+    def __init__(self, distance_metric, distance_thresholds: torch.Tensor):
+        """
+        Initializes the DistanceMatching instance with a distance metric and distance thresholds.
+
+        :param distance_metric: The distance metric to be used for matching.
+        :param distance_thresholds: (torch.Tensor) The distance thresholds for matching.
+        """
+        self.distance_metric = distance_metric
+        self.distance_thresholds = distance_thresholds
+
+    def get_thresholds(self) -> torch.Tensor:
+        """
+        Returns the distance thresholds used for detection matching.
+
+        :return: (torch.Tensor) The distance thresholds.
+        """
+        return torch.tensor(self.distance_thresholds)
+
+    def compute_targets(
+        self,
+        preds_box_xyxy: torch.Tensor,
+        preds_cls: torch.Tensor,
+        targets_box_xyxy: torch.Tensor,
+        targets_cls: torch.Tensor,
+        preds_matched: torch.Tensor,
+        targets_matched: torch.Tensor,
+        preds_idx_to_use: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Computes the matching targets based on the distance metric for regular scenarios.
+
+        :param preds_box_xyxy: (torch.Tensor) Predicted bounding boxes in XYXY format.
+        :param preds_cls: (torch.Tensor) Predicted classes.
+        :param targets_box_xyxy: (torch.Tensor) Target bounding boxes in XYXY format.
+        :param targets_cls: (torch.Tensor) Target classes.
+        :param preds_matched: (torch.Tensor) Tensor indicating which predictions are matched.
+        :param targets_matched: (torch.Tensor) Tensor indicating which targets are matched.
+        :param preds_idx_to_use: (torch.Tensor) Indices of predictions to use.
+        :return: (torch.Tensor) Computed matching targets.
+        """
+        # Calculate the distances between targets and predictions using the current metric
+        # shape = (n_preds x n_targets)
+        distances = self.distance_metric.calculate_distance(preds_box_xyxy[preds_idx_to_use], targets_box_xyxy)
+
+        # Invalidate distances when class labels don't match
+        cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1)
+        distances[cls_mismatch] = float("inf")  # or max(distance_thresholds) + 1
+
+        # Sort distances
+        sorted_distances, target_sorted = distances.sort(stable=True)
+
+        # Identify all pairs that are within the max distance threshold
+        candidate_pairs = (sorted_distances < max(self.distance_thresholds)).nonzero(as_tuple=False)
+        for pred_selected_i, target_sorted_i in candidate_pairs:
+            pred_i = preds_idx_to_use[pred_selected_i]
+            target_i = target_sorted[pred_selected_i, target_sorted_i]
+
+            distance_thresholds_tensor = torch.tensor(self.distance_thresholds, device=distances.device)
+            is_distance_below_threshold = sorted_distances[pred_selected_i, target_sorted_i] < distance_thresholds_tensor
+            are_candidates_free = torch.logical_and(~preds_matched[pred_i, :], ~targets_matched[target_i, :])
+            are_candidates_good = torch.logical_and(is_distance_below_threshold, are_candidates_free)
+
+            targets_matched[target_i, are_candidates_good] = True
+            preds_matched[pred_i, are_candidates_good] = True
+
+            if targets_matched.all():
+                break
+
+        return preds_matched
+
+    def compute_crowd_targets(
+        self,
+        preds_box_xyxy: torch.Tensor,
+        preds_cls: torch.Tensor,
+        crowd_targets_cls: torch.Tensor,
+        crowd_target_box_xyxy: torch.Tensor,
+        preds_matched: torch.Tensor,
+        preds_to_ignore: torch.Tensor,
+        preds_idx_to_use: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Computes the matching targets based on the distance metric for crowd scenarios.
+
+        :param preds_box_xyxy: (torch.Tensor) Predicted bounding boxes in XYXY format.
+        :param preds_cls: (torch.Tensor) Predicted classes.
+        :param crowd_targets_cls: (torch.Tensor) Crowd target classes.
+        :param crowd_target_box_xyxy: (torch.Tensor) Crowd target bounding boxes in XYXY format.
+        :param preds_matched: (torch.Tensor) Tensor indicating which predictions are matched.
+        :param preds_to_ignore: (torch.Tensor) Tensor indicating which predictions to ignore.
+        :param preds_idx_to_use: (torch.Tensor) Indices of predictions to use.
+        :return: (Tuple[torch.Tensor, torch.Tensor]) Computed matching targets for crowd scenarios.
+        """
+        cls_mismatch_crowd = preds_cls[preds_idx_to_use].view(-1, 1) != crowd_targets_cls.view(1, -1)
+
+        # Iterate over each distance metric and its corresponding threshold
+        distances = self.distance_metric.calculate_distance(preds_box_xyxy[preds_idx_to_use], crowd_target_box_xyxy)
+        distances[cls_mismatch_crowd] = float("inf")
+
+        best_distance, _ = distances.min(1)
+        is_matching_with_crowd = best_distance.view(-1, 1) < torch.tensor(self.distance_thresholds, device=distances.device).view(1, -1)
+
+        preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
+
+        return preds_matched, preds_to_ignore
+
+
 def compute_detection_matching(
     output: List[torch.Tensor],
     targets: torch.Tensor,
     height: int,
     width: int,
-    iou_thresholds: torch.Tensor,
     denormalize_targets: bool,
     device: str,
+    iou_thresholds: torch.Tensor = None,
     crowd_targets: Optional[torch.Tensor] = None,
     top_k: int = 100,
     return_on_cpu: bool = True,
+    matching_strategy: DetectionMatching = None,
 ) -> List[Tuple]:
     """
     Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score.
     :param output:          list (of length batch_size) of Tensors of shape (num_predictions, 6)
                             format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
     :param targets:         targets for all images of shape (total_num_targets, 6)
-                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+                            format:     (index, label, x, y, w, h, ) where x,y,w,h are in range [0,1]
     :param height:          dimensions of the image
     :param width:           dimensions of the image
     :param iou_thresholds:  Threshold to compute the mAP
     :param device:          Device
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
-                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+                            format:     (index, label, x, y, w, h) where x,y,w,h are in range [0,1]
     :param top_k:           Number of predictions to keep per class, ordered by confidence score
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
     :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
+    :param matching_strategy: Method to match predictions to ground truth targets, IoU, distance based
 
     :return:                list of the following tensors, for every image:
-        :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
+        :preds_matched:     Tensor of shape (num_img_predictions, n_thresholds)
                             True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
-        :preds_to_ignore:   Tensor of shape (num_img_predictions, n_iou_thresholds)
+        :preds_to_ignore:   Tensor of shape (num_img_predictions, n_thresholds)
                             True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
         :preds_scores:      Tensor of shape (num_img_predictions), confidence score for every prediction
         :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
     """
+    if matching_strategy is None:
+        raise ValueError("matching_strategy must not be None")
+    if isinstance(matching_strategy, IoUMatching) and iou_thresholds is None:
+        raise ValueError("iou_thresholds is required for IoU matching strategy")
+
     output = map(lambda tensor: None if tensor is None else tensor.to(device), output)
-    targets, iou_thresholds = targets.to(device), iou_thresholds.to(device)
+    thresholds = matching_strategy.get_thresholds()
+    targets, thresholds = targets.to(device), thresholds.to(device)
 
     # If crowd_targets is not provided, we patch it with an empty tensor
     crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.to(device)
@@ -805,10 +1124,11 @@ def compute_detection_matching(
             denormalize_targets=denormalize_targets,
             height=height,
             width=width,
-            device=device,
             iou_thresholds=iou_thresholds,
+            device=device,
             top_k=top_k,
             return_on_cpu=return_on_cpu,
+            matching_strategy=matching_strategy,
         )
         batch_metrics.append(img_matching_tensors)
 
@@ -821,54 +1141,56 @@ def compute_img_detection_matching(
     crowd_targets: torch.Tensor,
     height: int,
     width: int,
-    iou_thresholds: torch.Tensor,
     device: str,
     denormalize_targets: bool,
+    iou_thresholds: torch.Tensor = None,
     top_k: int = 100,
     return_on_cpu: bool = True,
+    matching_strategy: DetectionMatching = None,
 ) -> Tuple:
     """
-    Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score
+    Match predictions (NMS output) and the targets (ground truth) with respect to metric and confidence score
     for a given image.
     :param preds:           Tensor of shape (num_img_predictions, 6)
                             format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
     :param targets:         targets for this image of shape (num_img_targets, 6)
-                            format:     (label, cx, cy, w, h, label) where cx,cy,w,h
+                            format:     (label, cx, cy, w, h) where cx,cy,w,h
     :param height:          dimensions of the image
     :param width:           dimensions of the image
-    :param iou_thresholds:  Threshold to compute the mAP
     :param device:
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
-                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+                            format:     (index, x, y, w, h) where x,y,w,h are in range [0,1]
+    :param iou_thresholds:  Threshold to compute the mAP
     :param top_k:           Number of predictions to keep per class, ordered by confidence score
     :param device:          Device
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
     :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
+    :param matching_strategy: Method to match predictions to ground truth targets: IoU, distance based
 
     :return:
-        :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
-                                True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
-        :preds_to_ignore:   Tensor of shape (num_img_predictions, n_iou_thresholds)
-                                True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
+        :preds_matched:     Tensor of shape (num_img_predictions, n_thresholds)
+                                True when prediction (i) is matched with a target with respect to the (j)th threshold
+        :preds_to_ignore:   Tensor of shape (num_img_predictions, n_thresholds)
+                                True when prediction (i) is matched with a crowd target with respect to the (j)th threshold
         :preds_scores:      Tensor of shape (num_img_predictions), confidence score for every prediction
         :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
     """
-    num_iou_thresholds = len(iou_thresholds)
+    num_thresholds = len(matching_strategy.get_thresholds())
 
     if preds is None or len(preds) == 0:
         if return_on_cpu:
             device = "cpu"
-        preds_matched = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
-        preds_to_ignore = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
+        preds_matched = torch.zeros((0, num_thresholds), dtype=torch.bool, device=device)
+        preds_to_ignore = torch.zeros((0, num_thresholds), dtype=torch.bool, device=device)
         preds_scores = torch.tensor([], dtype=torch.float32, device=device)
         preds_cls = torch.tensor([], dtype=torch.float32, device=device)
         targets_cls = targets[:, 0].to(device=device)
         return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
 
-    preds_matched = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
-    targets_matched = torch.zeros(len(targets), num_iou_thresholds, dtype=torch.bool, device=device)
-    preds_to_ignore = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
+    preds_matched = torch.zeros(len(preds), num_thresholds, dtype=torch.bool, device=device)
+    targets_matched = torch.zeros(len(targets), num_thresholds, dtype=torch.bool, device=device)
+    preds_to_ignore = torch.zeros(len(preds), num_thresholds, dtype=torch.bool, device=device)
 
     preds_cls, preds_box, preds_scores = preds[:, -1], preds[:, 0:4], preds[:, 4]
     targets_cls, targets_box = targets[:, 0], targets[:, 1:5]
@@ -880,7 +1202,6 @@ def compute_img_detection_matching(
     preds_to_ignore[preds_idx_to_use] = False
 
     if len(targets) > 0 or len(crowd_targets) > 0:
-
         # CHANGE bboxes TO FIT THE IMAGE SIZE
         change_bbox_bounds_for_image_size(preds, (height, width))
 
@@ -893,66 +1214,13 @@ def compute_img_detection_matching(
             crowd_target_box[:, [0, 2]] *= width
             crowd_target_box[:, [1, 3]] *= height
 
-    if len(targets) > 0:
+        if len(targets) > 0:
+            preds_matched = matching_strategy.compute_targets(preds_box, preds_cls, targets_box, targets_cls, preds_matched, targets_matched, preds_idx_to_use)
 
-        # shape = (n_preds x n_targets)
-        iou = box_iou(preds_box[preds_idx_to_use], targets_box)
-
-        # Fill IoU values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
-        # Filling with 0 is equivalent to ignore these values since with want IoU > iou_threshold > 0
-        cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1)
-        iou[cls_mismatch] = 0
-
-        # The matching priority is first detection confidence and then IoU value.
-        # The detection is already sorted by confidence in NMS, so here for each prediction we order the targets by iou.
-        sorted_iou, target_sorted = iou.sort(descending=True, stable=True)
-
-        # Only iterate over IoU values higher than min threshold to speed up the process
-        for pred_selected_i, target_sorted_i in (sorted_iou > iou_thresholds[0]).nonzero(as_tuple=False):
-
-            # pred_selected_i and target_sorted_i are relative to filters/sorting, so we extract their absolute indexes
-            pred_i = preds_idx_to_use[pred_selected_i]
-            target_i = target_sorted[pred_selected_i, target_sorted_i]
-
-            # Vector[j], True when IoU(pred_i, target_i) is above the (j)th threshold
-            is_iou_above_threshold = sorted_iou[pred_selected_i, target_sorted_i] > iou_thresholds
-
-            # Vector[j], True when both pred_i and target_i are not matched yet for the (j)th threshold
-            are_candidates_free = torch.logical_and(~preds_matched[pred_i, :], ~targets_matched[target_i, :])
-
-            # Vector[j], True when (pred_i, target_i) can be matched for the (j)th threshold
-            are_candidates_good = torch.logical_and(is_iou_above_threshold, are_candidates_free)
-
-            # For every threshold (j) where target_i and pred_i can be matched together ( are_candidates_good[j]==True )
-            # fill the matching placeholders with True
-            targets_matched[target_i, are_candidates_good] = True
-            preds_matched[pred_i, are_candidates_good] = True
-
-            # When all the targets are matched with a prediction for every IoU Threshold, stop.
-            if targets_matched.all():
-                break
-
-    # Crowd targets can be matched with many predictions.
-    # Therefore, for every prediction we just need to check if it has IoA large enough with any crowd target.
-    if len(crowd_targets) > 0:
-
-        # shape = (n_preds_to_use x n_crowd_targets)
-        ioa = crowd_ioa(preds_box[preds_idx_to_use], crowd_target_box)
-
-        # Fill IoA values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
-        # Filling with 0 is equivalent to ignore these values since with want IoA > threshold > 0
-        cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != crowd_targets_cls.view(1, -1)
-        ioa[cls_mismatch] = 0
-
-        # For each prediction, we keep it's highest score with any crowd target (of same class)
-        # shape = (n_preds_to_use)
-        best_ioa, _ = ioa.max(1)
-
-        # If a prediction has IoA higher than threshold (with any target of same class), then there is a match
-        # shape = (n_preds_to_use x iou_thresholds)
-        is_matching_with_crowd = best_ioa.view(-1, 1) > iou_thresholds.view(1, -1)
-
-        preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
+        if len(crowd_targets) > 0:
+            preds_matched, preds_to_ignore = matching_strategy.compute_crowd_targets(
+                preds_box, preds_cls, crowd_targets_cls, crowd_target_box, preds_matched, preds_to_ignore, preds_idx_to_use
+            )
 
     if return_on_cpu:
         preds_matched = preds_matched.to("cpu")
@@ -962,6 +1230,55 @@ def compute_img_detection_matching(
         targets_cls = targets_cls.to("cpu")
 
     return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
+
+
+class DistanceMetric(ABC):
+    @abstractmethod
+    def calculate_distance(self, preds_box: torch.Tensor, targets_box: torch.Tensor) -> torch.Tensor:
+        pass
+
+
+class EuclideanDistance(DistanceMetric):
+    def calculate_distance(self, predicted: torch.Tensor, target: torch.Tensor):
+        """
+        Calculate the Euclidean distance (L2 distance) between the centers of preds_box and targets_box.
+
+        :param predicted: (N, 4) tensor for N predicted bounding boxes (x1, y1, x2, y2)
+        :param target: (M, 4) tensor for M target bounding boxes (x1, y1, x2, y2)
+
+        :return: (N, M) tensor representing pairwise euclidean distances
+        """
+        # Calculate the centers of the bounding boxes
+        centers1 = (predicted[:, :2] + predicted[:, 2:]) / 2
+        centers2 = (target[:, :2] + target[:, 2:]) / 2
+
+        # Calculate squared differences
+        diff = centers1.view(-1, 1, 2) - centers2.view(1, -1, 2)
+        dist_sq = (diff**2).sum(dim=2)
+        dist = torch.sqrt(dist_sq)
+
+        return dist
+
+
+class ManhattanDistance(DistanceMetric):
+    def calculate_distance(self, predicted: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate the Manhattan distance (L1 distance) between the centers of preds_box and targets_box.
+
+        :param predicted: (N, 4) tensor for N predicted bounding boxes (x1, y1, x2, y2)
+        :param target: (M, 4) tensor for M target bounding boxes (x1, y1, x2, y2)
+
+        :return: (N, M) tensor representing pairwise Manhattan distances
+        """
+        # Calculate the centers of the bounding boxes
+        centers1 = (predicted[:, :2] + predicted[:, 2:]) / 2  # (N, 2)
+        centers2 = (target[:, :2] + target[:, 2:]) / 2  # (M, 2)
+
+        # Calculate absolute differences
+        diff = centers1.view(-1, 1, 2) - centers2.view(1, -1, 2)
+        abs_diff = torch.abs(diff).sum(dim=2)
+
+        return abs_diff
 
 
 def get_top_k_idx_per_cls(preds_scores: torch.Tensor, preds_cls: torch.Tensor, top_k: int):
@@ -1031,7 +1348,7 @@ def compute_detection_metrics(
     precision = torch.zeros((n_class, nb_iou_thrs), device=device)
     recall = torch.zeros((n_class, nb_iou_thrs), device=device)
 
-    nb_score_thrs = 101
+    nb_score_thrs = len(recall_thresholds)
     all_score_thresholds = torch.linspace(0, 1, nb_score_thrs, device=device)
     f1_per_class_per_threshold = torch.zeros((n_class, nb_score_thrs), device=device) if calc_best_score_thresholds else None
     best_score_threshold_per_cls = dict() if calc_best_score_thresholds else None
@@ -1047,7 +1364,6 @@ def compute_detection_metrics(
             score_threshold=score_threshold,
             device=device,
             calc_best_score_thresholds=calc_best_score_thresholds,
-            nb_score_thrs=nb_score_thrs,
         )
         ap[cls_i, :] = cls_ap
         precision[cls_i, :] = cls_precision
@@ -1075,17 +1391,16 @@ def compute_detection_metrics_per_cls(
     score_threshold: float,
     device: str,
     calc_best_score_thresholds: bool = False,
-    nb_score_thrs: int = 101,
 ):
     """
-    Compute the list of precision, recall and MaP of a given class for every recall IoU threshold.
+    Compute the list of precision, recall and MaP of a given class for every recall threshold.
 
-        :param preds_matched:      Tensor of shape (num_predictions, n_iou_thresholds)
+        :param preds_matched:      Tensor of shape (num_predictions, n_thresholds)
                                         True when prediction (i) is matched with a target
-                                        with respect to the(j)th IoU threshold
-        :param preds_to_ignore     Tensor of shape (num_predictions, n_iou_thresholds)
+                                        with respect to the(j)th threshold
+        :param preds_to_ignore     Tensor of shape (num_predictions, n_thresholds)
                                         True when prediction (i) is matched with a crowd target
-                                        with respect to the (j)th IoU threshold
+                                        with respect to the (j)th threshold
         :param preds_scores:       Tensor of shape (num_predictions), confidence score for every prediction
         :param n_targets:          Number of target boxes of this class
         :param recall_thresholds:  Tensor of shape (max_n_rec_thresh) list of recall thresholds used to compute MaP
@@ -1096,11 +1411,12 @@ def compute_detection_metrics_per_cls(
         :param nb_score_thrs:       Number of score thresholds to consider when calc_best_score_thresholds is True
 
         :return:
-            :ap, precision, recall:     Tensors of shape (nb_iou_thrs)
+            :ap, precision, recall:     Tensors of shape (nb_thrs)
             :mean_f1_per_threshold:     Tensor of shape (nb_score_thresholds) if calc_best_score_thresholds is True else None
             :best_score_threshold:      torch.float if calc_best_score_thresholds is True else None
     """
     nb_iou_thrs = preds_matched.shape[-1]
+    nb_score_thrs = len(recall_thresholds)
 
     mean_f1_per_threshold = torch.zeros(nb_score_thrs, device=device) if calc_best_score_thresholds else None
     best_score_threshold = torch.tensor(0.0, dtype=torch.float, device=device) if calc_best_score_thresholds else None

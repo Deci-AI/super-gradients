@@ -131,6 +131,8 @@ torch_compile_options:
   options:              # A dictionary of options to pass to the backend.
   disable: False        # Turn torch.compile() into a no-op for testing
 
-
+finetune: False  # Whether to freeze a fixed part of the model. Supported only for models that implement get_finetune_lr_dict.
+                    # The model's class method get_finetune_lr_dict should return a dictionary, mapping lr to the
+                    # unfrozen part of the network, in the same fashion as using initial_lr.
 
 _convert_: all
