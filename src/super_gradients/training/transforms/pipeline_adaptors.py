@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 from super_gradients.training.samples import DetectionSample, SegmentationSample, PoseEstimationSample
-from super_gradients.training.datasets.data_formats.bbox_formats import XYWHCoordinateFormat
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
 
 
 class SampleType(Enum):
@@ -71,16 +71,17 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
         elif self.sample_type == SampleType.SEGMENTATION:
             sample = {"image": np.array(sample.image), "mask": np.array(sample.mask)}
         elif self.sample_type == SampleType.POSE_ESTIMATION:
-            # FIXME: areas, additional_samples are not included!!!
-            bboxes_xyxy = XYWHCoordinateFormat().to_xyxy(bboxes=np.array(sample.bboxes_xywh), image_shape=sample.image.shape, inplace=False)
 
+            bboxes_xyxy = xywh_to_xyxy(bboxes=np.array(sample.bboxes_xywh), image_shape=sample.image.shape)
+
+            # TODO: Do we simply ignore `area` and `additional_samples`?
             sample = {
                 "image": sample.image,
                 "bboxes": bboxes_xyxy,
                 "labels": np.zeros(sample.bboxes_xywh.shape[0]),  # Dummy value, this is required for Albumentation
                 "mask": np.array(sample.mask),
                 "is_crowd": sample.is_crowd,
-                "keypoints": sample.joints,  # TODO: pleae check
+                "keypoints": sample.joints,
             }
         else:
             sample = {"image": np.array(sample)}
@@ -110,11 +111,13 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             if len(sample["is_crowd"]) == 0:
                 sample["is_crowd"] = np.zeros((0))
 
-            bboxes_xywh = XYWHCoordinateFormat().from_xyxy(bboxes=np.array(sample["bboxes"]), image_shape=sample["image"].shape, inplace=False)
+            bboxes_xywh = xyxy_to_xywh(bboxes=np.array(sample["bboxes"]), image_shape=sample["image"].shape)
+
+            # TODO: Do we simply ignore `area` and `additional_samples`?
             sample = PoseEstimationSample(
                 image=sample["image"],
                 mask=np.array(sample["mask"]),
-                joints=np.array(sample["keypoints"]),  # TODO: check
+                joints=np.array(sample["keypoints"]),
                 areas=None,
                 bboxes_xywh=bboxes_xywh,
                 is_crowd=np.array(sample["is_crowd"]),

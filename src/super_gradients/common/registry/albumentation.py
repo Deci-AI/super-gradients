@@ -29,9 +29,6 @@ if imported_albumentations_failure is None:
     }
     ALBUMENTATIONS_TRANSFORMS.update(ALBUMENTATIONS_COMP_TRANSFORMS)
 
-    # Map transformations from Albumentation that we don't support to the SG replacement
-    ALBUMENTATIONS_NOT_SUPPORTED_TRANSFORMS = {}
-
 else:
     ALBUMENTATIONS_TRANSFORMS = None
     ALBUMENTATIONS_COMP_TRANSFORMS = None

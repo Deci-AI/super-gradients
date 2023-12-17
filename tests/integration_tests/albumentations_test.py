@@ -10,7 +10,7 @@ from albumentations import Compose, HorizontalFlip, InvertImg
 
 from super_gradients.training.datasets import Cifar10, Cifar100, ImageNetDataset, COCODetectionDataset, CoCoSegmentationDataSet, COCOPoseEstimationDataset
 from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
-from super_gradients.training.datasets.data_formats.bbox_formats import XYWHCoordinateFormat
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy
 
 
 def visualize_image(image):
@@ -169,28 +169,6 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
     def test_coco_pose_albumentations_intergration(self):
         mini_coco_data_dir = str(Path(__file__).parent.parent / "data" / "pose_minicoco")
 
-        oks_sigmas = [0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089]
-
-        flip_indexes = [
-            0,
-            2,
-            1,
-            4,
-            3,
-            6,
-            5,
-            8,
-            7,
-            10,
-            9,
-            12,
-            11,
-            14,
-            13,
-            16,
-            15,
-        ]
-
         edge_links = [
             [0, 1],
             [0, 2],
@@ -258,11 +236,11 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
         from super_gradients.training.transforms import KeypointsRescale
 
         transforms = [
-            KeypointsRescale(height=640, width=640),
+            KeypointsRescale(height=320, width=640),
             {
                 "Albumentations": {
                     "Compose": {
-                        "transforms": [{"RandomBrightnessContrast": {"p": 0.5}}],
+                        "transforms": [{"RandomBrightnessContrast": {"p": 1}}],
                         "bbox_params": {
                             "min_area": 1,
                             "min_visibility": 0,
@@ -283,14 +261,12 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
             edge_links=edge_links,
             edge_colors=edge_colors,
             keypoint_colors=keypoint_colors,
-            flip_indexes=flip_indexes,
-            oks_sigmas=oks_sigmas,
             transforms=transforms,
         )
 
         sample = next(iter(ds))
 
-        bboxes_xyxy = XYWHCoordinateFormat().to_xyxy(bboxes=np.array(sample.bboxes_xywh), image_shape=sample.image.shape, inplace=False)
+        bboxes_xyxy = xywh_to_xyxy(bboxes=np.array(sample.bboxes_xywh), image_shape=sample.image.shape)
 
         image_with_keypoints = PoseVisualization.draw_poses(
             image=np.array(sample.image),
