@@ -44,7 +44,7 @@ class AbstractDepthEstimationDataset(Dataset):
         sample = self.load_sample(index)
         for transform in self.transforms:
             sample = transform(sample)
-        return sample
+        return sample.image, sample.depth_map
 
     def plot(
         self,
@@ -79,11 +79,10 @@ class AbstractDepthEstimationDataset(Dataset):
             for img_i in range(max_samples_per_plot):
                 index = img_i + plot_i * max_samples_per_plot
                 if plot_transformed_data:
-                    sample = self[index]
+                    image, depth_map = self[index]
                 else:
                     sample = self.load_sample(index)
-
-                image, depth_map = sample.image, sample.depth_map
+                    image, depth_map = sample.image, sample.depth_map
 
                 # Plot the image
                 axes[0, img_i].imshow(image)
