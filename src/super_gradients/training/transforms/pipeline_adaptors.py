@@ -74,11 +74,10 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
 
             bboxes_xyxy = xywh_to_xyxy(bboxes=np.array(sample.bboxes_xywh), image_shape=sample.image.shape)
 
-            # TODO: Do we simply ignore `area` and `additional_samples`?
             sample = {
                 "image": sample.image,
                 "bboxes": bboxes_xyxy,
-                "labels": np.zeros(sample.bboxes_xywh.shape[0]),  # Dummy value, this is required for Albumentation
+                "labels": np.zeros(sample.bboxes_xywh.shape[0]),  # Dummy value, this is required for Albumentation. Here, all classes are the same.
                 "mask": np.array(sample.mask),
                 "is_crowd": sample.is_crowd,
                 "keypoints": sample.joints,
@@ -113,7 +112,6 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
 
             bboxes_xywh = xyxy_to_xywh(bboxes=np.array(sample["bboxes"]), image_shape=sample["image"].shape)
 
-            # TODO: Do we simply ignore `area` and `additional_samples`?
             sample = PoseEstimationSample(
                 image=sample["image"],
                 mask=np.array(sample["mask"]),
