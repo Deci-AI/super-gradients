@@ -59,12 +59,14 @@ class SegmentationTransformsTest(unittest.TestCase):
         sample = self.create_sample((1024, 512))
         rescale_short256 = SegRescale(short_size=256)
         out = rescale_short256(sample)
+        self.assertIsInstance(out["image"], Image.Image)
         self.assertEqual((512, 256), out["image"].size)
 
         # test short_size is stronger than long_size
         sample = self.create_sample((1024, 512))
         rescale_scale05 = SegRescale(short_size=301, long_size=301)
         out = rescale_scale05(sample)
+        self.assertIsInstance(out["image"], Image.Image)
         self.assertEqual((602, 301), out["image"].size)
 
     def test_rescale_with_long_size(self):
