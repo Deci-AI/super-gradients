@@ -1,7 +1,6 @@
 import math
 import os
 import pathlib
-import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional
@@ -410,7 +409,6 @@ class DetectionVisualization:
         y2: int,
         class_id: int,
         pred_conf: float = None,
-        is_target: bool = False,
         bbox_prefix: str = "",
     ):
         """
@@ -426,11 +424,7 @@ class DetectionVisualization:
         :param class_id: A corresponding class id
         :param pred_conf: Class confidence score (optional)
         :param bbox_prefix: Prefix to add to the title of the bounding boxes
-        :param is_target: Not Supported Anymore. Please use  `pred_conf` and `bbox_prefix` instead.
         """
-        if is_target:
-            warnings.warn("`is_target` is not supported for `draw_box_title` function anymore. Please use `bbox_prefix` and `pred_conf` instead.")
-
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
