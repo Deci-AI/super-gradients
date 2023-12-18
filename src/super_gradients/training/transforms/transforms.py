@@ -62,10 +62,8 @@ class SegResize(AbstractSegmentationTransform, LegacySegmentationTransformMixin)
         self.w = w
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
-        image = sample.image
-        mask = sample.mask
-        sample.image = image.resize((self.w, self.h), IMAGE_RESAMPLE_MODE)
-        sample.mask = mask.resize((self.w, self.h), MASK_RESAMPLE_MODE)
+        sample.image = cv2.resize(sample.image, dsize=(self.w, self.h), interpolation=cv2.INTER_LINEAR)
+        sample.mask = cv2.resize(sample.mask, dsize=(self.w, self.h), interpolation=cv2.INTER_NEAREST)
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -86,8 +84,8 @@ class SegRandomFlip(AbstractSegmentationTransform, LegacySegmentationTransformMi
         image = sample.image
         mask = sample.mask
         if random.random() < self.prob:
-            image = image.transpose(Image.FLIP_LEFT_RIGHT)
-            mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
+            image = np.fliplr(image)
+            mask = np.fliplr(mask)
             sample.image = image
             sample.mask = mask
 
@@ -126,8 +124,8 @@ class SegRescale(AbstractSegmentationTransform, LegacySegmentationTransformMixin
 
         out_size = int(scale * w), int(scale * h)
 
-        image = image.resize(out_size, IMAGE_RESAMPLE_MODE)
-        mask = mask.resize(out_size, MASK_RESAMPLE_MODE)
+        image = cv2.resize(image, dsize=out_size, interpolation=cv2.INTER_LINEAR)
+        mask = cv2.resize(mask, dsize=out_size, interpolation=cv2.INTER_NEAREST)
 
         sample.image = image
         sample.mask = mask
@@ -172,8 +170,8 @@ class SegRandomRescale(AbstractSegmentationTransform, LegacySegmentationTransfor
         scale = random.uniform(self.scales[0], self.scales[1])
         out_size = int(scale * w), int(scale * h)
 
-        image = image.resize(out_size, IMAGE_RESAMPLE_MODE)
-        mask = mask.resize(out_size, MASK_RESAMPLE_MODE)
+        image = cv2.resize(image, out_size, interpolation=cv2.INTER_LINEAR)
+        mask = cv2.resize(mask, out_size, interpolation=cv2.INTER_NEAREST)
 
         sample.image = image
         sample.mask = mask
@@ -216,15 +214,15 @@ class SegRandomRotate(AbstractSegmentationTransform, LegacySegmentationTransform
         self.check_valid_arguments()
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
-        image = sample.image
-        mask = sample.mask
+        image = Image.fromarray(sample.image)
+        mask = Image.fromarray(sample.mask)
 
         deg = random.uniform(self.min_deg, self.max_deg)
         image = image.rotate(deg, resample=IMAGE_RESAMPLE_MODE, fillcolor=self.fill_image)
         mask = mask.rotate(deg, resample=MASK_RESAMPLE_MODE, fillcolor=self.fill_mask)
 
-        sample.image = image
-        sample.mask = mask
+        sample.image = np.array(image)
+        sample.mask = np.array(mask)
 
         return sample
 
@@ -269,8 +267,8 @@ class SegCropImageAndMask(AbstractSegmentationTransform, LegacySegmentationTrans
             x1 = int(round((w - self.crop_size[0]) / 2.0))
             y1 = int(round((h - self.crop_size[1]) / 2.0))
 
-        image = image.crop((x1, y1, x1 + self.crop_size[0], y1 + self.crop_size[1]))
-        mask = mask.crop((x1, y1, x1 + self.crop_size[0], y1 + self.crop_size[1]))
+        image = image[y1 : y1 + self.crop_size[1], x1 : x1 + self.crop_size[0]]
+        mask = mask[y1 : y1 + self.crop_size[1], x1 : x1 + self.crop_size[0]]
 
         sample.image = image
         sample.mask = mask
@@ -301,14 +299,12 @@ class SegRandomGaussianBlur(AbstractSegmentationTransform, LegacySegmentationTra
         self.prob = prob
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
-        image = sample.image
-        mask = sample.mask
+        image = Image.fromarray(sample.image)
 
         if random.random() < self.prob:
             image = image.filter(ImageFilter.GaussianBlur(radius=random.random()))
 
-        sample.image = image
-        sample.mask = mask
+        sample.image = np.array(image)
 
         return sample
 
@@ -339,8 +335,8 @@ class SegPadShortToCropSize(AbstractSegmentationTransform, LegacySegmentationTra
         self.check_valid_arguments()
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
-        image = sample.image
-        mask = sample.mask
+        image = Image.fromarray(sample.image)
+        mask = Image.fromarray(sample.mask)
         w, h = image.size
 
         # pad images from center symmetrically
@@ -353,8 +349,8 @@ class SegPadShortToCropSize(AbstractSegmentationTransform, LegacySegmentationTra
             image = ImageOps.expand(image, border=(pad_left, pad_top, pad_right, pad_bottom), fill=self.fill_image)
             mask = ImageOps.expand(mask, border=(pad_left, pad_top, pad_right, pad_bottom), fill=self.fill_mask)
 
-        sample.image = image
-        sample.mask = mask
+        sample.image = np.array(image)
+        sample.mask = np.array(mask)
 
         return sample
 
@@ -382,8 +378,8 @@ class SegPadToDivisible(AbstractSegmentationTransform, LegacySegmentationTransfo
         self.check_valid_arguments()
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
-        image = sample.image
-        mask = sample.mask
+        image = Image.fromarray(sample.image)
+        mask = Image.fromarray(sample.mask)
         w, h = image.size
 
         padded_w = int(math.ceil(w / self.divisible_value) * self.divisible_value)
@@ -396,8 +392,8 @@ class SegPadToDivisible(AbstractSegmentationTransform, LegacySegmentationTransfo
             image = ImageOps.expand(image, border=(0, 0, padw, padh), fill=self.fill_image)
             mask = ImageOps.expand(mask, border=(0, 0, padw, padh), fill=self.fill_mask)
 
-        sample.image = image
-        sample.mask = mask
+        sample.image = np.array(image)
+        sample.mask = np.array(mask)
 
         return sample
 
@@ -414,7 +410,9 @@ class SegColorJitter(AbstractSegmentationTransform, LegacySegmentationTransformM
         self._color_jitter = _transforms.ColorJitter(brightness=brightness, contrast=contrast, saturation=saturation, hue=hue)
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
-        sample.image = self._color_jitter(sample.image)
+        pil_image = Image.fromarray(sample.image)
+        pil_image = self._color_jitter(pil_image)
+        sample.image = np.array(pil_image)
         return sample
 
     def get_equivalent_preprocessing(self):
