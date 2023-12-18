@@ -42,7 +42,7 @@ class AbstractDepthEstimationDataset(Dataset):
     def __getitem__(self, index: int) -> DepthEstimationSample:
         sample = self.load_sample(index)
         for transform in self.transforms:
-            sample = transform.apply_to_sample(sample)
+            sample = transform(sample)
         return sample
 
     def plot(self, max_samples_per_plot: int = 8, n_plots: int = 1, plot_transformed_data: bool = True, color_scheme: str = "viridis"):

@@ -9,7 +9,7 @@ class AbstractDepthEstimationTransform(abc.ABC):
     """
 
     @abc.abstractmethod
-    def apply_to_sample(self, sample: DepthEstimationSample) -> DepthEstimationSample:
+    def __call__(self, sample: DepthEstimationSample) -> DepthEstimationSample:
         """
         Apply transformation to given depth estimation sample.
         Important note - function call may return new object, may modify it in-place.
