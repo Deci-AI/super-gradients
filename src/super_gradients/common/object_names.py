@@ -34,12 +34,15 @@ class Metrics:
     BINARY_DICE = "BinaryDice"
     PIXEL_ACCURACY = "PixelAccuracy"
     POSE_ESTIMATION_METRICS = "PoseEstimationMetrics"
+    DETECTION_METRICS_DISTANCE_BASED = "DetectionMetricsDistanceBased"
 
 
 class Transforms:
     """Static class holding all the supported transform names"""
 
     # From SG
+    SegNormalize = "SegNormalize"
+    SegToTensor = "SegToTensor"
     SegRandomFlip = "SegRandomFlip"
     SegResize = "SegResize"
     SegRescale = "SegRescale"
@@ -65,6 +68,8 @@ class Transforms:
     DetectionPaddedRescale = "DetectionPaddedRescale"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
     DetectionNormalize = "DetectionNormalize"
+    DetectionPadIfNeeded = "DetectionPadIfNeeded"
+    DetectionLongestMaxSize = "DetectionLongestMaxSize"
     #
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
     RandAugmentTransform = "RandAugmentTransform"

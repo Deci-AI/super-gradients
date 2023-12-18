@@ -36,10 +36,12 @@ NOTEBOOKS_TO_RUN += src/super_gradients/examples/model_export/models_export_pose
 NOTEBOOKS_TO_RUN += notebooks/what_are_recipes_and_how_to_use.ipynb
 NOTEBOOKS_TO_RUN += notebooks/transfer_learning_classification.ipynb
 NOTEBOOKS_TO_RUN += notebooks/how_to_use_knowledge_distillation_for_classification.ipynb
+NOTEBOOKS_TO_RUN += notebooks/detection_how_to_connect_custom_dataset.ipynb
 NOTEBOOKS_TO_RUN += notebooks/PTQ_and_QAT_for_classification.ipynb
 NOTEBOOKS_TO_RUN += notebooks/quickstart_segmentation.ipynb
 NOTEBOOKS_TO_RUN += notebooks/segmentation_connect_custom_dataset.ipynb
 NOTEBOOKS_TO_RUN += notebooks/transfer_learning_semantic_segmentation.ipynb
+NOTEBOOKS_TO_RUN += notebooks/yolo_nas_custom_dataset_fine_tuning_with_qat.ipynb
 NOTEBOOKS_TO_RUN += notebooks/DEKR_PoseEstimationFineTuning.ipynb
 
 # If there are additional notebooks that must not be executed, but still should be checked for version match, add them here

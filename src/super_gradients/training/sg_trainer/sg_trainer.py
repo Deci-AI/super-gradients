@@ -43,6 +43,7 @@ from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.environment.package_utils import get_installed_packages
+from super_gradients.common.environment.cfg_utils import maybe_instantiate_test_loaders
 
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import RepeatAugSampler
@@ -284,13 +285,15 @@ class Trainer:
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
+        test_loaders = maybe_instantiate_test_loaders(cfg)
+
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
         res = trainer.train(
             model=model,
             train_loader=train_dataloader,
             valid_loader=val_dataloader,
-            test_loaders=None,  # TODO: Add option to set test_loaders in recipe
+            test_loaders=test_loaders,
             training_params=cfg.training_hyperparams,
             additional_configs_to_log=recipe_logged_cfg,
         )
@@ -1171,6 +1174,19 @@ class Trainer:
                        IMPORTANT: Only works for experiments that were ran with sg_logger_params.save_checkpoints_remote=True.
                        IMPORTANT: For WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
 
+                -   `finetune`: bool (default=False)
+
+                     Whether to freeze a fixed part of the model. Supported only for models that implement get_finetune_lr_dict.
+                      The model's class method get_finetune_lr_dict should return a dictionary, mapping lr to the
+                      unfrozen part of the network, in the same fashion as using initial_lr.
+
+                      For example:
+                        def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+                            return {"default": 0, "head": lr}
+
+                        Will raise an error if initial_lr is a mapping already.
+
+
 
 
         :return:
@@ -1522,7 +1538,7 @@ class Trainer:
                     self.net = self.ema_model.ema
 
                 train_inf_time = timer.stop()
-                self._write_scalars_to_logger(metrics=train_metrics_dict, epoch=1 + epoch, inference_time=train_inf_time, tag="Train")
+                self._write_scalars_to_logger(metrics=train_metrics_dict, epoch=epoch, inference_time=train_inf_time, tag="Train")
 
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
                 valid_metrics_dict = {}
@@ -1543,10 +1559,10 @@ class Trainer:
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
-                    self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch=1 + epoch, inference_time=val_inf_time, tag="Valid")
+                    self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch=epoch, inference_time=val_inf_time, tag="Valid")
 
                 test_metrics_dict = {}
-                if (epoch + 1) % self.run_test_freq == 0:
+                if len(self.test_loaders) and (epoch + 1) % self.run_test_freq == 0:
                     self.phase_callback_handler.on_test_loader_start(context)
                     test_inf_time = 0.0
                     for dataset_name, dataloader in self.test_loaders.items():
@@ -1565,19 +1581,19 @@ class Trainer:
                     context.update_context(metrics_dict=test_metrics_dict)
                     self.phase_callback_handler.on_test_loader_end(context)
 
-                    self._write_scalars_to_logger(metrics=test_metrics_dict, epoch=1 + epoch, inference_time=test_inf_time, tag="Test")
+                    self._write_scalars_to_logger(metrics=test_metrics_dict, epoch=epoch, inference_time=test_inf_time, tag="Test")
 
                 if self.ema:
                     self.net = keep_model
 
                 if not self.ddp_silent_mode:
-                    self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=1 + epoch)
+                    self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=epoch)
 
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
                     if should_run_validation and self.training_params.save_model:
                         self._save_checkpoint(
                             optimizer=self.optimizer,
-                            epoch=epoch + 1,
+                            epoch=1 + epoch,
                             train_metrics_dict=train_metrics_dict,
                             validation_results_dict=valid_metrics_dict,
                             context=context,
@@ -1679,7 +1695,6 @@ class Trainer:
         self.test_metrics = MetricCollection(test_metrics_list)
 
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
-
         if mixed_precision_enabled and not device_config.is_cuda:
             warnings.warn("Mixed precision training is not supported on CPU. Disabling mixed precision. (i.e. `mixed_precision=False`)")
             mixed_precision_enabled = False
@@ -1688,7 +1703,6 @@ class Trainer:
         self.scaler = GradScaler(enabled=mixed_precision_enabled)
 
         if mixed_precision_enabled:
-
             if device_config.multi_gpu == MultiGPUMode.DATA_PARALLEL:
                 # IN DATAPARALLEL MODE WE NEED TO WRAP THE FORWARD FUNCTION OF OUR MODEL SO IT WILL RUN WITH AUTOCAST.
                 # BUT SINCE THE MODULE IS CLONED TO THE DEVICES ON EACH FORWARD CALL OF A DATAPARALLEL MODEL,
@@ -1799,7 +1813,6 @@ class Trainer:
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def _load_checkpoint_to_model(self):
-
         self.checkpoint = {}
         strict_load = core_utils.get_param(self.training_params, "resume_strict_load", StrictLoad.ON)
         ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
@@ -1921,7 +1934,6 @@ class Trainer:
         if isinstance(sg_logger, AbstractSGLogger):
             self.sg_logger = sg_logger
         elif isinstance(sg_logger, str):
-
             sg_logger_cls = SG_LOGGERS.get(sg_logger)
             if sg_logger_cls is None:
                 raise RuntimeError(f"sg_logger={sg_logger} not registered in SuperGradients. Available {list(SG_LOGGERS.keys())}")
@@ -2178,7 +2190,6 @@ class Trainer:
         with tqdm(
             data_loader, total=expected_iterations, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode
         ) as progress_bar_data_loader:
-
             if not silent_mode:
                 # PRINT TITLES
                 pbar_start_msg = "Validating" if evaluation_type == EvaluationType.VALIDATION else "Testing"
@@ -2641,12 +2652,11 @@ class Trainer:
             logger.info(f"Using default quantization params: {quantization_params}")
 
         model = unwrap_model(model)  # Unwrap model in case it is wrapped with DataParallel or DistributedDataParallel
+        model = model.to(device_config.device).eval()
 
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
         calib_params = get_param(quantization_params, "calib_params")
-        model.to(device_config.device)
         # QUANTIZE MODEL
-        model.eval()
         fuse_repvgg_blocks_residual_branches(model)
         q_util = SelectiveQuantizer(
             default_quant_modules_calibrator_weights=get_param(selective_quantizer_params, "calibrator_w"),

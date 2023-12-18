@@ -2,7 +2,7 @@
 Implementation of paper: "Rethink Dilated Convolution for Real-time Semantic Segmentation", https://arxiv.org/pdf/2111.09957.pdf
 Based on original implementation: https://github.com/RolandGao/RegSeg, cloned 23/12/2021, commit c07a833
 """
-from typing import List, Union, Callable, Optional
+from typing import List, Union, Callable, Optional, Dict
 
 import torch
 import torch.nn as nn
@@ -293,6 +293,9 @@ class RegSeg(SgModule):
 
     def replace_head(self, new_num_classes: int, head_config: dict):
         self.head = RegSegHead(self.decoder.out_channels, new_num_classes, head_config)
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"head": lr, "default": 0}
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         if isinstance(self.stem, SupportsReplaceInputChannels):

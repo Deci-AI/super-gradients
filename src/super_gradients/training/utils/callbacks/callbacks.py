@@ -1,5 +1,6 @@
 import copy
 import csv
+import itertools
 import math
 import numbers
 import os
@@ -13,10 +14,6 @@ import numpy as np
 import onnx
 import onnxruntime
 import torch
-from torch.utils.data import DataLoader
-from torchmetrics import MetricCollection, Metric
-from torchvision.utils import draw_segmentation_masks
-
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.deprecate import deprecated
@@ -31,9 +28,12 @@ from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, 
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback, cxcywh2xyxy, xyxy2cxcywh
-from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
+from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_as_list
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.training.utils.utils import unwrap_model, infer_model_device, tensor_container_to_device
+from torch.utils.data import DataLoader
+from torchmetrics import MetricCollection, Metric
+from torchvision.utils import draw_segmentation_masks
 
 logger = get_logger(__name__)
 
@@ -315,17 +315,17 @@ class LinearEpochLRWarmup(LRCallbackBase):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
 class EpochStepWarmupLRCallback(LinearEpochLRWarmup):
     ...
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
 class LinearLRWarmup(LinearEpochLRWarmup):
     ...
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
 class LinearStepWarmupLRCallback(LinearEpochLRWarmup):
     ...
 
@@ -407,7 +407,7 @@ class LinearBatchLRWarmup(Callback):
             param_group["lr"] = self.lr[param_group["name"]]
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearBatchLRWarmup)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearBatchLRWarmup)
 class BatchStepLinearWarmupLRCallback(LinearBatchLRWarmup):
     ...
 
@@ -444,7 +444,7 @@ class StepLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=StepLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=StepLRScheduler)
 class StepLRCallback(StepLRScheduler):
     ...
 
@@ -471,7 +471,7 @@ class ExponentialLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=ExponentialLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=ExponentialLRScheduler)
 class ExponentialLRCallback(ExponentialLRScheduler):
     ...
 
@@ -500,7 +500,7 @@ class PolyLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=PolyLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=PolyLRScheduler)
 class PolyLRCallback(PolyLRScheduler):
     ...
 
@@ -543,7 +543,7 @@ class CosineLRScheduler(LRCallbackBase):
         return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=CosineLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=CosineLRScheduler)
 class CosineLRCallback(CosineLRScheduler):
     ...
 
@@ -554,7 +554,7 @@ class FunctionLRScheduler(LRCallbackBase):
     Hard coded rate scheduling for user defined lr scheduling function.
     """
 
-    @deprecated(deprecated_since="3.2.0", removed_from="3.5.0", reason="This callback is deprecated and will be removed in future versions.")
+    @deprecated(deprecated_since="3.2.0", removed_from="3.6.0", reason="This callback is deprecated and will be removed in future versions.")
     def __init__(self, max_epochs, lr_schedule_function, **kwargs):
         super().__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
         assert callable(lr_schedule_function), "self.lr_function must be callable"
@@ -579,7 +579,7 @@ class FunctionLRScheduler(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=FunctionLRScheduler)
+@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=FunctionLRScheduler)
 class FunctionLRCallback(FunctionLRScheduler):
     ...
 
@@ -691,7 +691,7 @@ class DetectionVisualizationCallback(PhaseCallback):
         self.last_img_idx_in_batch = last_img_idx_in_batch
 
     def __call__(self, context: PhaseContext):
-        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx:
+        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx and not context.ddp_silent_mode:
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
             preds = (context.preds[0].clone(), None)
             preds = self.post_prediction_callback(preds)
@@ -1187,11 +1187,11 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self._reset()
 
     def on_train_batch_end(self, context: PhaseContext) -> None:
-        if self.enable_on_train_loader and context.epoch % self.freq == 0:
+        if self.enable_on_train_loader and (context.epoch + 1) % self.freq == 0:
             self._on_batch_end(context)
 
     def on_train_loader_end(self, context: PhaseContext) -> None:
-        if self.enable_on_train_loader and context.epoch % self.freq == 0:
+        if self.enable_on_train_loader and (context.epoch + 1) % self.freq == 0:
             self._gather_extreme_batch_images_and_log(context, "train")
             self._reset()
 
@@ -1199,20 +1199,32 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self._reset()
 
     def on_validation_batch_end(self, context: PhaseContext) -> None:
-        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+        if self.enable_on_valid_loader and (context.epoch + 1) % self.freq == 0:
             self._on_batch_end(context)
 
     def on_validation_loader_end(self, context: PhaseContext) -> None:
-        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+        if self.enable_on_valid_loader and (context.epoch + 1) % self.freq == 0:
             self._gather_extreme_batch_images_and_log(context, "valid")
             self._reset()
 
     def _gather_extreme_batch_images_and_log(self, context, loader_name: str):
-        images_to_save = self.process_extreme_batch()
-        images_to_save = maybe_all_gather_np_images(images_to_save)
-        if self.max_images > 0:
-            images_to_save = images_to_save[: self.max_images]
+        input_images_to_save = self.process_extreme_batch()
+        images_to_save = maybe_all_gather_as_list(input_images_to_save)
+        images_to_save: List[np.ndarray] = list(itertools.chain(*images_to_save))
+
         if not context.ddp_silent_mode:
+            if self.max_images > 0:
+                images_to_save = images_to_save[: self.max_images]
+
+            # Before saving images to logger we need to pad them to the same size
+            max_height = max([image.shape[0] for image in images_to_save])
+            max_width = max([image.shape[1] for image in images_to_save])
+            images_to_save = [
+                cv2.copyMakeBorder(image, 0, max_height - image.shape[0], 0, max_width - image.shape[1], cv2.BORDER_CONSTANT, value=0)
+                for image in images_to_save
+            ]
+            images_to_save = np.stack(images_to_save, axis=0)
+
             context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=context.epoch, data_format="NHWC")
 
     def _on_batch_end(self, context: PhaseContext) -> None:
@@ -1232,7 +1244,6 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             self.metric.reset()
 
         else:
-
             # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
             loss_tuple = context.loss_log_items
             if self._first_call:
@@ -1393,7 +1404,7 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
                 "No classes have been passed to ExtremeBatchDetectionVisualizationCallback. "
                 "Will try to fetch them through context.valid_loader.dataset classes attribute if it exists."
             )
-        self.classes = classes
+        self.classes = list(classes) if classes is not None else None
         self.normalize_targets = normalize_targets
 
     @staticmethod

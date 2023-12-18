@@ -4,7 +4,7 @@ Implementation of paradigm described in paper published by Facebook AI Research 
 @author: Signatrix GmbH
 Code taken from: https://github.com/signatrix/regnet - MIT Licence
 """
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 import numpy as np
 import torch
 import torch.nn as nn
@@ -185,6 +185,9 @@ class AnyNetX(BaseClassifier):
     def get_input_channels(self) -> int:
         stem: Stem = self.net[0]
         return stem.get_input_channels()
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"net.head": lr, "default": 0}
 
 
 def regnet_params_to_blocks(initial_width, slope, quantized_param, network_depth, bottleneck_ratio, group_width):
