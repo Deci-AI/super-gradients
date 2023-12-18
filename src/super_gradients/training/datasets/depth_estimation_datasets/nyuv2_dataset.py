@@ -10,8 +10,8 @@ from super_gradients.training.samples import DepthEstimationSample
 import os
 
 
-@register_dataset(Datasets.NYUV2DATASET)
-class NYUv2Dataset(AbstractDepthEstimationDataset):
+@register_dataset(Datasets.NYUV2_DEPTH_ESTIMATION_DATASET)
+class NYUv2DepthEstimationDataset(AbstractDepthEstimationDataset):
     """
     Dataset class for NYU Depth V2 dataset for depth estimation.
 
@@ -59,7 +59,7 @@ class NYUv2Dataset(AbstractDepthEstimationDataset):
         :param df_path: Path to the CSV file containing image and depth map file paths.
         :param transforms: Transforms to be applied to the samples.
         """
-        super(NYUv2Dataset, self).__init__(transforms=transforms)
+        super(NYUv2DepthEstimationDataset, self).__init__(transforms=transforms)
         self.root = root
         self.df = self._read_df(df_path)
         self._check_paths_exist()

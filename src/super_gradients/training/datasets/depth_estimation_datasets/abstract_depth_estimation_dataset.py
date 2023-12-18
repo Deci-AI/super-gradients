@@ -17,7 +17,7 @@ class AbstractDepthEstimationDataset(Dataset):
     """
     Abstract class for datasets for depth estimation task.
 
-    Attemting to follow principles provided in pose_etimation_dataset.
+    Attempting to follow principles provided in pose_etimation_dataset.
     """
 
     @resolve_param("transforms", ListFactory(TransformsFactory()))
@@ -45,7 +45,7 @@ class AbstractDepthEstimationDataset(Dataset):
             sample = transform.apply_to_sample(sample)
         return sample
 
-    def plot(self, max_samples_per_plot: int = 8, n_plots: int = 1, plot_transformed_data: bool = True):
+    def plot(self, max_samples_per_plot: int = 8, n_plots: int = 1, plot_transformed_data: bool = True, color_scheme: str = "viridis"):
         """
         Combine samples of images with depth maps into plots and display the result.
 
@@ -53,6 +53,8 @@ class AbstractDepthEstimationDataset(Dataset):
         :param n_plots:                 Number of plots to display.
         :param plot_transformed_data:   If True, the plot will be over samples after applying transforms (i.e., on __getitem__).
                                         If False, the plot will be over the raw samples (i.e., on load_sample).
+        :param color_scheme:            The coloring scheme for the depth map. Options: "viridis" (BLUE_TO_YELLOW),
+                                        "plasma" (ORANGE_TO_PURPLE, inverted), "rainbow" (RAINBOW).
         :return: None
         """
         plot_counter = 0
@@ -73,8 +75,8 @@ class AbstractDepthEstimationDataset(Dataset):
                 axes[0, img_i].axis("off")
                 axes[0, img_i].set_title(f"Sample {index}")
 
-                # Plot the depth map side by side
-                axes[1, img_i].imshow(depth_map, cmap="viridis")
+                # Plot the depth map side by side with the selected color scheme
+                axes[1, img_i].imshow(depth_map, cmap=color_scheme)
                 axes[1, img_i].axis("off")
                 axes[1, img_i].set_title(f"Depth Map {index}")
 

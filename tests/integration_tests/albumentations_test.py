@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
-from super_gradients.training.datasets.depth_estimation_datasets import NYUv2Dataset
+from super_gradients.training.datasets.depth_estimation_datasets import NYUv2DepthEstimationDataset
 
 
 def visualize_image(image):
@@ -176,7 +176,7 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
             }
         ]
 
-        dataset = NYUv2Dataset(root=mini_nyuv2_data_dir, df_path=mini_nyuv2_df_path, transforms=transforms)
+        dataset = NYUv2DepthEstimationDataset(root=mini_nyuv2_data_dir, df_path=mini_nyuv2_df_path, transforms=transforms)
         dataset.plot(max_samples_per_plot=8)
 
 
