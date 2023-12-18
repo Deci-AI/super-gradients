@@ -1,9 +1,8 @@
 import abc
-from typing import List
+from typing import List, Optional
 
 import random
 
-import cv2
 from data_gradients.common.decorators import resolve_param
 from matplotlib import pyplot as plt
 from torch.utils.data.dataloader import Dataset
@@ -52,8 +51,9 @@ class AbstractDepthEstimationDataset(Dataset):
         max_samples_per_plot: int = 8,
         n_plots: int = 1,
         plot_transformed_data: bool = True,
-        color_scheme: int = cv2.COLORMAP_VIRIDIS,
+        color_scheme: Optional[int] = None,
         drop_extreme_percentage: float = 0,
+        inverse: bool = False,
     ):
         """
         Combine samples of images with depth maps into plots and display the result.
@@ -62,21 +62,14 @@ class AbstractDepthEstimationDataset(Dataset):
         :param n_plots:                 Number of plots to display.
         :param plot_transformed_data:   If True, the plot will be over samples after applying transforms (i.e., on __getitem__).
                                         If False, the plot will be over the raw samples (i.e., on load_sample).
-        :param color_scheme:            The coloring scheme for the depth map. Options:
-                                        - cv2.COLORMAP_AUTUMN
-                                        - cv2.COLORMAP_BONE
-                                        - cv2.COLORMAP_JET
-                                        - cv2.COLORMAP_WINTER
-                                        - cv2.COLORMAP_RAINBOW
-                                        - cv2.COLORMAP_OCEAN
-                                        - cv2.COLORMAP_SUMMER
-                                        - cv2.COLORMAP_SPRING
-                                        - cv2.COLORMAP_COOL
-                                        - cv2.COLORMAP_HSV
-                                        - cv2.COLORMAP_PINK
-                                        - cv2.COLORMAP_HOT
+        :param color_scheme:            OpenCV color scheme for the depth map visualization. If not specified:
+                                        - If `inverse=True`, the default is COLORMAP_VIRIDIS.
+                                        - If `inverse=False`, the default is COLORMAP_MAGMA.
+
 
         :param drop_extreme_percentage: Percentage of extreme values to drop on both ends of the depth spectrum.
+        :param inverse:                 Apply inversion (1 / depth) if True to the depth map.
+
         :return: None
         """
         plot_counter = 0
@@ -98,7 +91,7 @@ class AbstractDepthEstimationDataset(Dataset):
                 axes[0, img_i].set_title(f"Sample {index}")
 
                 # Plot the depth map side by side with the selected color scheme
-                depth_map = DepthVisualization.process_depth_map_for_visualization(depth_map, color_scheme, drop_extreme_percentage)
+                depth_map = DepthVisualization.process_depth_map_for_visualization(depth_map, color_scheme, drop_extreme_percentage, inverse)
                 axes[1, img_i].imshow(depth_map)
                 axes[1, img_i].axis("off")
                 axes[1, img_i].set_title(f"Depth Map {index}")
