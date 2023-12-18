@@ -1,8 +1,9 @@
 import abc
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import random
 
+import numpy as np
 from data_gradients.common.decorators import resolve_param
 from matplotlib import pyplot as plt
 from torch.utils.data.dataloader import Dataset
@@ -40,7 +41,7 @@ class AbstractDepthEstimationDataset(Dataset):
         random_index = random.randrange(0, num_samples)
         return self.load_sample(random_index)
 
-    def __getitem__(self, index: int) -> DepthEstimationSample:
+    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
         sample = self.load_sample(index)
         for transform in self.transforms:
             sample = transform(sample)
