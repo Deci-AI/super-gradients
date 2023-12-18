@@ -1593,7 +1593,7 @@ class Trainer:
                     if should_run_validation and self.training_params.save_model:
                         self._save_checkpoint(
                             optimizer=self.optimizer,
-                            epoch=epoch,
+                            epoch=1 + epoch,
                             train_metrics_dict=train_metrics_dict,
                             validation_results_dict=valid_metrics_dict,
                             context=context,
