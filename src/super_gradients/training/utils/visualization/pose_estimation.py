@@ -1,9 +1,10 @@
 from typing import Union, List, Tuple, Optional
+import math
 
 import cv2
 import numpy as np
 
-from super_gradients.training.utils.visualization.detection import draw_bbox
+from super_gradients.training.utils.visualization.detection import draw_bbox, get_recommended_box_thickness
 
 
 def draw_skeleton(
@@ -16,7 +17,7 @@ def draw_skeleton(
     keypoint_colors: Union[None, np.ndarray, List[Tuple[int, int, int]]],
     keypoint_radius: int,
     show_confidence: bool,
-    box_thickness: int,
+    box_thickness: Optional[int],
     keypoint_confidence_threshold: float = 0.0,
     show_keypoint_confidence: bool = False,
 ):
@@ -29,11 +30,11 @@ def draw_skeleton(
     :param score:           Confidence score of the whole pose
     :param edge_links:      Array of [Num Links, 2] containing the links between joints to draw. Can be None, in which case no links will be drawn.
     :param edge_colors:     Array of shape [Num Links, 3] or list of tuples containing the (r,g,b) colors for each joint link.
-    :param joint_thickness: Thickness of the joint links
+    :param joint_thickness: (Optional) Thickness of the joint links
     :param keypoint_colors: Array of shape [Num Joints, 3] or list of tuples containing the (r,g,b) colors for each keypoint.
-    :param keypoint_radius: Radius of the keypoints (in pixels)
+    :param keypoint_radius: (Optional) Radius of the keypoints (in pixels)
     :param show_confidence: Whether to show the bounding box around the pose and confidence score on top of it.
-    :param box_thickness:   Thickness of bounding boxes.
+    :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
     :param keypoint_confidence_threshold: If keypoints contains confidence scores (Shape is [Num Joints, 3]), this function
     will draw keypoints with confidence score > threshold.
     :param show_keypoint_confidence: Whether to show the confidence score for each keypoint individually.
@@ -129,9 +130,9 @@ class PoseVisualization:
         edge_colors: Union[None, np.ndarray, List[Tuple[int, int, int]]],
         keypoint_colors: Union[None, np.ndarray, List[Tuple[int, int, int]]],
         show_keypoint_confidence: bool = False,
-        joint_thickness: int = 2,
-        box_thickness: int = 2,
-        keypoint_radius: int = 3,
+        joint_thickness: Optional[int] = None,
+        box_thickness: Optional[int] = None,
+        keypoint_radius: Optional[int] = None,
         keypoint_confidence_threshold: float = 0.5,
     ):
         """
@@ -146,7 +147,7 @@ class PoseVisualization:
         :param keypoint_colors: Array of shape [Num Joints, 3] or list of tuples containing the (r,g,b) colors for each keypoint.
         :param show_keypoint_confidence: Whether to show the confidence score for each keypoint individually.
         :param keypoint_confidence_threshold: A minimal confidence score for individual keypoint to be drawn.
-        :param joint_thickness: Thickness of the joint links
+        :param joint_thickness: (Optional) Thickness of the joint links
         :return: A new image with the poses drawn on it.
         """
         if boxes is not None and len(boxes) != len(poses):
@@ -170,37 +171,56 @@ class PoseVisualization:
         num_poses = len(poses)
 
         for pose_index in range(num_poses):
+
+            if boxes is not None:
+                x1 = int(boxes[pose_index][0])
+                y1 = int(boxes[pose_index][1])
+                x2 = int(boxes[pose_index][2])
+                y2 = int(boxes[pose_index][3])
+
+                current_box_thickness = box_thickness or get_recommended_box_thickness(x1, y1, x2, y2)
+                current_joint_thickness = joint_thickness or current_box_thickness
+                current_keypoint_radius = keypoint_radius or math.ceil(current_box_thickness * 3 / 2)
+            else:
+                current_joint_thickness = 2
+                current_keypoint_radius = 3
+                current_box_thickness = 2
+
             res_image = draw_skeleton(
                 image=res_image,
                 keypoints=poses[pose_index],
                 score=scores[pose_index] if scores is not None else None,
                 edge_links=edge_links,
                 edge_colors=edge_colors,
-                joint_thickness=joint_thickness,
+                joint_thickness=current_joint_thickness,
                 keypoint_colors=keypoint_colors,
-                keypoint_radius=keypoint_radius,
+                keypoint_radius=current_keypoint_radius,
                 show_confidence=scores is not None and boxes is None,
                 show_keypoint_confidence=show_keypoint_confidence,
-                box_thickness=box_thickness,
+                box_thickness=current_box_thickness,
                 keypoint_confidence_threshold=keypoint_confidence_threshold,
             )
 
             if boxes is not None:
+                x1 = int(boxes[pose_index][0])
+                y1 = int(boxes[pose_index][1])
+                x2 = int(boxes[pose_index][2])
+                y2 = int(boxes[pose_index][3])
                 title = ""
                 if scores is not None:
-                    title += f"Score {scores[pose_index]:.2f}"
+                    title += f"{scores[pose_index]:.2f}"
                 if is_crowd is not None:
                     title += f"Crowd {is_crowd[pose_index]}"
 
                 res_image = draw_bbox(
                     image=res_image,
-                    x1=int(boxes[pose_index][0]),
-                    y1=int(boxes[pose_index][1]),
-                    x2=int(boxes[pose_index][2]),
-                    y2=int(boxes[pose_index][3]),
+                    x1=x1,
+                    y1=y1,
+                    x2=x2,
+                    y2=y2,
                     color=(255, 255, 255),
                     title=title,
-                    box_thickness=box_thickness,
+                    box_thickness=current_box_thickness,
                 )
 
         return res_image

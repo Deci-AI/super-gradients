@@ -1174,6 +1174,19 @@ class Trainer:
                        IMPORTANT: Only works for experiments that were ran with sg_logger_params.save_checkpoints_remote=True.
                        IMPORTANT: For WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
 
+                -   `finetune`: bool (default=False)
+
+                     Whether to freeze a fixed part of the model. Supported only for models that implement get_finetune_lr_dict.
+                      The model's class method get_finetune_lr_dict should return a dictionary, mapping lr to the
+                      unfrozen part of the network, in the same fashion as using initial_lr.
+
+                      For example:
+                        def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+                            return {"default": 0, "head": lr}
+
+                        Will raise an error if initial_lr is a mapping already.
+
+
 
 
         :return:
@@ -1525,7 +1538,7 @@ class Trainer:
                     self.net = self.ema_model.ema
 
                 train_inf_time = timer.stop()
-                self._write_scalars_to_logger(metrics=train_metrics_dict, epoch=1 + epoch, inference_time=train_inf_time, tag="Train")
+                self._write_scalars_to_logger(metrics=train_metrics_dict, epoch=epoch, inference_time=train_inf_time, tag="Train")
 
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
                 valid_metrics_dict = {}
@@ -1546,10 +1559,10 @@ class Trainer:
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
-                    self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch=1 + epoch, inference_time=val_inf_time, tag="Valid")
+                    self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch=epoch, inference_time=val_inf_time, tag="Valid")
 
                 test_metrics_dict = {}
-                if (epoch + 1) % self.run_test_freq == 0:
+                if len(self.test_loaders) and (epoch + 1) % self.run_test_freq == 0:
                     self.phase_callback_handler.on_test_loader_start(context)
                     test_inf_time = 0.0
                     for dataset_name, dataloader in self.test_loaders.items():
@@ -1568,19 +1581,19 @@ class Trainer:
                     context.update_context(metrics_dict=test_metrics_dict)
                     self.phase_callback_handler.on_test_loader_end(context)
 
-                    self._write_scalars_to_logger(metrics=test_metrics_dict, epoch=1 + epoch, inference_time=test_inf_time, tag="Test")
+                    self._write_scalars_to_logger(metrics=test_metrics_dict, epoch=epoch, inference_time=test_inf_time, tag="Test")
 
                 if self.ema:
                     self.net = keep_model
 
                 if not self.ddp_silent_mode:
-                    self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=1 + epoch)
+                    self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=epoch)
 
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
                     if should_run_validation and self.training_params.save_model:
                         self._save_checkpoint(
                             optimizer=self.optimizer,
-                            epoch=epoch + 1,
+                            epoch=1 + epoch,
                             train_metrics_dict=train_metrics_dict,
                             validation_results_dict=valid_metrics_dict,
                             context=context,
@@ -2639,12 +2652,11 @@ class Trainer:
             logger.info(f"Using default quantization params: {quantization_params}")
 
         model = unwrap_model(model)  # Unwrap model in case it is wrapped with DataParallel or DistributedDataParallel
+        model = model.to(device_config.device).eval()
 
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
         calib_params = get_param(quantization_params, "calib_params")
-        model.to(device_config.device)
         # QUANTIZE MODEL
-        model.eval()
         fuse_repvgg_blocks_residual_branches(model)
         q_util = SelectiveQuantizer(
             default_quant_modules_calibrator_weights=get_param(selective_quantizer_params, "calibrator_w"),

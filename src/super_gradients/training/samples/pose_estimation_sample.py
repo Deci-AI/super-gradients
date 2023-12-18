@@ -8,6 +8,8 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyw
 
 __all__ = ["PoseEstimationSample"]
 
+from super_gradients.training.utils.detection_utils import change_bbox_bounds_for_image_size
+
 
 @dataclasses.dataclass
 class PoseEstimationSample:
@@ -81,8 +83,7 @@ class PoseEstimationSample:
         if self.bboxes_xywh is not None:
             # Clamp bboxes to image boundaries
             clamped_boxes = xywh_to_xyxy(self.bboxes_xywh, image_shape=(image_height, image_width))
-            clamped_boxes[..., [0, 2]] = np.clip(clamped_boxes[..., [0, 2]], 0, image_width - 1)
-            clamped_boxes[..., [1, 3]] = np.clip(clamped_boxes[..., [1, 3]], 0, image_height - 1)
+            clamped_boxes = change_bbox_bounds_for_image_size(clamped_boxes, img_shape=(image_height, image_width))
             clamped_boxes = xyxy_to_xywh(clamped_boxes, image_shape=(image_height, image_width))
 
             # Recompute sample areas if they are present

@@ -5,6 +5,10 @@ train_dataset_params:
   cache_labels: False
   cache_images: False
   transforms:
+    - SegToTensor
+    - SegNormalize:
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
 
 val_dataset_params:
   root_dir: /data/cityscapes
@@ -13,6 +17,10 @@ val_dataset_params:
   cache_labels: False
   cache_images: False
   transforms:
+    - SegToTensor
+    - SegNormalize:
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
 
 train_dataloader_params:
   shuffle: True

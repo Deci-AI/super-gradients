@@ -312,6 +312,9 @@ def modify_params_for_qat(
     logger.warning(f"New lr_warmup_epochs: {training_hyperparams['lr_warmup_epochs']}")
 
     # do mess with Q/DQ
+    if get_param(training_hyperparams, "average_best_models"):
+        logger.info("Model averaging will be disabled for QAT run.")
+        training_hyperparams["average_best_models"] = False
     if get_param(training_hyperparams, "ema"):
         logger.warning("EMA will be disabled for QAT run.")
         training_hyperparams["ema"] = False

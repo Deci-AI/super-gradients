@@ -30,7 +30,7 @@ from super_gradients.training.utils.media.image import ImageSource, check_image_
 from super_gradients.training.utils.media.stream import WebcamStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.processing.processing import Processing, ComposeProcessing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, ImagePermute
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
@@ -284,6 +284,10 @@ class DetectionPipeline(Pipeline):
     ):
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
+
+        has_image_permute = any(isinstance(image_processing, ImagePermute) for image_processing in image_processor.processings)
+        if not has_image_permute:
+            image_processor.processings.append(ImagePermute())
 
         super().__init__(
             model=model,

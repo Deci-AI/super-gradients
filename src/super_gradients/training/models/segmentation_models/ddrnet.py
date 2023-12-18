@@ -1,7 +1,6 @@
 import warnings
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 from abc import ABC
-
 
 import torch
 import torch.nn as nn
@@ -490,6 +489,12 @@ class DDRNet(SegmentationModule):
             )
             if self.use_aux_heads:
                 self.seghead_extra = SegmentHead(self.highres_planes, self.head_width, new_num_classes, 8, inter_mode=self.segmentation_inter_mode)
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        lr_dict = {"final_layer": lr, "default": 0}
+        if self.use_aux_heads:
+            lr_dict["seghead_extra"] = lr
+        return lr_dict
 
     def _remove_auxiliary_heads(self):
         if hasattr(self, "seghead_extra"):

@@ -2,7 +2,7 @@
 Implementation of paper: "Rethinking BiSeNet For Real-time Semantic Segmentation", https://arxiv.org/abs/2104.13188
 Based on original implementation: https://github.com/MichaelFan01/STDC-Seg, cloned 23/08/2021, commit 59ff37f
 """
-from typing import Union, List, Optional, Callable
+from typing import Union, List, Optional, Callable, Dict
 from abc import ABC, abstractmethod
 
 import torch
@@ -580,6 +580,13 @@ class STDCSegmentationBase(SgModule):
             self.aux_head_s32[0] = SegmentationHead(stage5_s32_channels, aux_head_channels, new_num_classes, dropout=dropout)
             # Detail head
             self.detail_head8[0] = SegmentationHead(stage3_s8_channels, detail_head_channels, 1, dropout=dropout)
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        lr_dict = {"segmentation_head": lr, "default": 0}
+        if self.use_aux_heads:
+            lr_dict["aux_head"] = lr
+            lr_dict["detail_head"] = lr
+        return lr_dict
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """

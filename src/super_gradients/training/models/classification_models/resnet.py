@@ -9,7 +9,7 @@ Pre-trained CIFAR10 models: 'deci-model-repository/CIFAR_NAS_#?_????_?/ckpt_best
 
 Code adapted from https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 """
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 from collections import OrderedDict
 
 import torch.nn as nn
@@ -242,6 +242,9 @@ class ResNet(BaseClassifier):
             self.linear = new_head
         else:
             self.linear = nn.Linear(width_multiplier(512, self.width_mult) * self.expansion, new_num_classes)
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"linear": lr, "default": 0}
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels

@@ -1,30 +1,31 @@
 import collections
+import hashlib
 import os
-from typing import List, Dict, Union, Any, Optional, Tuple
-from multiprocessing.pool import ThreadPool
 import random
+from copy import deepcopy
+from multiprocessing.pool import ThreadPool
+from pathlib import Path
+from typing import List, Dict, Union, Any, Optional, Tuple
+
 import cv2
 import matplotlib.pyplot as plt
-from pathlib import Path
-from copy import deepcopy
-import hashlib
-
 import numpy as np
-from tqdm import tqdm
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
-from super_gradients.common.object_names import Datasets, Processings
-from super_gradients.common.registry.registry import register_dataset
-from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.module_interfaces import HasPreprocessingParams
-from super_gradients.training.utils.detection_utils import get_class_index_in_target
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
+from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.common.object_names import Datasets, Processings
+from super_gradients.common.registry.registry import register_dataset
+from super_gradients.module_interfaces import HasPreprocessingParams
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, LabelTensorSliceItem
+from super_gradients.training.transforms.detection.legacy_detection_transform_mixin import LegacyDetectionTransformMixin
+from super_gradients.training.transforms.transforms import AbstractDetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_class_index_in_target
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 logger = get_logger(__name__)
@@ -75,7 +76,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         cache_annotations: bool = True,
         cache_dir: str = None,
         input_dim: Union[int, Tuple[int, int], None] = None,
-        transforms: List[DetectionTransform] = [],
+        transforms: List[AbstractDetectionTransform] = [],
         all_classes_list: Optional[List[str]] = [],
         class_inclusion_list: Optional[List[str]] = None,
         ignore_empty_annotations: bool = True,
@@ -175,7 +176,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
 
         # Iterate over the whole dataset to index the images with/without annotations.
         if self._cache_annotations or self.ignore_empty_annotations or transform_require_non_empty_annotations:
-
             if self._cache_annotations:
                 logger.info("Dataset Initialization in progress. `cache_annotations=True` causes the process to take longer due to full dataset indexing.")
             elif self.ignore_empty_annotations:
@@ -276,7 +276,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         non_empty_annotations, empty_annotations = {}, {}
 
         for index in tqdm(range(n_samples), desc="Indexing dataset annotations", disable=not self.verbose):
-
             sample_annotations = self._load_sample_annotation(sample_id=index)
             n_invalid_bbox += sample_annotations.get("n_invalid_labels", 0)
 
@@ -424,7 +423,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         :param index:   Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
         :return:        Sample, i.e. a dictionary including at least "image" and "target"
         """
-        sample = self.apply_transforms(self.get_sample(index=index, ignore_empty_annotations=self.ignore_empty_annotations))
+        sample = self.get_sample(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
+        sample = self.apply_transforms(sample)
         for field in self.output_fields:
             if field not in sample.keys():
                 raise KeyError(f"The field {field} must be present in the sample but was not found." "Please check the output fields of your transforms.")
@@ -468,13 +468,27 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         :param sample: Sample to apply the transforms on to (loaded with self.get_sample)
         :return: Transformed sample
         """
-        for transform in self.transforms:
-            sample["additional_samples"] = self._get_additional_inputs_for_transform(transform=transform)
-            sample = transform(sample=sample)
-            sample.pop("additional_samples")  # additional_samples is not useful after the transform
-        return sample
 
-    def _get_additional_inputs_for_transform(self, transform: DetectionTransform) -> List[Dict[str, Union[np.ndarray, Any]]]:
+        has_crowd_target = "crowd_target" in sample
+        detection_sample = LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(sample).sanitize_sample()
+        target_format_transform: Optional[DetectionTargetsFormatTransform] = None
+
+        for transform in self.transforms:
+            detection_sample.additional_samples = [
+                LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(s) for s in self._get_additional_inputs_for_transform(transform=transform)
+            ]
+            detection_sample = transform.apply_to_sample(sample=detection_sample)
+
+            detection_sample.additional_samples = None
+            if isinstance(transform, DetectionTargetsFormatTransform):
+                target_format_transform = transform
+
+        transformed_dict = LegacyDetectionTransformMixin.convert_detection_sample_to_dict(detection_sample, include_crowd_target=has_crowd_target)
+        if target_format_transform is not None:
+            transformed_dict = target_format_transform(sample=transformed_dict)
+        return transformed_dict
+
+    def _get_additional_inputs_for_transform(self, transform: AbstractDetectionTransform) -> List[Dict[str, Union[np.ndarray, Any]]]:
         """Add additional inputs required by a transform to the sample"""
         additional_samples_count = transform.additional_samples_count if hasattr(transform, "additional_samples_count") else 0
         non_empty_annotations = transform.non_empty_annotations if hasattr(transform, "non_empty_annotations") else False
@@ -527,7 +541,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
 
                 if plot_transformed_data:
                     image, targets, *_ = self[img_i + plot_i * 16]
-                    image = image.transpose(1, 2, 0).astype(np.int32)
+                    if image.shape[0] == 3:
+                        image = image.transpose(1, 2, 0).astype(np.int32)
                 else:
                     sample = self.get_sample(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
                     image, targets = sample["image"], sample["target"]
