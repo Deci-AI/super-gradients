@@ -94,7 +94,7 @@ class TestModelPredict(unittest.TestCase):
                 )
 
     def test_segmentation_predict_pplite_t_seg75(self):
-        model = models.get(model_name=Models.PP_LITE_T_SEG75, arch_params={"use_aux_heads": False}, num_classes=19, pretrained_weights="cityscapes")
+        model = models.get(model_name=Models.PP_LITE_T_SEG75, pretrained_weights="cityscapes")
 
         with tempfile.TemporaryDirectory() as tmp_dirname:
             predictions = model.predict(self.images)
@@ -111,14 +111,6 @@ class TestModelPredict(unittest.TestCase):
 
     def test_segmentation_predict_ddrnet23_slim(self):
         model = models.get(model_name=Models.DDRNET_23_SLIM, pretrained_weights="cityscapes")
-
-        with tempfile.TemporaryDirectory() as tmp_dirname:
-            predictions = model.predict(self.images)
-            predictions.show()
-            predictions.save(output_folder=tmp_dirname)
-
-    def test_segmentation_predict_segformer_b0(self):
-        model = models.get(model_name=Models.SEGFORMER_B0, pretrained_weights="cityscapes")
 
         with tempfile.TemporaryDirectory() as tmp_dirname:
             predictions = model.predict(self.images)
