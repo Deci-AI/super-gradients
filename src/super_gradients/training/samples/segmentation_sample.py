@@ -24,9 +24,5 @@ class SegmentationSample:
     mask: Union[np.ndarray, torch.Tensor]
 
     def __init__(self, image: Union[np.ndarray, torch.Tensor, Image], mask: Union[np.ndarray, torch.Tensor, Image]):
-        if isinstance(image, Image):
-            image = np.array(image)
-        if isinstance(mask, Image):
-            mask = np.array(mask)
         self.image = image
         self.mask = mask
