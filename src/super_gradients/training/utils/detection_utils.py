@@ -1010,7 +1010,7 @@ class DistanceMatching(DetectionMatching):
             pred_i = preds_idx_to_use[pred_selected_i]
             target_i = target_sorted[pred_selected_i, target_sorted_i]
 
-            distance_thresholds_tensor = torch.tensor(self.distance_thresholds)
+            distance_thresholds_tensor = torch.tensor(self.distance_thresholds, device=distances.device)
             is_distance_below_threshold = sorted_distances[pred_selected_i, target_sorted_i] < distance_thresholds_tensor
             are_candidates_free = torch.logical_and(~preds_matched[pred_i, :], ~targets_matched[target_i, :])
             are_candidates_good = torch.logical_and(is_distance_below_threshold, are_candidates_free)
@@ -1048,11 +1048,11 @@ class DistanceMatching(DetectionMatching):
         cls_mismatch_crowd = preds_cls[preds_idx_to_use].view(-1, 1) != crowd_targets_cls.view(1, -1)
 
         # Iterate over each distance metric and its corresponding threshold
-        distances = self.distance_metric.calculate_distance(crowd_target_box_xyxy, preds_box_xyxy[preds_idx_to_use])
+        distances = self.distance_metric.calculate_distance(preds_box_xyxy[preds_idx_to_use], crowd_target_box_xyxy)
         distances[cls_mismatch_crowd] = float("inf")
 
         best_distance, _ = distances.min(1)
-        is_matching_with_crowd = best_distance.view(-1, 1) < torch.tensor(self.distance_thresholds).view(1, -1)
+        is_matching_with_crowd = best_distance.view(-1, 1) < torch.tensor(self.distance_thresholds, device=distances.device).view(1, -1)
 
         preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
 
@@ -1348,7 +1348,7 @@ def compute_detection_metrics(
     precision = torch.zeros((n_class, nb_iou_thrs), device=device)
     recall = torch.zeros((n_class, nb_iou_thrs), device=device)
 
-    nb_score_thrs = 101
+    nb_score_thrs = len(recall_thresholds)
     all_score_thresholds = torch.linspace(0, 1, nb_score_thrs, device=device)
     f1_per_class_per_threshold = torch.zeros((n_class, nb_score_thrs), device=device) if calc_best_score_thresholds else None
     best_score_threshold_per_cls = dict() if calc_best_score_thresholds else None
@@ -1364,7 +1364,6 @@ def compute_detection_metrics(
             score_threshold=score_threshold,
             device=device,
             calc_best_score_thresholds=calc_best_score_thresholds,
-            nb_score_thrs=nb_score_thrs,
         )
         ap[cls_i, :] = cls_ap
         precision[cls_i, :] = cls_precision
@@ -1392,7 +1391,6 @@ def compute_detection_metrics_per_cls(
     score_threshold: float,
     device: str,
     calc_best_score_thresholds: bool = False,
-    nb_score_thrs: int = 101,
 ):
     """
     Compute the list of precision, recall and MaP of a given class for every recall threshold.
@@ -1418,6 +1416,7 @@ def compute_detection_metrics_per_cls(
             :best_score_threshold:      torch.float if calc_best_score_thresholds is True else None
     """
     nb_iou_thrs = preds_matched.shape[-1]
+    nb_score_thrs = len(recall_thresholds)
 
     mean_f1_per_threshold = torch.zeros(nb_score_thrs, device=device) if calc_best_score_thresholds else None
     best_score_threshold = torch.tensor(0.0, dtype=torch.float, device=device) if calc_best_score_thresholds else None
