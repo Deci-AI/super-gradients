@@ -62,11 +62,11 @@ class SegResize(AbstractSegmentationTransform, LegacySegmentationTransformMixin)
         self.w = w
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
-        image = sample.image
-        mask = sample.mask
-        sample.image = image.resize((self.w, self.h), IMAGE_RESAMPLE_MODE)
-        sample.mask = mask.resize((self.w, self.h), MASK_RESAMPLE_MODE)
-        return sample
+        image = Image.fromarray(sample.image)
+        mask = Image.fromarray(sample.mask)
+        image = image.resize((self.w, self.h), IMAGE_RESAMPLE_MODE)
+        mask = mask.resize((self.w, self.h), MASK_RESAMPLE_MODE)
+        return SegmentationSample(image=image, mask=mask)
 
 
 @register_transform(Transforms.SegRandomFlip)
@@ -80,14 +80,12 @@ class SegRandomFlip(AbstractSegmentationTransform, LegacySegmentationTransformMi
         self.prob = prob
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
-        image = sample.image
-        mask = sample.mask
+        image = Image.fromarray(sample.image)
+        mask = Image.fromarray(sample.mask)
         if random.random() < self.prob:
             image = image.transpose(Image.FLIP_LEFT_RIGHT)
             mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
-            sample.image = image
-            sample.mask = mask
-
+            sample = SegmentationSample(image=image, mask=mask)
         return sample
 
 
@@ -130,10 +128,10 @@ class SegRescale(AbstractSegmentationTransform, LegacySegmentationTransformMixin
         image = image.resize(out_size, IMAGE_RESAMPLE_MODE)
         mask = mask.resize(out_size, MASK_RESAMPLE_MODE)
 
-        sample.image = np.array(image)
-        sample.mask = np.array(mask)
-
-        return sample
+        return SegmentationSample(
+            image=image,
+            mask=mask,
+        )
 
     def check_valid_arguments(self):
         if self.scale_factor is None and self.short_size is None and self.long_size is None:
@@ -173,10 +171,7 @@ class SegRandomRescale(AbstractSegmentationTransform, LegacySegmentationTransfor
         image = image.resize(out_size, IMAGE_RESAMPLE_MODE)
         mask = mask.resize(out_size, MASK_RESAMPLE_MODE)
 
-        sample.image = np.array(image)
-        sample.mask = np.array(mask)
-
-        return sample
+        return SegmentationSample(image=image, mask=mask)
 
     def check_valid_arguments(self):
         """
@@ -218,10 +213,7 @@ class SegRandomRotate(AbstractSegmentationTransform, LegacySegmentationTransform
         image = image.rotate(deg, resample=IMAGE_RESAMPLE_MODE, fillcolor=self.fill_image)
         mask = mask.rotate(deg, resample=MASK_RESAMPLE_MODE, fillcolor=self.fill_mask)
 
-        sample.image = np.array(image)
-        sample.mask = np.array(mask)
-
-        return sample
+        return SegmentationSample(image=image, mask=mask)
 
     def check_valid_arguments(self):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
@@ -264,10 +256,7 @@ class SegCropImageAndMask(AbstractSegmentationTransform, LegacySegmentationTrans
         image = image.crop((x1, y1, x1 + self.crop_size[0], y1 + self.crop_size[1]))
         mask = mask.crop((x1, y1, x1 + self.crop_size[0], y1 + self.crop_size[1]))
 
-        sample.image = np.array(image)
-        sample.mask = np.array(mask)
-
-        return sample
+        return SegmentationSample(image=image, mask=mask)
 
     def check_valid_arguments(self):
         if self.mode not in ["center", "random"]:
@@ -291,15 +280,11 @@ class SegRandomGaussianBlur(AbstractSegmentationTransform, LegacySegmentationTra
 
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
         image = Image.fromarray(sample.image)
-        mask = Image.fromarray(sample.mask)
 
         if random.random() < self.prob:
             image = image.filter(ImageFilter.GaussianBlur(radius=random.random()))
 
-        sample.image = np.array(image)
-        sample.mask = np.array(mask)
-
-        return sample
+        return SegmentationSample(image=image, mask=sample.mask)
 
 
 @register_transform(Transforms.SegPadShortToCropSize)
@@ -337,10 +322,7 @@ class SegPadShortToCropSize(AbstractSegmentationTransform, LegacySegmentationTra
             image = ImageOps.expand(image, border=(pad_left, pad_top, pad_right, pad_bottom), fill=self.fill_image)
             mask = ImageOps.expand(mask, border=(pad_left, pad_top, pad_right, pad_bottom), fill=self.fill_mask)
 
-        sample.image = np.array(image)
-        sample.mask = np.array(mask)
-
-        return sample
+        return SegmentationSample(image=image, mask=mask)
 
     def check_valid_arguments(self):
         if not isinstance(self.crop_size, Iterable):
@@ -377,10 +359,7 @@ class SegPadToDivisible(AbstractSegmentationTransform, LegacySegmentationTransfo
             image = ImageOps.expand(image, border=(0, 0, padw, padh), fill=self.fill_image)
             mask = ImageOps.expand(mask, border=(0, 0, padw, padh), fill=self.fill_mask)
 
-        sample.image = np.array(image)
-        sample.mask = np.array(mask)
-
-        return sample
+        return SegmentationSample(image=image, mask=mask)
 
     def check_valid_arguments(self):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
@@ -394,8 +373,7 @@ class SegColorJitter(AbstractSegmentationTransform, LegacySegmentationTransformM
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
         image = Image.fromarray(sample.image)
         image = self._color_jitter(image)
-        sample.image = np.array(image)
-        return sample
+        return SegmentationSample(image=image, mask=sample.mask)
 
 
 def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple, List]):
