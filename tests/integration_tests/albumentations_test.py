@@ -240,12 +240,15 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
             {
                 "Albumentations": {
                     "Compose": {
-                        "transforms": [{"RandomBrightnessContrast": {"p": 1}}],
+                        "transforms": [{"RandomBrightnessContrast": {"p": 1}}, {"RandomCrop": dict(width=300, height=320)}],
                         "bbox_params": {
                             "min_area": 1,
                             "min_visibility": 0,
                             "min_width": 0,
                             "min_height": 0,
+                            "check_each_transform": True,
+                        },
+                        "keypoint_params": {
                             "check_each_transform": True,
                         },
                     },
@@ -287,7 +290,26 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
 
         # Make sure we raise an error when using unsupported transforms
         with self.assertRaises(TypeError):
-            transforms[1]["Albumentations"]["Compose"]["transforms"].append({"HorizontalFlip": {"p": 0.5}})
+            transforms = [
+                KeypointsRescale(height=320, width=640),
+                {
+                    "Albumentations": {
+                        "Compose": {
+                            "transforms": [{"HorizontalFlip": {"p": 1}}],
+                            "bbox_params": {
+                                "min_area": 1,
+                                "min_visibility": 0,
+                                "min_width": 0,
+                                "min_height": 0,
+                                "check_each_transform": True,
+                            },
+                            "keypoint_params": {
+                                "check_each_transform": True,
+                            },
+                        },
+                    }
+                },
+            ]
             unsupported_ds = COCOPoseEstimationDataset(
                 data_dir=mini_coco_data_dir,
                 images_dir="images/val2017",
@@ -301,6 +323,45 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
 
             _ = next(iter(unsupported_ds))
 
+        # transforms = [
+        #     KeypointsRescale(height=320, width=640),
+        #     {"KeypointsRandomHorizontalFlip": {"prob": 1, "flip_index": [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]}},
+        # ]
+        # unsupported_ds = COCOPoseEstimationDataset(
+        #     data_dir=mini_coco_data_dir,
+        #     images_dir="images/val2017",
+        #     json_file="annotations/person_keypoints_val2017.json",
+        #     include_empty_samples=True,
+        #     edge_links=edge_links,
+        #     edge_colors=edge_colors,
+        #     keypoint_colors=keypoint_colors,
+        #     transforms=transforms,
+        # )
+        #
+        # sample = next(iter(unsupported_ds))
+        #
+        #
+        # bboxes_xyxy = xywh_to_xyxy(bboxes=np.array(sample.bboxes_xywh), image_shape=sample.image.shape)
+        #
+        # image_with_keypoints = PoseVisualization.draw_poses(
+        #     image=np.array(sample.image),
+        #     poses=sample.joints,
+        #     boxes=bboxes_xyxy,
+        #     scores=None,
+        #     is_crowd=sample.is_crowd,
+        #     edge_links=edge_links,
+        #     edge_colors=edge_colors,
+        #     keypoint_colors=keypoint_colors,
+        #     show_keypoint_confidence=False,
+        #     joint_thickness=None,
+        #     box_thickness=None,
+        #     keypoint_radius=None,
+        # )
+        #
+        # visualize_image(image=image_with_keypoints)
+
+
+# flip_index: List[int], prob
 
 if __name__ == "__main__":
     unittest.main()

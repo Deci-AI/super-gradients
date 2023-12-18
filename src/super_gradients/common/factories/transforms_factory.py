@@ -32,6 +32,9 @@ class AlbumentationsTransformsFactory(BaseFactory):
     REQUIRED_BBOX_PARAM_KEYS = ["min_area", "min_visibility", "min_width", "min_height", "check_each_transform"]
     FIXED_BBOX_PARAMS = {"format": "pascal_voc", "label_fields": ["labels", "is_crowd"]}
 
+    # New constants for keypoint parameters
+    FIXED_KEYPOINT_PARAMS = {"format": "xy", "remove_invisible": False}  # We don't remove because we have instead set "visibility" to 0
+
     def __init__(self):
         if imported_albumentations_failure:
             raise imported_albumentations_failure
@@ -44,11 +47,18 @@ class AlbumentationsTransformsFactory(BaseFactory):
             _type = list(conf.keys())[0]  # THE TYPE NAME
             if _type in ALBUMENTATIONS_COMP_TRANSFORMS:
                 conf[_type]["transforms"] = ListFactory(AlbumentationsTransformsFactory()).get(conf[_type]["transforms"])
+                conf = deepcopy(conf)  # Avoid changing the original config.
+
                 if "bbox_params" in conf[_type].keys():
                     bbox_params = conf[_type]["bbox_params"]
                     self._check_bbox_params(bbox_params)
-                    conf = deepcopy(conf)  # Avoid changing the original config.
+
                     conf[_type]["bbox_params"].update(self.FIXED_BBOX_PARAMS)
+
+                if "keypoint_params" in conf[_type]:
+                    keypoint_params = conf[_type]["keypoint_params"]
+                    self._check_keypoint_params(keypoint_params)
+                    conf[_type]["keypoint_params"].update(self.FIXED_KEYPOINT_PARAMS)
 
         return super(AlbumentationsTransformsFactory, self).get(conf)
 
@@ -62,3 +72,10 @@ class AlbumentationsTransformsFactory(BaseFactory):
         fixed_keys = set(self.FIXED_BBOX_PARAMS.keys()) & set(bbox_params.keys())
         if fixed_keys:
             raise ValueError(f"Unexpected fixed bbox_params keys: {fixed_keys}. Fixed bbox_params {self.FIXED_BBOX_PARAMS} cannot be overriden.")
+
+    def _check_keypoint_params(self, keypoint_params):
+
+        # Check if any fixed keys are present
+        fixed_keys = set(self.FIXED_KEYPOINT_PARAMS.keys()) & set(keypoint_params.keys())
+        if fixed_keys:
+            raise ValueError(f"Unexpected fixed keypoint_params keys: {fixed_keys}. Fixed keypoint_params {self.FIXED_KEYPOINT_PARAMS} cannot be overriden.")

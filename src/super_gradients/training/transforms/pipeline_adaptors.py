@@ -48,17 +48,41 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             from albumentations.augmentations import HorizontalFlip
 
             if any(isinstance(t, HorizontalFlip) for t in self.composed_transforms):
+                before_str = (
+                    ""
+                    "   > transforms:\n"
+                    "   >    - Albumentations:\n"
+                    "   >        Compose:\n"
+                    "   >            transforms:\n"
+                    "   >                - HorizontalFlip:\n"
+                    "   >                    p: 1\n"
+                )
+
+                after_str = (
+                    ""
+                    "   > transforms:\n"
+                    "   >    - KeypointsRandomHorizontalFlip:\n"
+                    "   >        prob: 1\n"
+                    "   >        flip_index: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]\n"
+                    "   >        # Note: these indexes are COCO-specific. If you're using a different dataset, you will need to change these accordingly.\n"
+                    "   >        # The `flip_index` array defines pairs of keypoints to exchange during a horizontal flip. "
+                    "This ensures accurate mapping of corresponding keypoints on mirrored body parts after flipping."
+                )
+
                 raise TypeError(
                     "`HorizontalFlip` from Albumentation is not supported. "
                     "Please use the `KeypointsRandomHorizontalFlip` from SuperGradients instead.\n"
-                    "Note: You should set it like other SuperGradients transforms, and not like other Albumentations."
+                    "Note: You should set it like other SuperGradients transforms, and not like other Albumentations.\n\n"
+                    "Example:\n\n"
+                    f"FROM \n{before_str}\n"
+                    f"TO \n{after_str}\n\n"
                 )
 
         else:
             self.sample_type = SampleType.IMAGE_ONLY
 
         sample = self.prep_for_transforms(sample)
-        sample = self.composed_transforms(**sample)
+        sample = self.composed_transforms(**sample)  # Apply albumentation compose
         sample = self.post_transforms_processing(sample)
         return sample
 
@@ -77,10 +101,11 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             sample = {
                 "image": sample.image,
                 "bboxes": bboxes_xyxy,
-                "labels": np.zeros(sample.bboxes_xywh.shape[0]),  # Dummy value, this is required for Albumentation. Here, all classes are the same.
+                "labels": np.arange(sample.bboxes_xywh.shape[0]),  # Dummy value, this is required for Albumentation. Here, all classes are the same.
                 "mask": np.array(sample.mask),
                 "is_crowd": sample.is_crowd,
-                "keypoints": sample.joints,
+                "keypoints": sample.joints.reshape(sample.joints.shape[0] * sample.joints.shape[1], 3),  # xy
+                "n_joints": sample.joints.shape[1],  # Hold
             }
         else:
             sample = {"image": np.array(sample)}
@@ -112,15 +137,22 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
 
             bboxes_xywh = xyxy_to_xywh(bboxes=np.array(sample["bboxes"]), image_shape=sample["image"].shape)
 
+            # Update value of keypoints that are not inside the image anymore.
+            h, w = sample["image"].shape[1], sample["image"].shape[0]
+            keypoints = np.array([keypoint if (0, 0) <= (keypoint[0], keypoint[1]) < (w, h) else (0, 0, 0) for keypoint in sample["keypoints"]])
+            keypoints = keypoints.reshape(-1, sample["n_joints"], 3)
+            keypoints = keypoints[sample["labels"]]  # remvoe the ones associated with a bbox that was removed.
+
             sample = PoseEstimationSample(
                 image=sample["image"],
                 mask=np.array(sample["mask"]),
-                joints=np.array(sample["keypoints"]),
+                joints=keypoints,
                 areas=None,
                 bboxes_xywh=bboxes_xywh,
                 is_crowd=np.array(sample["is_crowd"]),
                 additional_samples=None,
             )
+
         else:
             sample = sample["image"]
 
