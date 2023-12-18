@@ -6,7 +6,11 @@ import numpy as np
 class DepthVisualization:
     @staticmethod
     def process_depth_map_for_visualization(
-        depth_map: np.ndarray, color_scheme: Optional[int] = None, drop_extreme_percentage: float = 0, inverse: bool = False
+        depth_map: np.ndarray,
+        color_scheme: Optional[int] = None,
+        drop_extreme_percentage: float = 0,
+        inverse: bool = False,
+        ignored_val=None,
     ) -> np.ndarray:
         """
         Process a depth map for visualization.
@@ -26,24 +30,41 @@ class DepthVisualization:
 
         :return:                        Processed colormap of the depth map for visualization.
         """
-        # Drop extreme values
+        if ignored_val is not None:
+            ignored_mask = depth_map != ignored_val
+
         if inverse:
             depth_map = 1 / depth_map
 
+        # Drop extreme values
         if drop_extreme_percentage > 0:
-            min_val = np.percentile(depth_map, drop_extreme_percentage)
-            max_val = np.percentile(depth_map, 100 - drop_extreme_percentage)
+            if ignored_val is not None:
+                min_val = np.percentile(depth_map[ignored_mask], drop_extreme_percentage[ignored_mask])
+                max_val = np.percentile(depth_map[ignored_mask], 100 - drop_extreme_percentage[ignored_mask])
+            else:
+                min_val = np.percentile(depth_map, drop_extreme_percentage)
+                max_val = np.percentile(depth_map, 100 - drop_extreme_percentage)
 
             depth_map = np.clip(depth_map, min_val, max_val)
+        else:
+            if ignored_val is not None:
+                min_val = depth_map[ignored_mask].min()
+                max_val = depth_map[ignored_mask].max()
+            else:
+                min_val = depth_map.min()
+                max_val = depth_map.max()
 
-            # Normalize to 0-255
-            depth_map = ((depth_map - min_val) / (max_val - min_val) * 255).astype(np.uint8)
+        # Normalize to 0-255
+        depth_map = ((depth_map - min_val) / (max_val - min_val) * 255).astype(np.uint8)
 
         # Determine the default color scheme
         default_color_scheme = cv2.COLORMAP_VIRIDIS if inverse else cv2.COLORMAP_MAGMA
 
         # Apply colormap
         colormap = cv2.applyColorMap(depth_map, color_scheme if color_scheme is not None else default_color_scheme)
+
+        if ignored_val is not None:
+            colormap[~ignored_mask] = (127, 127, 127)
 
         # Convert BGR to RGB
         colormap_rgb = cv2.cvtColor(colormap, cv2.COLOR_BGR2RGB)
