@@ -54,6 +54,7 @@ from tests.unit_tests.test_deprecations import DeprecationsUnitTest
 from tests.unit_tests.test_finetune import TestFineTune
 from tests.unit_tests.test_min_samples_single_node import TestMinSamplesSingleNode
 from tests.unit_tests.test_model_weight_averaging import TestModelWeightAveraging
+from tests.unit_tests.test_supports_check_input_shape import TestSupportsInputShapeCheck
 from tests.unit_tests.test_train_with_torch_scheduler import TrainWithTorchSchedulerTest
 from tests.unit_tests.test_version_check import TestVersionCheck
 from tests.unit_tests.test_yolo_nas_pose import YoloNASPoseTests
@@ -182,6 +183,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationAdapter))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionMetricsDistanceBased))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestFineTune))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSupportsInputShapeCheck))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
