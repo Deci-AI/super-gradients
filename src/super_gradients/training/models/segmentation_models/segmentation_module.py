@@ -1,10 +1,11 @@
+from super_gradients.module_interfaces import SupportsInputShapeCheck
 from super_gradients.training.models.sg_module import SgModule
 import torch.nn as nn
 from abc import abstractmethod, ABC
-from typing import Union
+from typing import Union, Tuple
 
 
-class SegmentationModule(SgModule, ABC):
+class SegmentationModule(SgModule, ABC, SupportsInputShapeCheck):
     """
     Base SegmentationModule class
     """
@@ -59,3 +60,17 @@ class SegmentationModule(SgModule, ABC):
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+
+    def get_input_shape_steps(self) -> Tuple[int, int]:
+        """
+        Returns the minimum input shape size that the model can accept.
+        For segmentation models the default is 32x32, which corresponds to the largest stride in the encoder part of the model
+        """
+        return 32, 32
+
+    def get_minimum_input_shape_size(self) -> Tuple[int, int]:
+        """
+        Returns the minimum input shape size that the model can accept.
+        For segmentation models the default is 32x32, which corresponds to the largest stride in the encoder part of the model
+        """
+        return 32, 32
