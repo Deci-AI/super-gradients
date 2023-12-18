@@ -2,6 +2,7 @@
 Implementation of paper: "Rethinking BiSeNet For Real-time Semantic Segmentation", https://arxiv.org/abs/2104.13188
 Based on original implementation: https://github.com/MichaelFan01/STDC-Seg, cloned 23/08/2021, commit 59ff37f
 """
+from functools import lru_cache
 from typing import Union, List, Optional, Callable, Dict
 from abc import ABC, abstractmethod
 
@@ -657,6 +658,7 @@ class STDCSegmentationBase(SgModule, HasPredict):
         self._class_names = class_names or self._class_names
         self._image_processor = image_processor or self._image_processor
 
+    @lru_cache(1)
     def _get_pipeline(self, fuse_model: bool = True) -> SegmentationPipeline:
         """Instantiate the segmentation pipeline of this model.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
