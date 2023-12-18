@@ -30,19 +30,20 @@ class DepthVisualization:
         if inverse:
             depth_map = 1 / depth_map
 
-        min_val = np.percentile(depth_map, drop_extreme_percentage)
-        max_val = np.percentile(depth_map, 100 - drop_extreme_percentage)
+        if drop_extreme_percentage > 0:
+            min_val = np.percentile(depth_map, drop_extreme_percentage)
+            max_val = np.percentile(depth_map, 100 - drop_extreme_percentage)
 
-        depth_map = np.clip(depth_map, min_val, max_val)
+            depth_map = np.clip(depth_map, min_val, max_val)
 
-        # Normalize to 0-255
-        depth_map_normalized = ((depth_map - min_val) / (max_val - min_val) * 255).astype(np.uint8)
+            # Normalize to 0-255
+            depth_map = ((depth_map - min_val) / (max_val - min_val) * 255).astype(np.uint8)
 
         # Determine the default color scheme
         default_color_scheme = cv2.COLORMAP_VIRIDIS if inverse else cv2.COLORMAP_MAGMA
 
         # Apply colormap
-        colormap = cv2.applyColorMap(depth_map_normalized, color_scheme if color_scheme is not None else default_color_scheme)
+        colormap = cv2.applyColorMap(depth_map, color_scheme if color_scheme is not None else default_color_scheme)
 
         # Convert BGR to RGB
         colormap_rgb = cv2.cvtColor(colormap, cv2.COLOR_BGR2RGB)
