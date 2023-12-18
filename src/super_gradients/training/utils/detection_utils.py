@@ -477,6 +477,7 @@ class DetectionVisualization:
         color_mapping = DetectionVisualization._generate_color_mapping(len(class_names))
 
         if pred_boxes is not None:
+
             # Draw predictions
             pred_boxes[:, :4] *= image_scale
             for xyxy_score_label in pred_boxes:
@@ -491,7 +492,7 @@ class DetectionVisualization:
                     y2=int(xyxy_score_label[3]),
                     class_id=int(xyxy_score_label[5]),
                     pred_conf=float(xyxy_score_label[4]),
-                    bbox_prefix="[Pred]" if target_boxes else "",  # If we have TARGETS, we want to add a prefix to distinguish.
+                    bbox_prefix="[Pred]" if target_boxes is not None else "",  # If we have TARGETS, we want to add a prefix to distinguish.
                 )
 
         if target_boxes is not None:
@@ -514,7 +515,7 @@ class DetectionVisualization:
                     x2=int(label_xyxy[3]),
                     y2=int(label_xyxy[4]),
                     class_id=int(label_xyxy[0]),
-                    bbox_prefix="[GT]" if target_boxes else "",  # If we have PREDICTIONS, we want to add a prefix to distinguish.
+                    bbox_prefix="[GT]" if pred_boxes is not None else "",  # If we have PREDICTIONS, we want to add a prefix to distinguish.
                 )
 
             if gt_alpha is not None:
