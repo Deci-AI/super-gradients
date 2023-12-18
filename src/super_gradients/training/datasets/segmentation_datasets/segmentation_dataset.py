@@ -199,7 +199,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset, HasPreprocessingParams)
         pipeline = []
 
         if self._original_dataset_image_shape:
-            pipeline += [{Processings.SegResizeWithPadding: {"output_shape": self._original_dataset_image_shape, "pad_value": 0}}]
+            pipeline += [{Processings.SegmentationResizeWithPadding: {"output_shape": self._original_dataset_image_shape, "pad_value": 0}}]
             # Resize image to same image-shape as model input. default shape should be defined in dataset class under "output_image_shape"
 
         for t in self.transforms:

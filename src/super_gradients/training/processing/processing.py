@@ -684,8 +684,8 @@ class CenterCrop(ClassificationProcess):
         return True
 
 
-@register_processing(Processings.SegResizeWithPadding)
-class SegResizeWithPadding(Processing):
+@register_processing(Processings.SegmentationResizeWithPadding)
+class SegmentationResizeWithPadding(Processing):
     """Resize image to given image dimensions while preserving aspect ratio (padding might be used).
 
     :param output_shape:    (H, W)
@@ -1136,7 +1136,7 @@ def default_cityscapes_processing_params(scale: float = 1) -> dict:
     """Processing parameters commonly used for training segmentation models on Cityscapes dataset."""
     image_processor = ComposeProcessing(
         [
-            SegResizeWithPadding(output_shape=(int(1024 * scale), int(2048 * scale)), pad_value=0),
+            SegmentationResizeWithPadding(output_shape=(int(1024 * scale), int(2048 * scale)), pad_value=0),
             NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             StandardizeImage(),
             ImagePermute(),
