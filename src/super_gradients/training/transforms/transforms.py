@@ -119,7 +119,7 @@ class SegRescale(AbstractSegmentationTransform, LegacySegmentationTransformMixin
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
         image = sample.image
         mask = sample.mask
-        w, h = image.size
+        h, w = image.shape[:2]
         scale = _compute_scale_factor(self.scale_factor, self.short_size, self.long_size, w, h)
 
         out_size = int(scale * w), int(scale * h)
@@ -165,7 +165,7 @@ class SegRandomRescale(AbstractSegmentationTransform, LegacySegmentationTransfor
     def apply_to_sample(self, sample: SegmentationSample) -> SegmentationSample:
         image = sample.image
         mask = sample.mask
-        w, h = image.size
+        h, w = image.shape[:2]
 
         scale = random.uniform(self.scales[0], self.scales[1])
         out_size = int(scale * w), int(scale * h)
@@ -259,7 +259,7 @@ class SegCropImageAndMask(AbstractSegmentationTransform, LegacySegmentationTrans
         image = sample.image
         mask = sample.mask
 
-        w, h = image.size
+        h, w = image.shape[:2]
         if self.mode == "random":
             x1 = random.randint(0, w - self.crop_size[0])
             y1 = random.randint(0, h - self.crop_size[1])
