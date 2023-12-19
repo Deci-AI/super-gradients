@@ -21,12 +21,15 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.module_interfaces import HasPreprocessingParams
-from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
+from super_gradients.training.datasets.data_formats.default_formats import LABEL_XYXY
 from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, LabelTensorSliceItem
 from super_gradients.training.transforms.detection.legacy_detection_transform_mixin import LegacyDetectionTransformMixin
 from super_gradients.training.transforms.transforms import AbstractDetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
 from super_gradients.training.utils.detection_utils import get_class_index_in_target
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
+from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
+from super_gradients.training.utils.detection_utils import DetectionVisualization
+
 
 logger = get_logger(__name__)
 
@@ -516,7 +519,13 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
                 target_format = transform.output_format
         return target_format
 
-    def plot(self, max_samples_per_plot: int = 16, n_plots: int = 1, plot_transformed_data: bool = True):
+    def plot(
+        self,
+        max_samples_per_plot: int = 16,
+        n_plots: int = 1,
+        plot_transformed_data: bool = True,
+        box_thickness: int = 2,
+    ):
         """Combine samples of images with bbox into plots and display the result.
 
         :param max_samples_per_plot:    Maximum number of images to be displayed per plot
@@ -529,34 +538,45 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         input_format = self.output_target_format if plot_transformed_data else self.original_target_format
         if isinstance(input_format, DetectionTargetsFormat):
             raise ValueError(
-                "Plot is not supported for DetectionTargetsFormat. Please set original_target_format to be an isntance of ConcatenateTransform instead."
+                "Plot is not supported for DetectionTargetsFormat. Please set original_target_format to be an instance of ConcatenateTransform instead."
             )
-        target_format_transform = DetectionTargetsFormatTransform(input_format=input_format, output_format=XYXY_LABEL)
 
         for plot_i in range(n_plots):
+
             fig = plt.figure(figsize=(10, 10))
+
             n_subplot = int(np.ceil(max_samples_per_plot**0.5))
+
+            # Plot `max_samples_per_plot` images.
             for img_i in range(max_samples_per_plot):
                 index = img_i + plot_i * 16
 
+                # LOAD IMAGE/TARGETS
                 if plot_transformed_data:
+                    # Access to the image and the target AFTER self.transform
                     image, targets, *_ = self[img_i + plot_i * 16]
-                    if image.shape[0] == 3:
-                        image = image.transpose(1, 2, 0).astype(np.int32)
                 else:
+                    # Access to the image and the target BEFORE self.transform
                     sample = self.get_sample(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
                     image, targets = sample["image"], sample["target"]
 
-                sample = target_format_transform({"image": image, "target": targets})
+                # FORMAT TARGETS
+                if image.shape[0] in (1, 3):  # (C, H, W) -> (H, W, C)
+                    image = image.transpose((1, 2, 0))
 
-                # shape = [padding_size x 4] (The dataset will most likely pad the targets to a fixed dim)
-                boxes = sample["target"][:, 0:4]
+                image = image.astype(np.uint8)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Detection dataset works with BGR images, so we have to convert to RGB
 
-                # shape = [n_box x 4] (We remove padded boxes, which corresponds to boxes with only 0)
-                boxes = boxes[(boxes != 0).any(axis=1)]
+                # Convert to XYXY_LABEL format
+                targets_format_converter = ConcatenatedTensorFormatConverter(input_format=input_format, output_format=LABEL_XYXY, image_shape=image.shape)
+                targets_label_xyxy = targets_format_converter(targets)
+
+                image = DetectionVisualization.visualize_image(image_np=image, class_names=self.classes, target_boxes=targets_label_xyxy, gt_alpha=1)
+
                 plt.subplot(n_subplot, n_subplot, img_i + 1).imshow(image[:, :, ::-1])
-                plt.plot(boxes[:, [0, 2, 2, 0, 0]].T, boxes[:, [1, 1, 3, 3, 1]].T, ".-")
+                plt.imshow(image)
                 plt.axis("off")
+
             fig.tight_layout()
             plt.show()
             plt.close()
