@@ -103,6 +103,10 @@ class AbstractDepthEstimationDataset(Dataset):
                 index = img_i + plot_i * max_samples_per_plot
                 if plot_transformed_data:
                     image, depth_map = self[index]
+
+                    # Transpose to HWC format for visualization
+                    image = image.transpose(1, 2, 0)
+                    depth_map = depth_map.squeeze()  # Remove dummy dimension
                 else:
                     sample = self.load_sample(index)
                     image, depth_map = sample.image, sample.depth_map

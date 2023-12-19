@@ -27,7 +27,7 @@ class DepthEstimationSample:
 
         if len(dm_shape) == 3:
             if dm_shape[-1] == 1:
-                depth_map = np.squeeze(depth_map, axis=0)
+                depth_map = np.squeeze(depth_map, axis=-1)
             else:
                 raise RuntimeError(f"Depth map should contain only H and W dimensions, got {len(dm_shape)} dimensions instead.")
 
