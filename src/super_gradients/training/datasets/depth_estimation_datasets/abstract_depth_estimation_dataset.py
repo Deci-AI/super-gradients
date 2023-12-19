@@ -29,6 +29,16 @@ class AbstractDepthEstimationDataset(Dataset):
 
     @abc.abstractmethod
     def load_sample(self, index: int) -> DepthEstimationSample:
+        """
+        Load a depth estimation sample from the dataset.
+
+        :param index: Index of the sample to load.
+        :return: Instance of DepthEstimationSample.
+
+        If your dataset contains non-labeled regions with a specific value (e.g., -100) representing ignored areas,
+        ensure that the same value is used as the `ignore_val` argument in your metric and loss functions.
+        Fill the entries in the depth map that are supposed to be ignored with the `ignore_val` after loading the sample.
+        """
         raise NotImplementedError()
 
     def load_random_sample(self) -> DepthEstimationSample:
@@ -42,10 +52,22 @@ class AbstractDepthEstimationDataset(Dataset):
         return self.load_sample(random_index)
 
     def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Get a transformed depth estimation sample from the dataset.
+
+        :param index: Index of the sample to retrieve.
+        :return: Tuple containing the transformed image and depth map as np.ndarrays.
+
+        After applying the transforms pipeline, the image is expected to be in HWC format, and the depth map should be
+        a 2D array (e.g., Height x Width).
+
+        Before returning the image and depth map, the image's channels are moved to CHW format and additional
+         dummy dimension is added to the depth map resulting 1HW shape.
+        """
         sample = self.load_sample(index)
         for transform in self.transforms:
             sample = transform(sample)
-        return sample.image, sample.depth_map
+        return np.transpose(sample.image, (2, 0, 1)), np.expand_dims(sample.depth_map, axis=0).astype(np.float32)
 
     def plot(
         self,
