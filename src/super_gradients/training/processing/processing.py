@@ -1,4 +1,5 @@
 import math
+import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Tuple, List, Union, Optional
@@ -817,7 +818,7 @@ class SegmentationPadShortToCropSize(Processing):
 
     def __init__(self, crop_size: Union[float, Tuple, List], fill_image: Union[int, Tuple, List]):
         self.crop_size = crop_size
-        self.fill_image = fill_image
+        self.fill_image = tuple(fill_image) if isinstance(fill_image, typing.Sequence) else fill_image
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
         # pad images from center symmetrically
@@ -845,15 +846,15 @@ class SegmentationPadShortToCropSize(Processing):
 @register_processing(Processings.SegmentationPadToDivisible)
 class SegmentationPadToDivisible(Processing):
     """
-        Pads image to a size divisible by the defined parameter.
+    Pads image to a size divisible by the defined parameter.
 
-        :param divisible_value:   the divisible value, new image size is an int multiplication of this number
-    =    :param fill_image:  Grey value to fill image padded background.
+    :param divisible_value:   The divisible value, new image size is an int multiplication of this number
+    :param fill_image:        The value to use for padding the image.
     """
 
     def __init__(self, divisible_value: int, fill_image: Union[int, Tuple, List]):
-        self.divisible_value = divisible_value
-        self.fill_image = fill_image
+        self.divisible_value = int(divisible_value)
+        self.fill_image = tuple(fill_image) if isinstance(fill_image, typing.Sequence) else fill_image
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
         h, w = image.shape[:2]
