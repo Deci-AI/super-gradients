@@ -39,12 +39,12 @@ class Metrics:
     DELTA1 = "Delta1"
     DELTA2 = "Delta2"
     DELTA3 = "Delta3"
-    MAE = "MAE"
-    MAPE = "MAPE"
-    MSE = "MSE"
-    MeanSquaredErrorWithIgnored = "MeanSquaredErrorWithIgnored"
-    RMSE = "RMSE"
-    MSLE = "MSLE"
+    DepthMAE = "DepthMAE"
+    DepthMAPE = "DepthMAPE"
+    DepthMSE = "DepthMSE"
+    DepthMeanSquaredErrorWithIgnored = "DepthMeanSquaredErrorWithIgnored"
+    DepthRMSE = "DepthRMSE"
+    DepthMSLE = "DepthMSLE"
 
 
 class Transforms:

@@ -11,12 +11,12 @@ from super_gradients.training.metrics.depth_estimation_metrics import (
     Delta1,
     Delta2,
     Delta3,
-    MAE,
-    MAPE,
-    MSE,
+    DepthMAE,
+    DepthMAPE,
+    DepthMSE,
     RMSE,
-    MSLE,
-    MeanSquaredErrorWithIgnored,
+    DepthMSLE,
+    DepthMeanSquaredErrorWithIgnored,
 )
 
 __all__ = [
@@ -41,10 +41,10 @@ __all__ = [
     "Delta1",
     "Delta2",
     "Delta3",
-    "MAE",
-    "MAPE",
-    "MSE",
+    "DepthMAE",
+    "DepthMAPE",
+    "DepthMSE",
     "RMSE",
-    "MSLE",
-    "MeanSquaredErrorWithIgnored",
+    "DepthMSLE",
+    "DepthMeanSquaredErrorWithIgnored",
 ]

@@ -3,7 +3,7 @@
 SuperGradients can support any PyTorch-based loss function. Additionally, multiple Loss function implementations for various tasks are also supported:
 
     LabelSmoothingCrossEntropyLoss
-    MSE
+    DepthMSE
     RSquaredLoss
     ShelfNetOHEMLoss
     ShelfNetSemanticEncodingLoss

@@ -1,7 +1,7 @@
 import torch
 import unittest
 
-from super_gradients.training.metrics import Delta1, Delta2, Delta3, MAE, MAPE, MSE, RMSE, MSLE
+from super_gradients.training.metrics import Delta1, Delta2, Delta3, DepthMAE, DepthMAPE, DepthMSE, RMSE, DepthMSLE
 
 
 class TestDepthEstimationMetrics(unittest.TestCase):
@@ -31,7 +31,7 @@ class TestDepthEstimationMetrics(unittest.TestCase):
         gt_depth = torch.tensor([[[1.5, 2.5], [3.5, 4.5]]], dtype=torch.float32)
 
         # Create instances of MAE and MAPE metrics
-        mae_metric = MAE(ignore_val=-1)
+        mae_metric = DepthMAE(ignore_val=-1)
 
         # Update metrics with specific example data
         mae_metric.update(pred_depth, gt_depth)
@@ -45,7 +45,7 @@ class TestDepthEstimationMetrics(unittest.TestCase):
         gt_depth = torch.tensor([[[1.5, 2.5], [3.5, 4.5]]], dtype=torch.float32)
 
         # Create an instance of MAPE metric
-        mape_metric = MAPE()
+        mape_metric = DepthMAPE()
 
         # Update metric with specific example data
         mape_metric.update(pred_depth, gt_depth)
@@ -59,7 +59,7 @@ class TestDepthEstimationMetrics(unittest.TestCase):
         gt_depth = torch.tensor([[[1.5, 2.5], [3.5, 4.5]]], dtype=torch.float32)
 
         # Create an instance of MSE metric
-        mse_metric = MSE()
+        mse_metric = DepthMSE()
 
         # Update metric with specific example data
         mse_metric.update(pred_depth, gt_depth)
@@ -87,7 +87,7 @@ class TestDepthEstimationMetrics(unittest.TestCase):
         gt_depth = torch.tensor([[[1.5, 2.5], [3.5, 4.5]]], dtype=torch.float32)
 
         # Create an instance of MSLE metric
-        msle_metric = MSLE()
+        msle_metric = DepthMSLE()
 
         # Update metric with specific example data
         msle_metric.update(pred_depth, gt_depth)
