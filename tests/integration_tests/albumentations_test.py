@@ -250,7 +250,7 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
             [148, 103, 189],
         ]
 
-        from super_gradients.training.transforms import KeypointsRescale
+        from super_gradients.training.transforms import KeypointsRescale, KeypointsPadIfNeeded
 
         transforms = [
             KeypointsRescale(height=320, width=640),
@@ -271,6 +271,7 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
                     },
                 }
             },
+            KeypointsPadIfNeeded(min_height=400, min_width=400, image_pad_value=0, mask_pad_value=0, padding_mode="center"),
         ]
 
         ds = COCOPoseEstimationDataset(
@@ -326,6 +327,7 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
                         },
                     }
                 },
+                KeypointsPadIfNeeded(min_height=400, min_width=400, image_pad_value=0, mask_pad_value=0, padding_mode="center"),
             ]
             unsupported_ds = COCOPoseEstimationDataset(
                 data_dir=mini_coco_data_dir,
