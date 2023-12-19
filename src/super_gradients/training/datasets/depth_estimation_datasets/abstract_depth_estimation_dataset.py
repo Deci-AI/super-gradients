@@ -67,7 +67,7 @@ class AbstractDepthEstimationDataset(Dataset):
         sample = self.load_sample(index)
         for transform in self.transforms:
             sample = transform(sample)
-        return np.transpose(sample.image, (2, 0, 1)), np.expand_dims(sample.depth_map, axis=0).astype(np.float32)
+        return np.transpose(sample.image, (2, 0, 1)).astype(np.float32), np.expand_dims(sample.depth_map, axis=0).astype(np.float32)
 
     def plot(
         self,
