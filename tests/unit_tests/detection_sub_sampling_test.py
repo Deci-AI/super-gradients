@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 from super_gradients.training.datasets import DetectionDataset
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
+from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 
 
 class DummyDetectionDataset(DetectionDataset):
@@ -13,7 +13,7 @@ class DummyDetectionDataset(DetectionDataset):
         self.dataset_size = dataset_size
         self.image_size = input_dim
         kwargs["all_classes_list"] = ["class_0", "class_1", "class_2"]
-        kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
+        kwargs["original_target_format"] = XYXY_LABEL
         super().__init__(data_dir="", input_dim=input_dim, *args, **kwargs)
 
     def _setup_data_source(self):
