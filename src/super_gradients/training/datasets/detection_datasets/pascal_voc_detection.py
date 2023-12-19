@@ -14,7 +14,7 @@ from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.transforms.transforms import AbstractDetectionTransform
 from super_gradients.training.utils.utils import download_and_untar_from_url, get_image_size_from_path
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
+from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLASSES_LIST
 
@@ -78,7 +78,7 @@ class PascalVOCDetectionDataset(DetectionDataset):
         if download:
             PascalVOCDetectionDataset.download(data_dir)
 
-        kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
+        kwargs["original_target_format"] = XYXY_LABEL
         kwargs["all_classes_list"] = PASCAL_VOC_2012_CLASSES_LIST
         super().__init__(*args, **kwargs)
 
