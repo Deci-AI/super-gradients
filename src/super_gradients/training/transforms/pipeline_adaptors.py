@@ -3,12 +3,13 @@ from typing import Callable
 from abc import abstractmethod, ABC
 import numpy as np
 from PIL import Image
-from super_gradients.training.samples import DetectionSample, SegmentationSample
+from super_gradients.training.samples import DetectionSample, SegmentationSample, DepthEstimationSample
 
 
 class SampleType(Enum):
     DETECTION = "DETECTION"
     SEGMENTATION = "SEGMENTATION"
+    DEPTH_ESTIMATION = "DEPTH_ESTIMATION"
     IMAGE_ONLY = "IMAGE_ONLY"
 
 
@@ -39,6 +40,8 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             self.sample_type = SampleType.DETECTION
         elif isinstance(sample, SegmentationSample):
             self.sample_type = SampleType.SEGMENTATION
+        elif isinstance(sample, DepthEstimationSample):
+            self.sample_type = SampleType.DEPTH_ESTIMATION
         else:
             self.sample_type = SampleType.IMAGE_ONLY
 
@@ -55,6 +58,8 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             sample = {"image": sample.image, "bboxes": sample.bboxes_xyxy, "labels": sample.labels, "is_crowd": sample.is_crowd}
         elif self.sample_type == SampleType.SEGMENTATION:
             sample = {"image": np.array(sample.image), "mask": np.array(sample.mask)}
+        elif self.sample_type == SampleType.DEPTH_ESTIMATION:
+            sample = {"image": sample.image, "mask": sample.depth_map}
         else:
             sample = {"image": np.array(sample)}
         return sample
@@ -76,7 +81,8 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             )
         elif self.sample_type == SampleType.SEGMENTATION:
             sample = SegmentationSample(image=Image.fromarray(sample["image"]), mask=Image.fromarray(sample["mask"]))
-
+        elif self.sample_type == SampleType.DEPTH_ESTIMATION:
+            sample = DepthEstimationSample(image=sample["image"], depth_map=sample["mask"])
         else:
             sample = sample["image"]
 
