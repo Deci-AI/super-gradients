@@ -146,8 +146,11 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
 
             # Update value of keypoints that are not inside the image anymore.
             h, w = sample["image"].shape[1], sample["image"].shape[0]
-            keypoints = np.array([keypoint if (0, 0) <= (keypoint[0], keypoint[1]) < (w, h) else (0, 0, 0) for keypoint in sample["keypoints"]])
+            keypoints = np.array(
+                [keypoint if (0, 0) <= (keypoint[0], keypoint[1]) < (w, h) else (keypoint[0], keypoint[1], 0) for keypoint in sample["keypoints"]]
+            )
             keypoints = keypoints.reshape(-1, sample["n_joints"], 3)
+
             keypoints = keypoints[sample["labels"]]  # remvoe the ones associated with a bbox that was removed.
 
             sample = PoseEstimationSample(
@@ -159,7 +162,7 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
                 is_crowd=np.array(sample["is_crowd"]),
                 additional_samples=None,
             )
-
+            sample = sample.sanitize_sample()
         else:
             sample = sample["image"]
 
