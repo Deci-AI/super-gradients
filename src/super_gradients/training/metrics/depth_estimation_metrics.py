@@ -60,7 +60,7 @@ class DepthMeanSquaredErrorWithIgnored(MeanSquaredError, DepthEstimationMetricMi
     """
 
     def __init__(self, squared: bool, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        super().__init__(squared=squared)
+        MeanSquaredError.__init__(self, squared=squared)
         DepthEstimationMetricMixin.__init__(self, ignore_val, apply_sigmoid)
 
     def update(self, preds: Tensor, target: Tensor) -> None:
@@ -110,7 +110,7 @@ class DepthMSLE(MeanSquaredLogError, DepthEstimationMetricMixin):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        super().__init__()
+        MeanSquaredLogError.__init__(self)
         DepthEstimationMetricMixin.__init__(self, ignore_val, apply_sigmoid)
 
     def update(self, preds: Tensor, target: Tensor) -> None:
@@ -134,7 +134,7 @@ class DepthMAE(MeanAbsoluteError, DepthEstimationMetricMixin):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        super().__init__()
+        MeanAbsoluteError.__init__(self)
         DepthEstimationMetricMixin.__init__(self, ignore_val, apply_sigmoid)
 
     def update(self, preds: Tensor, target: Tensor) -> None:
@@ -158,7 +158,7 @@ class DepthMAPE(MeanAbsolutePercentageError, DepthEstimationMetricMixin):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        super().__init__()
+        MeanAbsolutePercentageError.__init__(self)
         DepthEstimationMetricMixin.__init__(self, ignore_val, apply_sigmoid)
 
     def update(self, preds: Tensor, target: Tensor) -> None:
