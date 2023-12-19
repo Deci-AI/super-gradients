@@ -1,3 +1,4 @@
+import os
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from albumentations import Compose, HorizontalFlip, InvertImg
 from super_gradients.training.datasets import Cifar10, Cifar100, ImageNetDataset, COCODetectionDataset, CoCoSegmentationDataSet, COCOPoseEstimationDataset
 from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy
+from super_gradients.training.datasets.depth_estimation_datasets import NYUv2DepthEstimationDataset
 
 
 def visualize_image(image):
@@ -165,6 +167,21 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
         image, mask = ds[3]
         visualize_image(image)
         visualize_mask(mask, num_classes=len(ds.classes))
+
+    def test_depth_estimation_albumentations_integration(self):
+        mini_nyuv2_data_dir = str(Path(__file__).parent.parent / "data" / "nyu2_mini_test")
+        mini_nyuv2_df_path = os.path.join(mini_nyuv2_data_dir, "nyu2_mini_test.csv")
+
+        transforms = [
+            {
+                "Albumentations": {
+                    "Compose": {"transforms": [{"Rotate": {"p": 1.0, "limit": 15}}, {"RandomBrightnessContrast": {"p": 1.0}}]},
+                }
+            }
+        ]
+
+        dataset = NYUv2DepthEstimationDataset(root=mini_nyuv2_data_dir, df_path=mini_nyuv2_df_path, transforms=transforms)
+        dataset.plot(max_samples_per_plot=8)
 
     def test_coco_pose_albumentations_intergration(self):
         mini_coco_data_dir = str(Path(__file__).parent.parent / "data" / "pose_minicoco")
@@ -323,45 +340,6 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
 
             _ = next(iter(unsupported_ds))
 
-        # transforms = [
-        #     KeypointsRescale(height=320, width=640),
-        #     {"KeypointsRandomHorizontalFlip": {"prob": 1, "flip_index": [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]}},
-        # ]
-        # unsupported_ds = COCOPoseEstimationDataset(
-        #     data_dir=mini_coco_data_dir,
-        #     images_dir="images/val2017",
-        #     json_file="annotations/person_keypoints_val2017.json",
-        #     include_empty_samples=True,
-        #     edge_links=edge_links,
-        #     edge_colors=edge_colors,
-        #     keypoint_colors=keypoint_colors,
-        #     transforms=transforms,
-        # )
-        #
-        # sample = next(iter(unsupported_ds))
-        #
-        #
-        # bboxes_xyxy = xywh_to_xyxy(bboxes=np.array(sample.bboxes_xywh), image_shape=sample.image.shape)
-        #
-        # image_with_keypoints = PoseVisualization.draw_poses(
-        #     image=np.array(sample.image),
-        #     poses=sample.joints,
-        #     boxes=bboxes_xyxy,
-        #     scores=None,
-        #     is_crowd=sample.is_crowd,
-        #     edge_links=edge_links,
-        #     edge_colors=edge_colors,
-        #     keypoint_colors=keypoint_colors,
-        #     show_keypoint_confidence=False,
-        #     joint_thickness=None,
-        #     box_thickness=None,
-        #     keypoint_radius=None,
-        # )
-        #
-        # visualize_image(image=image_with_keypoints)
-
-
-# flip_index: List[int], prob
 
 if __name__ == "__main__":
     unittest.main()
