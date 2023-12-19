@@ -1,3 +1,4 @@
+import os
 import unittest
 from pathlib import Path
 
@@ -7,6 +8,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+
+from super_gradients.training.datasets.depth_estimation_datasets import NYUv2DepthEstimationDataset
 
 
 def visualize_image(image):
@@ -160,6 +163,21 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
         image, mask = ds[3]
         visualize_image(image)
         visualize_mask(mask, num_classes=len(ds.classes))
+
+    def test_depth_estimation_albumentations_integration(self):
+        mini_nyuv2_data_dir = str(Path(__file__).parent.parent / "data" / "nyu2_mini_test")
+        mini_nyuv2_df_path = os.path.join(mini_nyuv2_data_dir, "nyu2_mini_test.csv")
+
+        transforms = [
+            {
+                "Albumentations": {
+                    "Compose": {"transforms": [{"Rotate": {"p": 1.0, "limit": 15}}, {"RandomBrightnessContrast": {"p": 1.0}}]},
+                }
+            }
+        ]
+
+        dataset = NYUv2DepthEstimationDataset(root=mini_nyuv2_data_dir, df_path=mini_nyuv2_df_path, transforms=transforms)
+        dataset.plot(max_samples_per_plot=8)
 
 
 if __name__ == "__main__":
