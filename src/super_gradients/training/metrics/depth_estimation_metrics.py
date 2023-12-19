@@ -49,7 +49,7 @@ class DepthEstimationMetricMixin:
         return preds, target
 
 
-@register_metric(Metrics.MeanSquaredErrorWithIgnored)
+@register_metric(Metrics.DepthMeanSquaredErrorWithIgnored)
 class DepthMeanSquaredErrorWithIgnored(MeanSquaredError, DepthEstimationMetricMixin):
     """MeanAbsoluteError, MeanAbsolutePercentageError
     Mean Squared Error metric for depth estimation with support for ignored values.
@@ -74,7 +74,7 @@ class DepthMeanSquaredErrorWithIgnored(MeanSquaredError, DepthEstimationMetricMi
         super().update(preds, target)
 
 
-@register_metric(Metrics.MSE)
+@register_metric(Metrics.DepthMSE)
 class DepthMSE(DepthMeanSquaredErrorWithIgnored):
     """
     Mean Squared Error metric (squared) for depth estimation with support for ignored values.
@@ -87,7 +87,7 @@ class DepthMSE(DepthMeanSquaredErrorWithIgnored):
         super().__init__(squared=True, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
-@register_metric(Metrics.RMSE)
+@register_metric(Metrics.DepthRMSE)
 class RMSE(DepthMeanSquaredErrorWithIgnored):
     """
     Root Mean Squared Error metric for depth estimation with support for ignored values.
@@ -100,7 +100,7 @@ class RMSE(DepthMeanSquaredErrorWithIgnored):
         super().__init__(squared=False, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
-@register_metric(Metrics.MSLE)
+@register_metric(Metrics.DepthMSLE)
 class DepthMSLE(MeanSquaredLogError, DepthEstimationMetricMixin):
     """
     Mean Squared Logarithmic Error metric for depth estimation with support for ignored values.
@@ -124,7 +124,7 @@ class DepthMSLE(MeanSquaredLogError, DepthEstimationMetricMixin):
         super().update(preds, target)
 
 
-@register_metric(Metrics.MAE)
+@register_metric(Metrics.DepthMAE)
 class DepthMAE(MeanAbsoluteError, DepthEstimationMetricMixin):
     """
     Mean Absolute Error (MAE) metric for depth estimation with support for ignored values.
@@ -148,7 +148,7 @@ class DepthMAE(MeanAbsoluteError, DepthEstimationMetricMixin):
         super().update(preds, target)
 
 
-@register_metric(Metrics.MAPE)
+@register_metric(Metrics.DepthMAPE)
 class DepthMAPE(MeanAbsolutePercentageError, DepthEstimationMetricMixin):
     """
     Mean Absolute Percentage Error (MAPE) metric for depth estimation with support for ignored values.
