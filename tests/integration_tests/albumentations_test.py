@@ -271,7 +271,7 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
                     },
                 }
             },
-            KeypointsPadIfNeeded(min_height=400, min_width=400, image_pad_value=0, mask_pad_value=0, padding_mode="center"),
+            KeypointsPadIfNeeded(min_height=350, min_width=350, image_pad_value=0, mask_pad_value=0, padding_mode="center"),
         ]
 
         ds = COCOPoseEstimationDataset(
@@ -327,7 +327,7 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
                         },
                     }
                 },
-                KeypointsPadIfNeeded(min_height=400, min_width=400, image_pad_value=0, mask_pad_value=0, padding_mode="center"),
+                KeypointsPadIfNeeded(min_height=350, min_width=350, image_pad_value=0, mask_pad_value=0, padding_mode="center"),
             ]
             unsupported_ds = COCOPoseEstimationDataset(
                 data_dir=mini_coco_data_dir,
