@@ -18,7 +18,7 @@ from super_gradients.training.utils import get_param
 from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.predict import PoseEstimationPrediction
 from super_gradients.training.utils.utils import HpmStruct
-from super_gradients.module_interfaces import AbstractPoseEstimationDecodingModule, ExportablePoseEstimationModel
+from super_gradients.module_interfaces import AbstractPoseEstimationDecodingModule, ExportablePoseEstimationModel, SupportsInputShapeCheck
 from .yolo_nas_pose_post_prediction_callback import YoloNASPosePostPredictionCallback
 
 logger = get_logger(__name__)
@@ -90,7 +90,7 @@ class YoloNASPoseDecodingModule(AbstractPoseEstimationDecodingModule):
         return output_pred_bboxes, output_pred_scores, output_pred_joints
 
 
-class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
+class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel, SupportsInputShapeCheck):
     """
     YoloNASPose model
 
@@ -263,6 +263,20 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
         self._default_nms_iou = iou or self._default_nms_iou
         self._default_pre_nms_max_predictions = pre_nms_max_predictions or self._default_pre_nms_max_predictions
         self._default_post_nms_max_predictions = post_nms_max_predictions or self._default_post_nms_max_predictions
+
+    def get_input_shape_steps(self) -> Tuple[int, int]:
+        """
+        Returns the minimum input shape size that the model can accept.
+        For segmentation models the default is 32x32, which corresponds to the largest stride in the encoder part of the model
+        """
+        return 32, 32
+
+    def get_minimum_input_shape_size(self) -> Tuple[int, int]:
+        """
+        Returns the minimum input shape size that the model can accept.
+        For segmentation models the default is 32x32, which corresponds to the largest stride in the encoder part of the model
+        """
+        return 32, 32
 
 
 @register_model(Models.YOLO_NAS_POSE_N)

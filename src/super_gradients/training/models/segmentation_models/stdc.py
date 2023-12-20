@@ -2,7 +2,7 @@
 Implementation of paper: "Rethinking BiSeNet For Real-time Semantic Segmentation", https://arxiv.org/abs/2104.13188
 Based on original implementation: https://github.com/MichaelFan01/STDC-Seg, cloned 23/08/2021, commit 59ff37f
 """
-from typing import Union, List, Optional, Callable, Dict
+from typing import Union, List, Optional, Callable, Dict, Tuple
 from abc import ABC, abstractmethod
 
 import torch
@@ -17,8 +17,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.modules import ConvBNReLU, Residual
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
-from super_gradients.module_interfaces import SupportsReplaceInputChannels
-
+from super_gradients.module_interfaces import SupportsReplaceInputChannels, SupportsInputShapeCheck
 
 # default STDC argument as paper.
 STDC_SEG_DEFAULT_ARGS = {"context_fuse_channels": 128, "ffm_channels": 256, "aux_head_channels": 64, "detail_head_channels": 64}
@@ -433,7 +432,7 @@ class ContextPath(nn.Module):
         return self.backbone.get_input_channels()
 
 
-class STDCSegmentationBase(SgModule):
+class STDCSegmentationBase(SgModule, SupportsInputShapeCheck):
     """
     Base STDC Segmentation Module.
     :param backbone: Backbone of type AbstractSTDCBackbone that return info about backbone output channels.
@@ -635,6 +634,12 @@ class STDCSegmentationBase(SgModule):
 
     def get_input_channels(self) -> int:
         return self.cp.get_input_channels()
+
+    def get_input_shape_steps(self) -> Tuple[int, int]:
+        return 32, 32
+
+    def get_minimum_input_shape_size(self) -> Tuple[int, int]:
+        return 32, 32
 
 
 @register_model(Models.STDC_CUSTOM)
