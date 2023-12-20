@@ -1,3 +1,4 @@
+num_classes: 80
 class_names: [
   "person",
   "bicycle",
