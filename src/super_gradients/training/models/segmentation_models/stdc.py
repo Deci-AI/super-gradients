@@ -2,6 +2,7 @@
 Implementation of paper: "Rethinking BiSeNet For Real-time Semantic Segmentation", https://arxiv.org/abs/2104.13188
 Based on original implementation: https://github.com/MichaelFan01/STDC-Seg, cloned 23/08/2021, commit 59ff37f
 """
+from functools import lru_cache
 from typing import Union, List, Optional, Callable, Dict, Tuple
 from abc import ABC, abstractmethod
 
@@ -9,15 +10,20 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.training.models import SgModule
+from super_gradients.training.pipelines.pipelines import SegmentationPipeline
+from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.modules import ConvBNReLU, Residual
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
-from super_gradients.module_interfaces import SupportsReplaceInputChannels, SupportsInputShapeCheck
+from super_gradients.module_interfaces import SupportsReplaceInputChannels, HasPredict, SupportsInputShapeCheck
+from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.training.utils.predict import ImagesSegmentationPrediction
 
 # default STDC argument as paper.
 STDC_SEG_DEFAULT_ARGS = {"context_fuse_channels": 128, "ffm_channels": 256, "aux_head_channels": 64, "detail_head_channels": 64}
@@ -432,7 +438,7 @@ class ContextPath(nn.Module):
         return self.backbone.get_input_channels()
 
 
-class STDCSegmentationBase(SgModule, SupportsInputShapeCheck):
+class STDCSegmentationBase(SgModule, HasPredict, SupportsInputShapeCheck):
     """
     Base STDC Segmentation Module.
     :param backbone: Backbone of type AbstractSTDCBackbone that return info about backbone output channels.
@@ -488,6 +494,9 @@ class STDCSegmentationBase(SgModule, SupportsInputShapeCheck):
             )
 
         self.init_params()
+        # Processing params
+        self._class_names: Optional[List[str]] = None
+        self._image_processor: Optional[Processing] = None
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
@@ -634,6 +643,54 @@ class STDCSegmentationBase(SgModule, SupportsInputShapeCheck):
 
     def get_input_channels(self) -> int:
         return self.cp.get_input_channels()
+
+    @resolve_param("image_processor", ProcessingFactory())
+    def set_dataset_processing_params(
+        self,
+        class_names: Optional[List[str]] = None,
+        image_processor: Optional[Processing] = None,
+    ) -> None:
+        """Set the processing parameters for the dataset.
+
+        :param class_names:     (Optional) Names of the dataset the model was trained on.
+        :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
+        """
+        self._class_names = class_names or self._class_names
+        self._image_processor = image_processor or self._image_processor
+
+    @lru_cache(1)
+    def _get_pipeline(self, fuse_model: bool = True) -> SegmentationPipeline:
+        """Instantiate the segmentation pipeline of this model.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        """
+        if None in (self._class_names, self._image_processor):
+            raise RuntimeError(
+                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
+            )
+
+        pipeline = SegmentationPipeline(
+            model=self,
+            image_processor=self._image_processor,
+            class_names=self._class_names,
+            fuse_model=fuse_model,
+        )
+        return pipeline
+
+    def predict(self, images: ImageSource, batch_size: int = 32, fuse_model: bool = True) -> ImagesSegmentationPrediction:
+        """Predict an image or a list of images.
+        :param images:  Images to predict.
+        :param batch_size:  Maximum number of images to process at the same time.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        """
+        pipeline = self._get_pipeline(fuse_model=fuse_model)
+        return pipeline(images, batch_size=batch_size)  # type: ignore
+
+    def predict_webcam(self, fuse_model: bool = True):
+        """Predict using webcam.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        """
+        pipeline = self._get_pipeline(fuse_model=fuse_model)
+        pipeline.predict_webcam()
 
     def get_input_shape_steps(self) -> Tuple[int, int]:
         return 32, 32
