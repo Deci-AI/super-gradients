@@ -1,9 +1,9 @@
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, Tuple
 
 import numpy as np
 
 from super_gradients.training.samples import SegmentationSample
-
+from PIL import Image
 
 __all__ = ["LegacySegmentationTransformMixin"]
 
@@ -24,12 +24,12 @@ class LegacySegmentationTransformMixin:
         if isinstance(sample, SegmentationSample):
             return self.apply_to_sample(sample)
         else:
-            sample = self.convert_input_dict_to_segmentation_sample(sample)
+            sample, image_is_pil = self.convert_input_dict_to_segmentation_sample(sample)
             sample = self.apply_to_sample(sample)
-            return self.convert_segmentation_sample_to_dict(sample)
+            return self.convert_segmentation_sample_to_dict(sample, image_is_pil)
 
     @classmethod
-    def convert_input_dict_to_segmentation_sample(cls, sample_annotations: Dict[str, Union[np.ndarray, Any]]) -> SegmentationSample:
+    def convert_input_dict_to_segmentation_sample(cls, sample_annotations: Dict[str, Union[np.ndarray, Any]]) -> Tuple[SegmentationSample, bool]:
         """
         Convert old-style segmentation sample dict to new DetectionSample dataclass.
 
@@ -37,17 +37,30 @@ class LegacySegmentationTransformMixin:
             image:              Associated image with sample, in [H,W,C] (or H,W for greyscale) format.
             mask:               Associated segmentation mask with sample, in [H,W]
 
-        :return: An instance of SegmentationSample dataclass filled with data from input dictionary.
+        :return: A tuple of SegmentationSample and a boolean value indicating whether original input dict has images as PIL Image
+                 An instance of SegmentationSample dataclass filled with data from input dictionary.
         """
 
-        return SegmentationSample(image=sample_annotations["image"], mask=sample_annotations["mask"])
+        image_is_pil = isinstance(sample_annotations["image"], Image.Image)
+        return SegmentationSample(image=sample_annotations["image"], mask=sample_annotations["mask"]), image_is_pil
 
     @classmethod
-    def convert_segmentation_sample_to_dict(cls, sample: SegmentationSample) -> Dict[str, Union[np.ndarray, Any]]:
+    def convert_segmentation_sample_to_dict(cls, sample: SegmentationSample, image_is_pil: bool) -> Dict[str, Union[np.ndarray, Any]]:
         """
         Convert new SegmentationSample dataclass to old-style detection sample dict. This is a reverse operation to
         convert_input_dict_to_detection_sample and used to make legacy transforms compatible with new segmentation
-        transforms. :param sample:
+        transforms.
+        :param sample:       Transformed sample
+        :param image_is_pil: A boolean value indicating whether original input dict has images as PIL Image
+                             If True, output dict will also have images as PIL Image, otherwise as numpy array.
         """
 
-        return {"image": sample.image, "mask": sample.mask}
+        image = sample.image
+        mask = sample.mask
+
+        if image_is_pil:
+            if isinstance(image, np.ndarray):
+                image = Image.fromarray(image)
+            if isinstance(mask, np.ndarray):
+                mask = Image.fromarray(mask)
+        return {"image": image, "mask": mask}
