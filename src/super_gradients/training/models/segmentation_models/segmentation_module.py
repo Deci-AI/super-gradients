@@ -1,7 +1,8 @@
+from super_gradients.module_interfaces import SupportsInputShapeCheck
 from super_gradients.training.models.sg_module import SgModule
 import torch.nn as nn
 from abc import abstractmethod, ABC
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple
 from functools import lru_cache
 from super_gradients.training.pipelines.pipelines import SegmentationPipeline
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -12,7 +13,7 @@ from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.module_interfaces import HasPredict
 
 
-class SegmentationModule(SgModule, ABC, HasPredict):
+class SegmentationModule(SgModule, ABC, HasPredict, SupportsInputShapeCheck):
     """
     Base SegmentationModule class
     """
@@ -119,3 +120,17 @@ class SegmentationModule(SgModule, ABC, HasPredict):
         """
         pipeline = self._get_pipeline(fuse_model=fuse_model)
         pipeline.predict_webcam()
+
+    def get_input_shape_steps(self) -> Tuple[int, int]:
+        """
+        Returns the minimum input shape size that the model can accept.
+        For segmentation models the default is 32x32, which corresponds to the largest stride in the encoder part of the model
+        """
+        return 32, 32
+
+    def get_minimum_input_shape_size(self) -> Tuple[int, int]:
+        """
+        Returns the minimum input shape size that the model can accept.
+        For segmentation models the default is 32x32, which corresponds to the largest stride in the encoder part of the model
+        """
+        return 32, 32
