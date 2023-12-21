@@ -1,21 +1,23 @@
-from typing import Tuple, Sequence, Union, Optional
-
+from typing import Optional, Union, Sequence, Tuple
 import torch
 from torch import Tensor
-from torchmetrics import MeanSquaredError, MeanSquaredLogError, MeanAbsoluteError, MeanAbsolutePercentageError, Metric
-from super_gradients.common.object_names import Metrics
+from torchmetrics import Metric, MeanSquaredError, MeanSquaredLogError, MeanAbsoluteError, MeanAbsolutePercentageError
 from super_gradients.common.registry import register_metric
+from super_gradients.common.object_names import Metrics
 
 
-class DepthEstimationMetricMixin:
+class DepthEstimationMetricBase(Metric):
     """
-    A mixin class providing common functionality for depth estimation metrics.
-
-    :param ignore_val: Value to be ignored when computing metrics.
-    :param apply_sigmoid: Whether to apply the sigmoid function to predictions before updating the metric.
+    Base class for depth estimation metrics, handling common processing steps.
+    Args:
+        metric (Metric): The specific torchmetrics metric instance.
+        ignore_val (Optional[float]): Value to be ignored when computing metrics.
+        apply_sigmoid (bool): Whether to apply the sigmoid function to predictions.
     """
 
-    def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
+    def __init__(self, metric: Metric, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
+        super().__init__()
+        self.metric = metric
         self.ignore_val = ignore_val
         self.apply_sigmoid = apply_sigmoid
 
@@ -34,48 +36,30 @@ class DepthEstimationMetricMixin:
 
         if isinstance(preds, Sequence):
             preds = preds[0]
-
         if preds.ndim == 4:
             preds = preds.squeeze(1)
-
         if self.apply_sigmoid:
             preds = torch.sigmoid(preds)
-
         if self.ignore_val is not None:
             non_ignored = preds != self.ignore_val
             preds = preds[non_ignored]
             target = target[non_ignored]
-
         return preds, target
 
-
-@register_metric(Metrics.DepthMeanSquaredErrorWithIgnored)
-class DepthMeanSquaredErrorWithIgnored(MeanSquaredError, DepthEstimationMetricMixin):
-    """MeanAbsoluteError, MeanAbsolutePercentageError
-    Mean Squared Error metric for depth estimation with support for ignored values.
-
-    :param squared: If True returns MSE value, if False returns RMSE value.
-    :param ignore_val: Value to be ignored when computing the metric.
-    :param apply_sigmoid: Whether to apply the sigmoid function to predictions before updating the metric.
-    """
-
-    def __init__(self, squared: bool, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        MeanSquaredError.__init__(self, squared=squared)
-        DepthEstimationMetricMixin.__init__(self, ignore_val, apply_sigmoid)
-
-    def update(self, preds: Tensor, target: Tensor) -> None:
-        """
-        Update the metric with model predictions and target depth map.
-
-        :param preds: Model predictions.
-        :param target: Ground truth depth map.
-        """
+    def update(self, preds: Tensor, target: Tensor):
         preds, target = self.process_preds_and_target(preds, target)
-        super().update(preds, target)
+        self.metric.update(preds, target)
+
+    def compute(self):
+        return self.metric.compute()
+
+    def reset(self) -> None:
+        self.metric.reset()
 
 
+# MSE metric
 @register_metric(Metrics.DepthMSE)
-class DepthMSE(DepthMeanSquaredErrorWithIgnored):
+class DepthMSE(DepthEstimationMetricBase):
     """
     Mean Squared Error metric (squared) for depth estimation with support for ignored values.
 
@@ -84,11 +68,12 @@ class DepthMSE(DepthMeanSquaredErrorWithIgnored):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        super().__init__(squared=True, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
+        super().__init__(metric=MeanSquaredError(squared=True), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
+# RMSE metric
 @register_metric(Metrics.DepthRMSE)
-class RMSE(DepthMeanSquaredErrorWithIgnored):
+class DepthRMSE(DepthEstimationMetricBase):
     """
     Root Mean Squared Error metric for depth estimation with support for ignored values.
 
@@ -97,11 +82,12 @@ class RMSE(DepthMeanSquaredErrorWithIgnored):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        super().__init__(squared=False, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
+        super().__init__(metric=MeanSquaredError(squared=False), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
+# MSLE metric
 @register_metric(Metrics.DepthMSLE)
-class DepthMSLE(MeanSquaredLogError, DepthEstimationMetricMixin):
+class DepthMSLE(DepthEstimationMetricBase):
     """
     Mean Squared Logarithmic Error metric for depth estimation with support for ignored values.
 
@@ -110,22 +96,12 @@ class DepthMSLE(MeanSquaredLogError, DepthEstimationMetricMixin):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        MeanSquaredLogError.__init__(self)
-        DepthEstimationMetricMixin.__init__(self, ignore_val, apply_sigmoid)
-
-    def update(self, preds: Tensor, target: Tensor) -> None:
-        """
-        Update the metric with model predictions and target depth map.
-
-        :param preds: Model predictions.
-        :param target: Ground truth depth map.
-        """
-        preds, target = self.process_preds_and_target(preds, target)
-        super().update(preds, target)
+        super().__init__(metric=MeanSquaredLogError(), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
+# MAE metric
 @register_metric(Metrics.DepthMAE)
-class DepthMAE(MeanAbsoluteError, DepthEstimationMetricMixin):
+class DepthMAE(DepthEstimationMetricBase):
     """
     Mean Absolute Error (MAE) metric for depth estimation with support for ignored values.
 
@@ -134,22 +110,12 @@ class DepthMAE(MeanAbsoluteError, DepthEstimationMetricMixin):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        MeanAbsoluteError.__init__(self)
-        DepthEstimationMetricMixin.__init__(self, ignore_val, apply_sigmoid)
-
-    def update(self, preds: Tensor, target: Tensor) -> None:
-        """
-        Update the metric with model predictions and target depth map.
-
-        :param preds: Model predictions.
-        :param target: Ground truth depth map.
-        """
-        preds, target = self.process_preds_and_target(preds, target)
-        super().update(preds, target)
+        super().__init__(metric=MeanAbsoluteError(), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
+# MAPE metric
 @register_metric(Metrics.DepthMAPE)
-class DepthMAPE(MeanAbsolutePercentageError, DepthEstimationMetricMixin):
+class DepthMAPE(DepthEstimationMetricBase):
     """
     Mean Absolute Percentage Error (MAPE) metric for depth estimation with support for ignored values.
 
@@ -158,61 +124,48 @@ class DepthMAPE(MeanAbsolutePercentageError, DepthEstimationMetricMixin):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        MeanAbsolutePercentageError.__init__(self)
-        DepthEstimationMetricMixin.__init__(self, ignore_val, apply_sigmoid)
-
-    def update(self, preds: Tensor, target: Tensor) -> None:
-        """
-        Update the metric with model predictions and target depth map.
-
-        :param preds: Model predictions.
-        :param target: Ground truth depth map.
-        """
-        preds, target = self.process_preds_and_target(preds, target)
-        super().update(preds, target)
+        super().__init__(metric=MeanAbsolutePercentageError(), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
 @register_metric(Metrics.DELTAMETRIC)
-class DeltaMetric(Metric, DepthEstimationMetricMixin):
+class DeltaMetric(Metric):
     """
-    Delta metrics for depth estimation with support for ignored values.
+    Delta metric - retirns the percentage of pixels s.t max(preds / target, target / preds) < delta
 
-    :param deltas: List of threshold values for delta metrics.
-    :param ignore_val: Value to be ignored when computing the metric.
-    :param apply_sigmoid: Whether to apply the sigmoid function to predictions before updating the metric.
+    Use inheritors for ignored values.
+
+    Args:
+        delta (float): Threshold value for delta metric.
     """
 
-    def __init__(self, delta: float, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        Metric.__init__(self)
-        DepthEstimationMetricMixin.__init__(self, ignore_val, apply_sigmoid)
+    def __init__(self, delta: float):
+        super().__init__()
         self.delta = delta
         self.add_state("total_delta_pixels", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total_pixels", default=torch.tensor(0.0), dist_reduce_fx="sum")
 
-    def update(self, preds: Tensor, target: Tensor) -> None:
-        preds, target = self.process_preds_and_target(preds, target)
+    def update(self, preds: Tensor, target: Tensor):
         self.total_pixels += target.numel()
         self.total_delta_pixels += self.compute_delta_pixels(preds, target)
 
     def compute_delta_pixels(self, preds: Tensor, target: Tensor) -> Tensor:
         """
-        Compute delta metrics for depth estimation with support for ignored values.
+        Compute delta metrics for depth estimation without support for ignored values.
 
         :param preds: Model predictions.
         :param target: Ground truth depth map.
-        :param delta: Threshold value for delta metrics.
         :return: Delta metric value.
         """
         ratio = torch.max(preds / target, target / preds)
-        delta_metric = torch.mean((ratio < self.delta).float())
-        return delta_metric
+        return torch.sum((ratio < self.delta).float())
 
     def compute(self):
         return self.total_delta_pixels / self.total_pixels
 
 
+# Delta metrics (Delta1, Delta2, Delta3)
 @register_metric(Metrics.DELTA1)
-class Delta1(DeltaMetric):
+class Delta1(DepthEstimationMetricBase):
     """
     Delta1 metric for depth estimation with support for ignored values.
 
@@ -221,11 +174,11 @@ class Delta1(DeltaMetric):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        super().__init__(delta=1.25, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
+        super().__init__(metric=DeltaMetric(delta=1.25), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
 @register_metric(Metrics.DELTA2)
-class Delta2(DeltaMetric):
+class Delta2(DepthEstimationMetricBase):
     """
     Delta2 metric for depth estimation with support for ignored values.
 
@@ -234,11 +187,11 @@ class Delta2(DeltaMetric):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        super().__init__(delta=1.25**2, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
+        super().__init__(metric=DeltaMetric(delta=1.25**2), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
 @register_metric(Metrics.DELTA3)
-class Delta3(DeltaMetric):
+class Delta3(DepthEstimationMetricBase):
     """
     Delta3 metric for depth estimation with support for ignored values.
 
@@ -247,4 +200,4 @@ class Delta3(DeltaMetric):
     """
 
     def __init__(self, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
-        super().__init__(delta=1.25**3, ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
+        super().__init__(metric=DeltaMetric(delta=1.25**3), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
