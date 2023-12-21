@@ -42,7 +42,6 @@ class Metrics:
     DepthMAE = "DepthMAE"
     DepthMAPE = "DepthMAPE"
     DepthMSE = "DepthMSE"
-    DepthMeanSquaredErrorWithIgnored = "DepthMeanSquaredErrorWithIgnored"
     DepthRMSE = "DepthRMSE"
     DepthMSLE = "DepthMSLE"
 

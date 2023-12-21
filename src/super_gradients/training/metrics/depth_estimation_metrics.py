@@ -9,10 +9,15 @@ from super_gradients.common.object_names import Metrics
 class DepthEstimationMetricBase(Metric):
     """
     Base class for depth estimation metrics, handling common processing steps.
-    Args:
-        metric (Metric): The specific torchmetrics metric instance.
-        ignore_val (Optional[float]): Value to be ignored when computing metrics.
-        apply_sigmoid (bool): Whether to apply the sigmoid function to predictions.
+
+    :param metric: The specific torchmetrics metric instance.
+    :param ignore_val: Value to be ignored when computing metricsn. In depth estimation tasks, it is common
+                      to have regions in the depth map where the ground truth depth is not available or unreliable (e.g.,
+                      marked as -1 or a specific value). In such cases, setting `ignore_val` allows you to exclude these
+                      regions from the metric computation. It is important that the dataset class providing the depth map
+                      fills the corresponding regions of the image with this `ignore_val` value to ensure consistency in
+                      metric calculations.
+    :param apply_sigmoid: Whether to apply the sigmoid function to predictions.
     """
 
     def __init__(self, metric: Metric, ignore_val: Optional[float] = None, apply_sigmoid: bool = False):
@@ -36,8 +41,6 @@ class DepthEstimationMetricBase(Metric):
 
         if isinstance(preds, Sequence):
             preds = preds[0]
-        if preds.ndim == 4:
-            preds = preds.squeeze(1)
         if self.apply_sigmoid:
             preds = torch.sigmoid(preds)
         if self.ignore_val is not None:
@@ -125,12 +128,12 @@ class DepthMAPE(DepthEstimationMetricBase):
 @register_metric(Metrics.DELTAMETRIC)
 class DeltaMetric(Metric):
     """
-    Delta metric - retirns the percentage of pixels s.t max(preds / target, target / preds) < delta
+    Delta metric - returns the percentage of pixels s.t max(preds / target, target / preds) < delta
 
     Use inheritors for ignored values.
 
-    Args:
-        delta (float): Threshold value for delta metric.
+    :param: delta (float): Threshold value for delta metric.
+
     """
 
     def __init__(self, delta: float):
