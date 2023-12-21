@@ -1,7 +1,7 @@
 import torch
 import unittest
 
-from super_gradients.training.metrics import Delta1, Delta2, Delta3, DepthMAE, DepthMAPE, DepthMSE, RMSE, DepthMSLE
+from super_gradients.training.metrics import Delta1, Delta2, Delta3, DepthMAE, DepthMAPE, DepthMSE, DepthRMSE, DepthMSLE
 
 
 class TestDepthEstimationMetrics(unittest.TestCase):
@@ -21,9 +21,9 @@ class TestDepthEstimationMetrics(unittest.TestCase):
         delta3_metric.update(pred_depth, gt_depth)
 
         # Compute and assert the delta metrics
-        self.assertAlmostEqual(delta1_metric.compute().item(), 0.125)
-        self.assertAlmostEqual(delta2_metric.compute().item(), 0.25)
-        self.assertAlmostEqual(delta3_metric.compute().item(), 0.25)
+        self.assertAlmostEqual(delta1_metric.compute().item(), 0.5)
+        self.assertAlmostEqual(delta2_metric.compute().item(), 1.0)
+        self.assertAlmostEqual(delta3_metric.compute().item(), 1.0)
 
     def test_mae_metric(self):
         # Specific example data
@@ -73,7 +73,7 @@ class TestDepthEstimationMetrics(unittest.TestCase):
         gt_depth = torch.tensor([[[1.5, 2.5], [3.5, 4.5]]], dtype=torch.float32)
 
         # Create an instance of RMSE metric
-        rmse_metric = RMSE()
+        rmse_metric = DepthRMSE()
 
         # Update metric with specific example data
         rmse_metric.update(pred_depth, gt_depth)
