@@ -1,5 +1,6 @@
 import abc
 from abc import abstractmethod
+from typing import List
 
 from super_gradients.training.samples import SegmentationSample
 
@@ -22,4 +23,8 @@ class AbstractSegmentationTransform(abc.ABC):
         :param sample: Input sample to transform.
         :return:       Modified sample (It can be the same instance as input or a new object).
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_equivalent_preprocessing(self) -> List:
         raise NotImplementedError
