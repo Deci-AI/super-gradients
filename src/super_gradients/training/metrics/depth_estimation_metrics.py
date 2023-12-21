@@ -57,7 +57,6 @@ class DepthEstimationMetricBase(Metric):
         self.metric.reset()
 
 
-# MSE metric
 @register_metric(Metrics.DepthMSE)
 class DepthMSE(DepthEstimationMetricBase):
     """
@@ -71,7 +70,6 @@ class DepthMSE(DepthEstimationMetricBase):
         super().__init__(metric=MeanSquaredError(squared=True), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
-# RMSE metric
 @register_metric(Metrics.DepthRMSE)
 class DepthRMSE(DepthEstimationMetricBase):
     """
@@ -85,7 +83,6 @@ class DepthRMSE(DepthEstimationMetricBase):
         super().__init__(metric=MeanSquaredError(squared=False), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
-# MSLE metric
 @register_metric(Metrics.DepthMSLE)
 class DepthMSLE(DepthEstimationMetricBase):
     """
@@ -99,7 +96,6 @@ class DepthMSLE(DepthEstimationMetricBase):
         super().__init__(metric=MeanSquaredLogError(), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
-# MAE metric
 @register_metric(Metrics.DepthMAE)
 class DepthMAE(DepthEstimationMetricBase):
     """
@@ -113,7 +109,6 @@ class DepthMAE(DepthEstimationMetricBase):
         super().__init__(metric=MeanAbsoluteError(), ignore_val=ignore_val, apply_sigmoid=apply_sigmoid)
 
 
-# MAPE metric
 @register_metric(Metrics.DepthMAPE)
 class DepthMAPE(DepthEstimationMetricBase):
     """
@@ -163,7 +158,6 @@ class DeltaMetric(Metric):
         return self.total_delta_pixels / self.total_pixels
 
 
-# Delta metrics (Delta1, Delta2, Delta3)
 @register_metric(Metrics.DELTA1)
 class Delta1(DepthEstimationMetricBase):
     """
