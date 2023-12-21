@@ -218,7 +218,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ### Pose Estimation
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On) [Pose Estimation Transfer Learning](https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb) [Pose Estimation Transfer Learning](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb)
 
 
 ###  Object Detection
