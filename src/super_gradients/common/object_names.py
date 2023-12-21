@@ -42,7 +42,9 @@ class Transforms:
 
     # From SG
     SegNormalize = "SegNormalize"
+    SegStandardize = "SegStandardize"
     SegToTensor = "SegToTensor"
+    SegConvertToTensor = "SegConvertToTensor"
     SegRandomFlip = "SegRandomFlip"
     SegResize = "SegResize"
     SegRescale = "SegRescale"
@@ -53,6 +55,7 @@ class Transforms:
     SegPadShortToCropSize = "SegPadShortToCropSize"
     SegPadToDivisible = "SegPadToDivisible"
     SegColorJitter = "SegColorJitter"
+    # Detection transforms
     DetectionStandardize = "DetectionStandardize"
     DetectionMosaic = "DetectionMosaic"
     DetectionRandomAffine = "DetectionRandomAffine"
@@ -442,3 +445,8 @@ class Processings:
     ComposeProcessing = "ComposeProcessing"
     CenterCrop = "CenterCrop"
     Resize = "Resize"
+    SegmentationResizeWithPadding = "SegmentationResizeWithPadding"
+    SegmentationRescale = "SegmentationRescale"
+    SegmentationResize = "SegmentationResize"
+    SegmentationPadShortToCropSize = "SegmentationPadShortToCropSize"
+    SegmentationPadToDivisible = "SegmentationPadToDivisible"

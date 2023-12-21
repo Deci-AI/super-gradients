@@ -161,7 +161,7 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
                         "Compose": {"transforms": [{"HorizontalFlip": {"p": 0.5}}, {"RandomBrightnessContrast": {"p": 0.5}}]},
                     }
                 },
-                "SegToTensor",
+                "SegConvertToTensor",
             ],
         )
         image, mask = ds[3]
