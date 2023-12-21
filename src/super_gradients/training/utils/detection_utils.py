@@ -401,7 +401,7 @@ class DetectionVisualization:
         y2: int,
         class_id: int,
         pred_conf: float = None,
-        is_target: bool = False,
+        bbox_prefix: str = "",
     ):
         """
         Draw a rectangle with class name, confidence on the image
@@ -415,16 +415,16 @@ class DetectionVisualization:
         :param y2: Y coordinate of the bottom right corner of the bounding box
         :param class_id: A corresponding class id
         :param pred_conf: Class confidence score (optional)
-        :param is_target: Indicate if the bounding box is a ground-truth box or not
-
+        :param bbox_prefix: Prefix to add to the title of the bounding boxes
         """
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
-        if is_target:
-            title = f"[GT] {class_name}"
-        else:
-            title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+        title = class_name
+        if bbox_prefix:
+            title = f"{bbox_prefix} {class_name}"
+        if pred_conf is not None:
+            title = f"{title} {str(round(pred_conf, 2))}"
 
         image_np = draw_bbox(image=image_np, title=title, x1=x1, y1=y1, x2=x2, y2=y2, box_thickness=box_thickness, color=color)
         return image_np
@@ -441,26 +441,81 @@ class DetectionVisualization:
         checkpoint_dir: str,
         image_name: str,
     ):
+        return DetectionVisualization.visualize_image(
+            image_np=image_np,
+            pred_boxes=pred_boxes,
+            target_boxes=target_boxes,
+            class_names=class_names,
+            box_thickness=box_thickness,
+            gt_alpha=gt_alpha,
+            image_scale=image_scale,
+            checkpoint_dir=checkpoint_dir,
+            image_name=image_name,
+        )
+
+    @staticmethod
+    def visualize_image(
+        image_np: np.ndarray,
+        class_names: List[str],
+        target_boxes: Optional[np.ndarray] = None,
+        pred_boxes: Optional[np.ndarray] = None,
+        box_thickness: Optional[int] = 2,
+        gt_alpha: float = 0.6,
+        image_scale: float = 1.0,
+        checkpoint_dir: Optional[str] = None,
+        image_name: Optional[str] = None,
+    ):
         image_np = cv2.resize(image_np, (0, 0), fx=image_scale, fy=image_scale, interpolation=cv2.INTER_NEAREST)
         color_mapping = DetectionVisualization._generate_color_mapping(len(class_names))
 
-        # Draw predictions
-        pred_boxes[:, :4] *= image_scale
-        for box in pred_boxes:
-            image_np = DetectionVisualization.draw_box_title(
-                color_mapping, class_names, box_thickness, image_np, *box[:4].astype(int), class_id=int(box[5]), pred_conf=box[4]
-            )
+        if pred_boxes is not None:
 
-        # Draw ground truths
-        target_boxes_image = np.zeros_like(image_np, np.uint8)
-        for box in target_boxes:
-            target_boxes_image = DetectionVisualization.draw_box_title(
-                color_mapping, class_names, box_thickness, target_boxes_image, *box[2:], class_id=box[1], is_target=True
-            )
+            # Draw predictions
+            pred_boxes[:, :4] *= image_scale
+            for xyxy_score_label in pred_boxes:
+                image_np = DetectionVisualization.draw_box_title(
+                    color_mapping=color_mapping,
+                    class_names=class_names,
+                    box_thickness=box_thickness,
+                    image_np=image_np,
+                    x1=int(xyxy_score_label[0]),
+                    y1=int(xyxy_score_label[1]),
+                    x2=int(xyxy_score_label[2]),
+                    y2=int(xyxy_score_label[3]),
+                    class_id=int(xyxy_score_label[5]),
+                    pred_conf=float(xyxy_score_label[4]),
+                    bbox_prefix="[Pred]" if target_boxes is not None else "",  # If we have TARGETS, we want to add a prefix to distinguish.
+                )
 
-        # Transparent overlay of ground truth boxes
-        mask = target_boxes_image.astype(bool)
-        image_np[mask] = cv2.addWeighted(image_np, 1 - gt_alpha, target_boxes_image, gt_alpha, 0)[mask]
+        if target_boxes is not None:
+
+            # If gt_alpha is set, we will show it as a transparent overlay.
+            if gt_alpha is not None:
+                # Transparent overlay of ground truth boxes
+                image_with_targets = np.zeros_like(image_np, np.uint8)
+            else:
+                image_with_targets = image_np
+
+            for label_xyxy in target_boxes:
+                image_with_targets = DetectionVisualization.draw_box_title(
+                    color_mapping=color_mapping,
+                    class_names=class_names,
+                    box_thickness=box_thickness,
+                    image_np=image_with_targets,
+                    x1=int(label_xyxy[1]),
+                    y1=int(label_xyxy[2]),
+                    x2=int(label_xyxy[3]),
+                    y2=int(label_xyxy[4]),
+                    class_id=int(label_xyxy[0]),
+                    bbox_prefix="[GT]" if pred_boxes is not None else "",  # If we have PREDICTIONS, we want to add a prefix to distinguish.
+                )
+
+            if gt_alpha is not None:
+                # Transparent overlay of ground truth boxes
+                mask = image_with_targets.astype(bool)
+                image_np[mask] = cv2.addWeighted(image_np, 1 - gt_alpha, image_with_targets, gt_alpha, 0)[mask]
+            else:
+                image_np = image_with_targets
 
         if checkpoint_dir is None:
             return image_np
@@ -546,7 +601,15 @@ class DetectionVisualization:
 
             image_name = "_".join([str(batch_name), str(i)])
             res_image = DetectionVisualization._visualize_image(
-                image_np[i], preds, targets_cur, class_names, box_thickness, gt_alpha, image_scale, checkpoint_dir, image_name
+                image_np=image_np[i],
+                pred_boxes=preds,
+                target_boxes=targets_cur,
+                class_names=class_names,
+                box_thickness=box_thickness,
+                gt_alpha=gt_alpha,
+                image_scale=image_scale,
+                checkpoint_dir=checkpoint_dir,
+                image_name=image_name,
             )
             if res_image is not None:
                 out_images.append(res_image)

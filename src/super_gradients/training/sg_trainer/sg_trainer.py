@@ -103,7 +103,7 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
-from super_gradients.module_interfaces import ExportableObjectDetectionModel
+from super_gradients.module_interfaces import ExportableObjectDetectionModel, SupportsInputShapeCheck
 from super_gradients.conversion import ExportQuantizationMode
 
 logger = get_logger(__name__)
@@ -1465,13 +1465,19 @@ class Trainer:
                 "Segformer"
             )
 
-        first_batch = next(iter(self.train_loader))
-        inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_batch)
+        if isinstance(model, SupportsInputShapeCheck):
+            first_train_batch = next(iter(self.train_loader))
+            inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_train_batch)
+            model.validate_input_shape(inputs.size())
+
+            first_valid_batch = next(iter(self.valid_loader))
+            inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_valid_batch)
+            model.validate_input_shape(inputs.size())
 
         log_main_training_params(
             multi_gpu=device_config.multi_gpu,
             num_gpus=get_world_size(),
-            batch_size=len(inputs),
+            batch_size=batch_size,
             batch_accumulate=self.batch_accumulate,
             train_dataset_length=len(self.train_loader.dataset),
             train_dataloader_len=len(self.train_loader),
@@ -1538,7 +1544,7 @@ class Trainer:
                     self.net = self.ema_model.ema
 
                 train_inf_time = timer.stop()
-                self._write_scalars_to_logger(metrics=train_metrics_dict, epoch=1 + epoch, inference_time=train_inf_time, tag="Train")
+                self._write_scalars_to_logger(metrics=train_metrics_dict, epoch=epoch, inference_time=train_inf_time, tag="Train")
 
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
                 valid_metrics_dict = {}
@@ -1559,10 +1565,10 @@ class Trainer:
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
-                    self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch=1 + epoch, inference_time=val_inf_time, tag="Valid")
+                    self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch=epoch, inference_time=val_inf_time, tag="Valid")
 
                 test_metrics_dict = {}
-                if (epoch + 1) % self.run_test_freq == 0:
+                if len(self.test_loaders) and (epoch + 1) % self.run_test_freq == 0:
                     self.phase_callback_handler.on_test_loader_start(context)
                     test_inf_time = 0.0
                     for dataset_name, dataloader in self.test_loaders.items():
@@ -1581,19 +1587,19 @@ class Trainer:
                     context.update_context(metrics_dict=test_metrics_dict)
                     self.phase_callback_handler.on_test_loader_end(context)
 
-                    self._write_scalars_to_logger(metrics=test_metrics_dict, epoch=1 + epoch, inference_time=test_inf_time, tag="Test")
+                    self._write_scalars_to_logger(metrics=test_metrics_dict, epoch=epoch, inference_time=test_inf_time, tag="Test")
 
                 if self.ema:
                     self.net = keep_model
 
                 if not self.ddp_silent_mode:
-                    self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=1 + epoch)
+                    self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=epoch)
 
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
                     if should_run_validation and self.training_params.save_model:
                         self._save_checkpoint(
                             optimizer=self.optimizer,
-                            epoch=epoch + 1,
+                            epoch=1 + epoch,
                             train_metrics_dict=train_metrics_dict,
                             validation_results_dict=valid_metrics_dict,
                             context=context,

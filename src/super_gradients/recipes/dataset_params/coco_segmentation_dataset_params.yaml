@@ -25,11 +25,15 @@ train_dataset_params:
         crop_size: 512
         mode: random
 
-    - SegToTensor
+    - SegStandardize:
+        max_value: 255
 
     - SegNormalize:
         mean: [0.485, 0.456, 0.406]
         std: [0.229, 0.224, 0.225]
+
+    - SegConvertToTensor
+
 
 
 val_dataset_params:
@@ -49,11 +53,15 @@ val_dataset_params:
         crop_size: 512
         mode: center
 
-    - SegToTensor
+    - SegStandardize:
+        max_value: 255
 
     - SegNormalize:
         mean: [0.485, 0.456, 0.406]
         std: [0.229, 0.224, 0.225]
+
+    - SegConvertToTensor
+
 
 
 train_dataloader_params:

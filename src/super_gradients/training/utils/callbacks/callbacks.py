@@ -1,5 +1,6 @@
 import copy
 import csv
+import itertools
 import math
 import numbers
 import os
@@ -13,10 +14,6 @@ import numpy as np
 import onnx
 import onnxruntime
 import torch
-from torch.utils.data import DataLoader
-from torchmetrics import MetricCollection, Metric
-from torchvision.utils import draw_segmentation_masks
-
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
@@ -30,9 +27,12 @@ from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, 
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback, cxcywh2xyxy, xyxy2cxcywh
-from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
+from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_as_list
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.training.utils.utils import unwrap_model, infer_model_device, tensor_container_to_device
+from torch.utils.data import DataLoader
+from torchmetrics import MetricCollection, Metric
+from torchvision.utils import draw_segmentation_masks
 
 logger = get_logger(__name__)
 
@@ -1110,11 +1110,11 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self._reset()
 
     def on_train_batch_end(self, context: PhaseContext) -> None:
-        if self.enable_on_train_loader and context.epoch % self.freq == 0:
+        if self.enable_on_train_loader and (context.epoch + 1) % self.freq == 0:
             self._on_batch_end(context)
 
     def on_train_loader_end(self, context: PhaseContext) -> None:
-        if self.enable_on_train_loader and context.epoch % self.freq == 0:
+        if self.enable_on_train_loader and (context.epoch + 1) % self.freq == 0:
             self._gather_extreme_batch_images_and_log(context, "train")
             self._reset()
 
@@ -1122,20 +1122,32 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self._reset()
 
     def on_validation_batch_end(self, context: PhaseContext) -> None:
-        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+        if self.enable_on_valid_loader and (context.epoch + 1) % self.freq == 0:
             self._on_batch_end(context)
 
     def on_validation_loader_end(self, context: PhaseContext) -> None:
-        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+        if self.enable_on_valid_loader and (context.epoch + 1) % self.freq == 0:
             self._gather_extreme_batch_images_and_log(context, "valid")
             self._reset()
 
     def _gather_extreme_batch_images_and_log(self, context, loader_name: str):
-        images_to_save = self.process_extreme_batch()
-        images_to_save = maybe_all_gather_np_images(images_to_save)
-        if self.max_images > 0:
-            images_to_save = images_to_save[: self.max_images]
+        input_images_to_save = self.process_extreme_batch()
+        images_to_save = maybe_all_gather_as_list(input_images_to_save)
+        images_to_save: List[np.ndarray] = list(itertools.chain(*images_to_save))
+
         if not context.ddp_silent_mode:
+            if self.max_images > 0:
+                images_to_save = images_to_save[: self.max_images]
+
+            # Before saving images to logger we need to pad them to the same size
+            max_height = max([image.shape[0] for image in images_to_save])
+            max_width = max([image.shape[1] for image in images_to_save])
+            images_to_save = [
+                cv2.copyMakeBorder(image, 0, max_height - image.shape[0], 0, max_width - image.shape[1], cv2.BORDER_CONSTANT, value=0)
+                for image in images_to_save
+            ]
+            images_to_save = np.stack(images_to_save, axis=0)
+
             context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=context.epoch, data_format="NHWC")
 
     def _on_batch_end(self, context: PhaseContext) -> None:
