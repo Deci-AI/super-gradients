@@ -42,7 +42,9 @@ class Transforms:
 
     # From SG
     SegNormalize = "SegNormalize"
+    SegStandardize = "SegStandardize"
     SegToTensor = "SegToTensor"
+    SegConvertToTensor = "SegConvertToTensor"
     SegRandomFlip = "SegRandomFlip"
     SegResize = "SegResize"
     SegRescale = "SegRescale"
@@ -53,6 +55,7 @@ class Transforms:
     SegPadShortToCropSize = "SegPadShortToCropSize"
     SegPadToDivisible = "SegPadToDivisible"
     SegColorJitter = "SegColorJitter"
+    # Detection transforms
     DetectionStandardize = "DetectionStandardize"
     DetectionMosaic = "DetectionMosaic"
     DetectionRandomAffine = "DetectionRandomAffine"
@@ -424,6 +427,7 @@ class Datasets:
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
     COCO_POSE_ESTIMATION_DATASET = "COCOPoseEstimationDataset"
+    NYUV2_DEPTH_ESTIMATION_DATASET = "NYUv2DepthEstimationDataset"
 
 
 class Processings:
@@ -441,3 +445,8 @@ class Processings:
     ComposeProcessing = "ComposeProcessing"
     CenterCrop = "CenterCrop"
     Resize = "Resize"
+    SegmentationResizeWithPadding = "SegmentationResizeWithPadding"
+    SegmentationRescale = "SegmentationRescale"
+    SegmentationResize = "SegmentationResize"
+    SegmentationPadShortToCropSize = "SegmentationPadShortToCropSize"
+    SegmentationPadToDivisible = "SegmentationPadToDivisible"

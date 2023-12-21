@@ -2,16 +2,14 @@ from super_gradients.common.exceptions.dataset_exceptions import EmptyDatasetExc
 
 import unittest
 import numpy as np
-from typing import Union
 
 from super_gradients.training.datasets import DetectionDataset
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
-from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
+from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
 
 
 class DummyDetectionDataset(DetectionDataset):
-    def __init__(self, input_dim, target_format: Union[DetectionTargetsFormat, ConcatenatedTensorFormat], *args, **kwargs):
+    def __init__(self, input_dim, target_format: ConcatenatedTensorFormat, *args, **kwargs):
         """Dummy Dataset testing subclassing, designed with no annotation that includes class_2."""
 
         self.dummy_targets = [
@@ -92,7 +90,7 @@ class TestDetectionDatasetSubclassing(unittest.TestCase):
                 input_dim=(640, 512),
                 ignore_empty_annotations=False,
                 class_inclusion_list=config["class_inclusion_list"],
-                target_format=DetectionTargetsFormat.XYXY_LABEL,
+                target_format=XYXY_LABEL,
             )
             n_targets_after_subclass = _count_targets_after_subclass_per_index(test_dataset)
             self.assertListEqual(config["expected_n_targets_after_subclass"], n_targets_after_subclass)

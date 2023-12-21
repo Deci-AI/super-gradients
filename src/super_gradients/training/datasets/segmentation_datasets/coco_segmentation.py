@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from PIL import Image
 from tqdm import tqdm
+from typing import Tuple
 
 try:
     from pycocotools.coco import COCO
@@ -108,7 +109,6 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
         mask = np.zeros((h, w), dtype=np.uint8)
 
         for i, instance in enumerate(target_coco_annotations):
-
             rle = pycocotools_mask.frPyObjects(instance["segmentation"], h, w)
             coco_segementation_mask = pycocotools_mask.decode(rle)
 
@@ -158,3 +158,10 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
         print("Number of images in sub-dataset: ", len(sub_dataset_image_ids))
         torch.save(sub_dataset_image_ids, sub_dataset_image_ids_file_path)
         return sub_dataset_image_ids
+
+    @property
+    def _original_dataset_image_shape(self) -> Tuple[int, int]:
+        """
+        returns image shape when data set contains images of uniform shape.
+        """
+        return 512, 512
