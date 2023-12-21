@@ -392,11 +392,6 @@ class LinearBatchLRWarmup(Callback):
             param_group["lr"] = self.lr[param_group["name"]]
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearBatchLRWarmup)
-class BatchStepLinearWarmupLRCallback(LinearBatchLRWarmup):
-    ...
-
-
 @register_lr_scheduler(LRSchedulers.STEP, deprecated_name="step")
 class StepLRScheduler(LRCallbackBase):
     """
@@ -429,11 +424,6 @@ class StepLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=StepLRScheduler)
-class StepLRCallback(StepLRScheduler):
-    ...
-
-
 @register_lr_scheduler(LRSchedulers.EXP, deprecated_name="exp")
 class ExponentialLRScheduler(LRCallbackBase):
     """
@@ -454,11 +444,6 @@ class ExponentialLRScheduler(LRCallbackBase):
     def is_lr_scheduling_enabled(self, context):
         post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=ExponentialLRScheduler)
-class ExponentialLRCallback(ExponentialLRScheduler):
-    ...
 
 
 @register_lr_scheduler(LRSchedulers.POLY, deprecated_name="poly")
@@ -483,11 +468,6 @@ class PolyLRScheduler(LRCallbackBase):
     def is_lr_scheduling_enabled(self, context):
         post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=PolyLRScheduler)
-class PolyLRCallback(PolyLRScheduler):
-    ...
 
 
 @register_lr_scheduler(LRSchedulers.COSINE, deprecated_name="cosine")
@@ -528,11 +508,6 @@ class CosineLRScheduler(LRCallbackBase):
         return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=CosineLRScheduler)
-class CosineLRCallback(CosineLRScheduler):
-    ...
-
-
 @register_lr_scheduler(LRSchedulers.FUNCTION, deprecated_name="function")
 class FunctionLRScheduler(LRCallbackBase):
     """
@@ -562,11 +537,6 @@ class FunctionLRScheduler(LRCallbackBase):
                 iters_per_epoch=self.train_loader_len,
             )
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=FunctionLRScheduler)
-class FunctionLRCallback(FunctionLRScheduler):
-    ...
 
 
 class IllegalLRSchedulerMetric(Exception):
