@@ -1,0 +1,119 @@
+defaults:
+  - coco2017_yolo_nas_pose_s
+  - _self_
+  - variable_setup
+
+multi_gpu: DDP
+num_gpus: 8
+
+
+dataset_params:
+  train_dataset_params:
+    transforms:
+      - KeypointsRandomHorizontalFlip:
+          flip_index: ${dataset_params.flip_indexes}
+          prob: 0.5
+
+      - KeypointsMosaic:
+          prob: ${dataset_params.mosaic_prob}
+
+      - Albumentations:
+          Compose:
+            transforms:
+              - RandomBrightnessContrast:
+                  brightness_limit: [-0.2, 0.2]
+                  contrast_limit: [-0.2, 0.2]
+                  p: 1
+              - HueSaturationValue:
+                  hue_shift_limit: 20
+                  sat_shift_limit: 20
+                  val_shift_limit: 20
+                  p: 1
+              - Affine:
+                  scale: [0.5, 1.5]
+                  translate_percent:
+                    x: [-0.1, 0.1]
+                    y: [-0.1, 0.1]
+                  rotate: [-5, 5]
+                  cval: 127
+                  cval_mask: 1
+                  interpolation: 1
+                  p: 1
+              - LongestMaxSize:
+                  max_size: [640, 640]
+                  p: 1
+              - PadIfNeeded:
+                  min_height: 640
+                  min_width: 640
+                  border_mode: 0
+                  value: [127, 127, 127]
+                  mask_value: 1
+                  p: 1
+
+      - KeypointsImageStandardize:
+          max_value: 255
+
+      - KeypointsRemoveSmallObjects:
+          min_instance_area: 1
+          min_visible_keypoints: 1
+
+
+  val_dataset_params:
+    transforms:
+      - Albumentations:
+          Compose:
+            transforms:
+            - LongestMaxSize:
+                max_size: [640, 640]
+                p: 1
+            - PadIfNeeded:
+                min_height: 640
+                min_width: 640
+                border_mode: 0
+                value: [127, 127, 127]
+                mask_value: 1
+                p: 1
+      - KeypointsImageStandardize:
+          max_value: 255
+
+
+#      - KeypointsBrightnessContrast:
+#          brightness_range: [ 0.8, 1.2 ]
+#          contrast_range: [ 0.8, 1.2 ]
+#          prob: 0.5
+#
+#      - KeypointsHSV:
+#          hgain: 20
+#          sgain: 20
+#          vgain: 20
+#          prob: 0.5
+
+#      - KeypointsImageNormalize:
+#          mean: [ 0.485, 0.456, 0.406 ]
+#          std: [ 0.229, 0.224, 0.225 ]
+
+
+#      - KeypointsRandomAffineTransform:
+#          max_rotation: 5
+#          min_scale: 0.5
+#          max_scale: 1.5
+#          max_translate: 0.1
+#          image_pad_value: 127
+#          mask_pad_value: 1
+#          prob: 0.75
+#          interpolation_mode: [0, 1, 2, 3, 4]
+#
+#
+#training_hyperparams:
+#  sg_logger: wandb_sg_logger
+#  sg_logger_params:
+#      entity: "super-gradients"
+#      api_server: "https://wandb.research.deci.ai"
+#      project_name: "PoseEstimation"
+#      monitor_system: false
+#      save_logs_remote: false
+#      tensorboard_port: null
+#      launch_tensorboard: false
+#      tb_files_user_prompt: false
+#      save_checkpoints_remote: false
+#      save_tensorboard_remote: false

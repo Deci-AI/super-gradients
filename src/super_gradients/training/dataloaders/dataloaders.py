@@ -23,7 +23,7 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
     PascalVOCUnifiedDetectionTrainDataset,
     PascalVOCDetectionDataset,
 )
-from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
+from super_gradients.training.datasets.pose_estimation_datasets import COCOPoseEstimationDataset
 from super_gradients.training.datasets.pose_estimation_datasets.rescoring_dataset import TrainRescoringDataset, ValTrainRescoringDataset
 from super_gradients.training.datasets.samplers import RepeatAugSampler
 from super_gradients.training.datasets.segmentation_datasets import (
@@ -825,7 +825,7 @@ def pascal_voc_detection_val(dataset_params: Dict = None, dataloader_params: Dic
 def coco2017_pose_train(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return get_data_loader(
         config_name="coco_pose_estimation_dataset_params",
-        dataset_cls=COCOKeypointsDataset,
+        dataset_cls=COCOPoseEstimationDataset,
         train=True,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
@@ -836,7 +836,7 @@ def coco2017_pose_train(dataset_params: Dict = None, dataloader_params: Dict = N
 def coco2017_pose_val(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return get_data_loader(
         config_name="coco_pose_estimation_dataset_params",
-        dataset_cls=COCOKeypointsDataset,
+        dataset_cls=COCOPoseEstimationDataset,
         train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
