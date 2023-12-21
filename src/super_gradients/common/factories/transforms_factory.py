@@ -58,6 +58,7 @@ class AlbumentationsTransformsFactory(BaseFactory):
                 if "keypoint_params" in conf[_type]:
                     keypoint_params = conf[_type]["keypoint_params"]
                     self._check_keypoint_params(keypoint_params)
+
                     conf[_type]["keypoint_params"].update(self.FIXED_KEYPOINT_PARAMS)
 
         return super(AlbumentationsTransformsFactory, self).get(conf)
@@ -74,6 +75,8 @@ class AlbumentationsTransformsFactory(BaseFactory):
             raise ValueError(f"Unexpected fixed bbox_params keys: {fixed_keys}. Fixed bbox_params {self.FIXED_BBOX_PARAMS} cannot be overriden.")
 
     def _check_keypoint_params(self, keypoint_params):
+        if len(keypoint_params.keys()):
+            raise ValueError("`keypoint_params` should be left empty. Please leave it as `{keypoint_params: None}` for .json or `keypoint_params: ` for .yaml")
 
         # Check if any fixed keys are present
         fixed_keys = set(self.FIXED_KEYPOINT_PARAMS.keys()) & set(keypoint_params.keys())

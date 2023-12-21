@@ -265,9 +265,7 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
                             "min_height": 0,
                             "check_each_transform": True,
                         },
-                        "keypoint_params": {
-                            "check_each_transform": True,
-                        },
+                        "keypoint_params": {},
                     },
                 }
             },
@@ -321,9 +319,7 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
                                 "min_height": 0,
                                 "check_each_transform": True,
                             },
-                            "keypoint_params": {
-                                "check_each_transform": True,
-                            },
+                            "keypoint_params": {},
                         },
                     }
                 },

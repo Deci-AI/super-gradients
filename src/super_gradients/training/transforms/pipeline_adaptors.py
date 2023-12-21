@@ -19,6 +19,7 @@ class SampleType(Enum):
 class TransformsPipelineAdaptorBase(ABC):
     def __init__(self, composed_transforms: Callable):
         self.composed_transforms = composed_transforms
+        self.additional_samples_count = 0  # Does not Support additional samples logic
 
     @abstractmethod
     def __call__(self, sample, *args, **kwargs):
@@ -47,6 +48,19 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             self.sample_type = SampleType.DEPTH_ESTIMATION
         elif isinstance(sample, PoseEstimationSample):
             self.sample_type = SampleType.POSE_ESTIMATION
+
+            if self.composed_transforms.to_dict()["transform"].get("keypoint_params") is None:
+
+                example_str = (
+                    ""
+                    "   > transforms:\n"
+                    "   >    - Albumentations:\n"
+                    "   >        Compose:\n"
+                    "   >            transforms:\n"
+                    "   >                - ...:\n"
+                    "   >            keypoint_params: # Leave this empty\n"
+                )
+                raise ValueError(f"`keypoint_params` is required for `PoseEstimationSample`. You can set it like this :\n{example_str}")
 
             from albumentations.augmentations import HorizontalFlip
 
@@ -145,13 +159,14 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
             bboxes_xywh = xyxy_to_xywh(bboxes=np.array(sample["bboxes"]), image_shape=sample["image"].shape)
 
             # Update value of keypoints that are not inside the image anymore.
-            h, w = sample["image"].shape[1], sample["image"].shape[0]
+            h, w = sample["image"].shape[0], sample["image"].shape[1]
             keypoints = np.array(
                 [keypoint if (0, 0) <= (keypoint[0], keypoint[1]) < (w, h) else (keypoint[0], keypoint[1], 0) for keypoint in sample["keypoints"]]
             )
-            keypoints = keypoints.reshape(-1, sample["n_joints"], 3)
+            keypoints = keypoints.reshape((-1, sample["n_joints"], 3))  # [n_objects, n_joints, 3] with 3: (x, y, visibility)
 
-            keypoints = keypoints[sample["labels"]]  # remvoe the ones associated with a bbox that was removed.
+            # Remove the objects associated with a bbox that was removed.
+            keypoints = keypoints[sample["labels"]]
 
             sample = PoseEstimationSample(
                 image=sample["image"],
