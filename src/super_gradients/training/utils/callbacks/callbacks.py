@@ -315,21 +315,6 @@ class LinearEpochLRWarmup(LRCallbackBase):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
-class EpochStepWarmupLRCallback(LinearEpochLRWarmup):
-    ...
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
-class LinearLRWarmup(LinearEpochLRWarmup):
-    ...
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
-class LinearStepWarmupLRCallback(LinearEpochLRWarmup):
-    ...
-
-
 @register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP, deprecated_name="linear_batch_step")
 class LinearBatchLRWarmup(Callback):
     """
