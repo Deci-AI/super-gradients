@@ -83,6 +83,9 @@ class CustomizableDetector(HasPredict, SgModule):
         self._image_processor: Optional[Processing] = None
         self._default_nms_iou: Optional[float] = None
         self._default_nms_conf: Optional[float] = None
+        self._default_nms_top_k: Optional[float] = 1024
+        self._default_max_predictions = 300
+        self._default_multi_label_per_box = True
 
     def forward(self, x):
         x = self.backbone(x)
@@ -182,6 +185,9 @@ class CustomizableDetector(HasPredict, SgModule):
 
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
+        nms_top_k = nms_top_k or self._default_nms_top_k
+        max_predictions = max_predictions or self._default_max_predictions
+        multi_label_per_box = self._default_multi_label_per_box if multi_label_per_box is None else multi_label_per_box
 
         # Ensure that the image size is divisible by 32.
         if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
