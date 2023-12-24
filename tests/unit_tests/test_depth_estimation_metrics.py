@@ -28,7 +28,7 @@ class TestDepthEstimationMetrics(unittest.TestCase):
     def test_mae_metric(self):
         # Specific example data
         pred_depth = torch.tensor([[[[1.0, 2.0], [3.0, 4.0]]]], dtype=torch.float32)
-        gt_depth = torch.tensor([[[1.5, 2.5], [3.5, 4.5]]], dtype=torch.float32)
+        gt_depth = torch.tensor([[[[1.5, 2.5], [3.5, 4.5]]]], dtype=torch.float32)
 
         # Create instances of MAE and MAPE metrics
         mae_metric = DepthMAE(ignore_val=-1)
@@ -42,7 +42,7 @@ class TestDepthEstimationMetrics(unittest.TestCase):
     def test_mape_metric(self):
         # Specific example data
         pred_depth = torch.tensor([[[[1.0, 2.0], [3.0, 4.0]]]], dtype=torch.float32)
-        gt_depth = torch.tensor([[[1.5, 2.5], [3.5, 4.5]]], dtype=torch.float32)
+        gt_depth = torch.tensor([[[[1.5, 2.5], [3.5, 4.5]]]], dtype=torch.float32)
 
         # Create an instance of MAPE metric
         mape_metric = DepthMAPE()
@@ -56,7 +56,7 @@ class TestDepthEstimationMetrics(unittest.TestCase):
     def test_mse_metric(self):
         # Specific example data
         pred_depth = torch.tensor([[[[1.0, 2.0], [3.0, 4.0]]]], dtype=torch.float32)
-        gt_depth = torch.tensor([[[1.5, 2.5], [3.5, 4.5]]], dtype=torch.float32)
+        gt_depth = torch.tensor([[[[1.5, 2.5], [3.5, 4.5]]]], dtype=torch.float32)
 
         # Create an instance of MSE metric
         mse_metric = DepthMSE()
@@ -70,7 +70,7 @@ class TestDepthEstimationMetrics(unittest.TestCase):
     def test_rmse_metric(self):
         # Specific example data
         pred_depth = torch.tensor([[[[1.0, 2.0], [3.0, 4.0]]]], dtype=torch.float32)
-        gt_depth = torch.tensor([[[1.5, 2.5], [3.5, 4.5]]], dtype=torch.float32)
+        gt_depth = torch.tensor([[[[1.5, 2.5], [3.5, 4.5]]]], dtype=torch.float32)
 
         # Create an instance of RMSE metric
         rmse_metric = DepthRMSE()
@@ -84,7 +84,7 @@ class TestDepthEstimationMetrics(unittest.TestCase):
     def test_msle_metric(self):
         # Specific example data
         pred_depth = torch.tensor([[[[1.0, 2.0], [3.0, 4.0]]]], dtype=torch.float32)
-        gt_depth = torch.tensor([[[1.5, 2.5], [3.5, 4.5]]], dtype=torch.float32)
+        gt_depth = torch.tensor([[[[1.5, 2.5], [3.5, 4.5]]]], dtype=torch.float32)
 
         # Create an instance of MSLE metric
         msle_metric = DepthMSLE()
