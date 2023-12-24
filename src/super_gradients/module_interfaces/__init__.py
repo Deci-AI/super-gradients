@@ -3,6 +3,7 @@ from .exceptions import ModelHasNoPreprocessingParamsException
 from .exportable_detector import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule
 from .exportable_pose_estimation import ExportablePoseEstimationModel, PoseEstimationModelExportResult, AbstractPoseEstimationDecodingModule
 from .pose_estimation_post_prediction_callback import AbstractPoseEstimationPostPredictionCallback, PoseEstimationPredictions
+from .supports_input_shape_check import SupportsInputShapeCheck
 
 __all__ = [
     "HasPredict",
@@ -18,4 +19,5 @@ __all__ = [
     "PoseEstimationModelExportResult",
     "AbstractPoseEstimationDecodingModule",
     "SupportsFineTune",
+    "SupportsInputShapeCheck",
 ]
