@@ -167,6 +167,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
     def save(
         self,
         output_folder: str,
+        filename_prefix: str = "pred",
         edge_colors=None,
         joint_thickness: Optional[int] = None,
         keypoint_colors: Optional[List[Tuple]] = None,
@@ -176,7 +177,10 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
     ) -> None:
         """Save the predicted bboxes on the images.
 
-        :param output_folder:   Folder path, where the images will be saved.
+        The predictions will be saved in '{output_directory}/{filename_prefix}_{i}.jpg for i in range(len(_images_prediction_lst))
+
+        :param output_folder: (str): The directory where files will be saved.
+        :param filename_prefix: (str): The custom prefix for the filenames.
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
@@ -192,7 +196,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
             os.makedirs(output_folder, exist_ok=True)
 
         for i, prediction in enumerate(self._images_prediction_lst):
-            image_output_path = os.path.join(output_folder, f"pred_{i}.jpg")
+            image_output_path = os.path.join(output_folder, f"{filename_prefix}_{i}.jpg")
             prediction.save(
                 output_path=image_output_path,
                 edge_colors=edge_colors,
