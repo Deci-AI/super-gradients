@@ -4,11 +4,10 @@ defaults:
 max_epochs: 300
 
 warmup_mode: LinearBatchLRWarmup
-warmup_initial_lr:  1e-6
-lr_warmup_steps: 1000
-lr_warmup_epochs: 0
+warmup_initial_lr:  1e-5  # Increased from 1e-6 to 1e-5
+lr_warmup_steps: 2000    # Extended warmup steps
 
-initial_lr: 2e-4
+initial_lr: 1e-4         # Decreased initial learning rate from 2e-4 to 1e-4
 
 
 lr_mode: CosineLRScheduler
