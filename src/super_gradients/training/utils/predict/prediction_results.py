@@ -376,9 +376,13 @@ class ImagesPredictions(ABC):
         pass
 
     @abstractmethod
-    def save(self, *args, **kwargs) -> None:
-        """Save the predictions on the images."""
-        pass
+    def save(self, output_folder: str, filename_prefix: str = "pred", *args, **kwargs):
+        """
+        Save the predictions in '{output_directory}/{filename_prefix}_i.jpg for i in range(len(_images_prediction_lst))
+
+        :param output_folder: (str): The directory where files will be saved.
+        :param filename_prefix: (str): The custom prefix for the filenames.
+        """
 
 
 @dataclass
@@ -420,17 +424,20 @@ class ImagesClassificationPrediction(ImagesPredictions):
         for prediction in self._images_prediction_lst:
             prediction.show(show_confidence=show_confidence)
 
-    def save(self, output_folder: str, show_confidence: bool = True) -> None:
-        """Save the predicted label on the images.
+    def save(self, output_folder: str, filename_prefix: str = "pred", show_confidence: bool = True, *args, **kwargs) -> None:
+        """
+        Save the predicted label on the images.
+        The predictions will be saved in '{output_directory}/{filename_prefix}_{i}.jpg for i in range(len(_images_prediction_lst))
 
-        :param output_folder:     Folder path, where the images will be saved.
+        :param output_folder: (str): The directory where files will be saved.
+        :param filename_prefix: (str): The custom prefix for the filenames.
         :param show_confidence: Whether to show confidence scores on the image.
         """
         if output_folder:
             os.makedirs(output_folder, exist_ok=True)
 
         for i, prediction in enumerate(self._images_prediction_lst):
-            image_output_path = os.path.join(output_folder, f"pred_{i}.jpg")
+            image_output_path = os.path.join(output_folder, f"{filename_prefix}_{i}.jpg")
             prediction.save(output_path=image_output_path, show_confidence=show_confidence)
 
 
@@ -516,6 +523,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
     def save(
         self,
         output_folder: str,
+        filename_prefix: str = "pred",
         box_thickness: Optional[int] = None,
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
@@ -525,8 +533,10 @@ class ImagesDetectionPrediction(ImagesPredictions):
         class_names: Optional[List[str]] = None,
     ) -> None:
         """Save the predicted bboxes on the images.
+        The predictions will be saved in '{output_directory}/{filename_prefix}_{i}.jpg for i in range(len(_images_prediction_lst))
 
-        :param output_folder:           Folder path, where the images will be saved.
+        :param output_folder: (str): The directory where files will be saved.
+        :param filename_prefix: (str): The custom prefix for the filenames.
         :param box_thickness:           (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :param show_confidence:         Whether to show confidence scores on the image.
         :param color_mapping:           List of tuples representing the colors for each class.
@@ -548,7 +558,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
         target_bboxes, target_class_ids = self._check_target_args(target_bboxes, target_bboxes_format, target_class_ids)
 
         for i, (prediction, target_bbox, target_class_id) in enumerate(zip(self._images_prediction_lst, target_bboxes, target_class_ids)):
-            image_output_path = os.path.join(output_folder, f"pred_{i}.jpg")
+            image_output_path = os.path.join(output_folder, f"{filename_prefix}_{i}.jpg")
             prediction.save(
                 output_path=image_output_path,
                 box_thickness=box_thickness,
@@ -652,10 +662,13 @@ class ImagesSegmentationPrediction(ImagesPredictions):
         for prediction in self._images_prediction_lst:
             prediction.show(color_mapping=color_mapping)
 
-    def save(self, output_folder: str, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
-        """Save the predicted bboxes on the images.
+    def save(self, output_folder: str, filename_prefix: str = "pred", color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+        """Save the predicted segmentation masks, drawn on the images.
 
-        :param output_folder:     Folder path, where the images will be saved.
+        The predictions will be saved in '{output_directory}/{filename_prefix}_{i}.jpg for i in range(len(_images_prediction_lst))
+
+        :param output_folder: (str): The directory where files will be saved.
+        :param filename_prefix: (str): The custom prefix for the filenames.
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
@@ -663,7 +676,7 @@ class ImagesSegmentationPrediction(ImagesPredictions):
             os.makedirs(output_folder, exist_ok=True)
 
         for i, prediction in enumerate(self._images_prediction_lst):
-            image_output_path = os.path.join(output_folder, f"pred_{i}.jpg")
+            image_output_path = os.path.join(output_folder, f"{filename_prefix}_{i}.jpg")
             prediction.save(output_path=image_output_path, color_mapping=color_mapping)
 
 
