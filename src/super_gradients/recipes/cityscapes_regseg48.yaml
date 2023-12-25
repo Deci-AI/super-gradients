@@ -62,7 +62,7 @@ training_hyperparams:
 
   ema: True
 
-  loss: LabelSmoothingCrossEntropyLoss
+  loss: CrossEntropyLoss
   criterion_params:
     ignore_index: ${cityscapes_ignored_label}
 
