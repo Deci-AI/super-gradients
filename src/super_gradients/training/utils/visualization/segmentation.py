@@ -11,7 +11,7 @@ def overlay_segmentation(
     pred_mask: torch.Tensor,
     num_classes: int,
     alpha: float,
-    colors: Optional[Union[List[Union[str, Tuple[int, int, int]]], str, Tuple[int, int, int]]] = None,
+    colors: Optional[Union[List[Union[str, Tuple[int, int, int]]], str, Tuple[int, int, int]]],
     class_names: Optional[List[str]] = None,
 ) -> np.ndarray:
     """Draw a bounding box on an image.
