@@ -1,3 +1,4 @@
+import warnings
 from typing import Mapping, Tuple, Union, Optional, List
 
 import numpy as np
@@ -644,7 +645,7 @@ class PPYoloELoss(nn.Module):
         num_classes: int,
         use_varifocal_loss: bool = True,
         use_static_assigner: bool = True,
-        reg_max: int = 16,
+        reg_max=None,
         classification_loss_weight: float = 1.0,
         iou_loss_weight: float = 2.5,
         dfl_loss_weight: float = 0.5,
@@ -664,6 +665,11 @@ class PPYoloELoss(nn.Module):
                                            Sequential assignment has lower peak GPU memory usage and preferable for cases
                                            when number of targets per image varies a lot.
         """
+        if reg_max is not None:
+            warnings.warn(
+                "reg_max is not needed for PPYoloE loss anymore. "
+                "You can safely omit this argument as it is not used anymore and we infer it automatically from model's outputs"
+            )
         super().__init__()
         self.use_varifocal_loss = use_varifocal_loss
         self.classification_loss_weight = classification_loss_weight
@@ -678,9 +684,15 @@ class PPYoloELoss(nn.Module):
         self.reg_max = reg_max
         self.use_batched_assignment = use_batched_assignment
 
-        # Same as in PPYoloE head
-        proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
-        self.register_buffer("proj_conv", proj)
+    def get_proj_conv_for_reg_max(self, reg_max: int, device: torch.device) -> Tensor:
+        """
+        Get projection convolution for regression range [0, reg_max] to convert distribution to bbox coordinates
+        :param reg_max: Number of regression bins
+        :param device:  The device to create projection convolution on
+        :return:        Tensor of shape (1, reg_max + 1, 1, 1)
+        """
+        proj = torch.linspace(0, reg_max, reg_max + 1, device=device).reshape([1, reg_max + 1, 1, 1])
+        return proj
 
     @torch.no_grad()
     def _get_targets_for_sequential_assigner(self, flat_targets, batch_size: int) -> Tuple[List[Tensor], List[Tensor]]:
@@ -787,7 +799,7 @@ class PPYoloELoss(nn.Module):
         targets = self._get_targets_for_batched_assigner(targets, batch_size=pred_scores.size(0))  # yolox -> ppyolo
 
         anchor_points_s = anchor_points / stride_tensor
-        pred_bboxes = self._bbox_decode(anchor_points_s, pred_distri)
+        pred_bboxes, reg_max, proj_conv = self._bbox_decode(anchor_points_s, pred_distri)
 
         gt_labels = targets["gt_class"]
         gt_bboxes = targets["gt_bbox"]
@@ -833,6 +845,7 @@ class PPYoloELoss(nn.Module):
             assigned_labels,
             assigned_bboxes / stride_tensor,  # rescale bbox
             assigned_scores,
+            reg_max,
         )
 
         return cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum
@@ -874,7 +887,7 @@ class PPYoloELoss(nn.Module):
             pred_scores = pred_scores.unsqueeze(0)  # Add dummy batch dimension
             pred_distri = pred_distri.unsqueeze(0)  # Add dummy batch dimension
 
-            pred_bboxes = self._bbox_decode(anchor_points_s, pred_distri)
+            pred_bboxes, reg_max, proj_conv = self._bbox_decode(anchor_points_s, pred_distri)
 
             # label assignment
             if self.use_static_assigner:
@@ -917,6 +930,7 @@ class PPYoloELoss(nn.Module):
                 assigned_labels,
                 assigned_bboxes / stride_tensor,  # rescale bbox
                 assigned_scores,
+                reg_max,
             )
 
             cls_loss_sum = cls_loss + cls_loss_sum
@@ -998,6 +1012,7 @@ class PPYoloELoss(nn.Module):
         assigned_labels,
         assigned_bboxes,
         assigned_scores,
+        reg_max: int,
     ) -> Tuple[Tensor, Tensor]:
         """
         Compute IoU and DFL terms of the loss
@@ -1024,9 +1039,9 @@ class PPYoloELoss(nn.Module):
             loss_iou = self.iou_loss(pred_bboxes_pos, assigned_bboxes_pos) * bbox_weight
             loss_iou = loss_iou.sum()
 
-            dist_mask = mask_positive.unsqueeze(-1).tile([1, 1, (self.reg_max + 1) * 4])
-            pred_dist_pos = torch.masked_select(pred_dist, dist_mask).reshape([-1, 4, self.reg_max + 1])
-            assigned_ltrb = self._bbox2distance(anchor_points, assigned_bboxes)
+            dist_mask = mask_positive.unsqueeze(-1).tile([1, 1, (reg_max + 1) * 4])
+            pred_dist_pos = torch.masked_select(pred_dist, dist_mask).reshape([-1, 4, reg_max + 1])
+            assigned_ltrb = self._bbox2distance(anchor_points, assigned_bboxes, reg_max)
             assigned_ltrb_pos = torch.masked_select(assigned_ltrb, bbox_mask).reshape([-1, 4])
             loss_dfl = self._df_loss(pred_dist_pos, assigned_ltrb_pos) * bbox_weight
             loss_dfl = loss_dfl.sum()
@@ -1037,15 +1052,18 @@ class PPYoloELoss(nn.Module):
 
     def _bbox_decode(self, anchor_points: Tensor, pred_dist: Tensor):
         b, l, *_ = pred_dist.size()
-        pred_dist = torch.softmax(pred_dist.reshape([b, l, 4, self.reg_max + 1]), dim=-1)
-        pred_dist = torch.nn.functional.conv2d(pred_dist.permute(0, 3, 1, 2), self.proj_conv).squeeze(1)
-        return batch_distance2bbox(anchor_points, pred_dist)
+        pred_dist = pred_dist.reshape([b, l, 4, -1])
+        reg_max = pred_dist.size(-1) - 1
+        proj_conv = self.get_proj_conv_for_reg_max(reg_max, device=pred_dist.device)
+        pred_dist = torch.softmax(pred_dist, dim=-1)
+        pred_dist = torch.nn.functional.conv2d(pred_dist.permute(0, 3, 1, 2), proj_conv).squeeze(1)
+        return batch_distance2bbox(anchor_points, pred_dist), reg_max, proj_conv
 
-    def _bbox2distance(self, points, bbox):
+    def _bbox2distance(self, points, bbox, reg_max: int):
         x1y1, x2y2 = torch.split(bbox, 2, -1)
         lt = points - x1y1
         rb = x2y2 - points
-        return torch.cat([lt, rb], dim=-1).clip(0, self.reg_max - 0.01)
+        return torch.cat([lt, rb], dim=-1).clip(0, reg_max - 0.01)
 
     @staticmethod
     def _focal_loss(pred_logits: Tensor, label: Tensor, alpha=0.25, gamma=2.0) -> Tensor:
