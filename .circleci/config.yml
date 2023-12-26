@@ -246,7 +246,8 @@ jobs:
             python3 -m pip install -r requirements.dev.txt
             python3 -m pip install gitpython==3.1.0
 
-            # GET THE BRANCH THAT THE CURRENT PR IS BEING MERGED INTO
+            # GET THE BRANCH THAT THE CURRENT PR IS BEING MERGED INTO.
+            # THIS IS ONLY RELEVANT FOR CI RUNS, WHICH IS WHY IT'S NOT PART OF THE PYTHON CODE.
             if [ -n "${CIRCLE_PULL_REQUEST}" ]; then
               PR_NUMBER=$(basename ${CIRCLE_PULL_REQUEST})
               echo "Pull Request Number: ${PR_NUMBER}"
