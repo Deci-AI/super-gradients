@@ -151,7 +151,7 @@ class TestModelPredict(unittest.TestCase):
             dummy_images = [np.random.random((21, 21, 3)), np.random.random((21, 32, 3)), np.random.random((640, 640, 3))]
             expected_preprocessing_shape = [(3, 32, 32), (3, 32, 32), (3, 640, 640)]
             for image, expected_shape in zip(dummy_images, expected_preprocessing_shape):
-                pred = model.predict(image, skip_image_resizing=True)[0]
+                pred = model.predict(image, skip_image_resizing=True)
                 self.assertEqual(image.shape, pred.draw().shape)
 
                 preprocessed_shape = pipeline.image_processor.preprocess_image(image)[0].shape
