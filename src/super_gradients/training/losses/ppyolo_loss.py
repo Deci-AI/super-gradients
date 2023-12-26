@@ -657,7 +657,7 @@ class PPYoloELoss(nn.Module):
         :param classification_loss_weight: Classification loss weight
         :param iou_loss_weight:            IoU loss weight
         :param dfl_loss_weight:            DFL loss weight
-        :param reg_max:                    Number of regression bins (Must match the number of bins in the PPYoloE head)
+        :param reg_max:                    (Deprecated) Number of regression bins. Default is None (will be inferred from model's outputs)
         :param use_batched_assignment:     Whether to use batched targets assignment or sequential (per-image).
                                            Default is True (batched).
                                            Batched assignment can be faster when number of the target per image is more or
