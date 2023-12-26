@@ -1,5 +1,3 @@
-from super_gradients.common.deprecate import deprecated
-
 from .sg_module import SgModule
 from .classification_models.base_classifer import BaseClassifier
 
@@ -36,7 +34,6 @@ from super_gradients.training.models.classification_models.preact_resnet import 
     PreActResNet152,
 )
 from super_gradients.training.models.classification_models.resnet import (
-    Bottleneck as NewBottleneck,
     BasicResNetBlock,
     ResNet,
     ResNet18,
@@ -132,36 +129,8 @@ from super_gradients.training.models.conversion import convert_to_coreml, conver
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import ARCHITECTURES
 
-from super_gradients.training.utils import make_divisible as _make_divisible_current_version, HpmStruct as CurrVersionHpmStruct
-
-
-@deprecated(deprecated_since="3.1.0", removed_from="3.6.0", target=_make_divisible_current_version)
-def make_divisible(x: int, divisor: int, ceil: bool = True) -> int:
-    """
-    Returns x evenly divisible by divisor.
-    If ceil=True it will return the closest larger number to the original x, and ceil=False the closest smaller number.
-    """
-    return _make_divisible_current_version(x=x, divisor=divisor, ceil=ceil)
-
-
-@deprecated(deprecated_since="3.1.0", removed_from="3.6.0", target=BasicResNetBlock, reason="This block was renamed to BasicResNetBlock for better clarity.")
-class BasicBlock(BasicResNetBlock):
-    ...
-
-
-@deprecated(deprecated_since="3.1.0", removed_from="3.6.0", target=NewBottleneck, reason="This block was renamed to BasicResNetBlock for better clarity.")
-class Bottleneck(NewBottleneck):
-    ...
-
-
-@deprecated(deprecated_since="3.1.0", removed_from="3.6.0", target=CurrVersionHpmStruct)
-class HpmStruct(CurrVersionHpmStruct):
-    ...
-
 
 __all__ = [
-    "HpmStruct",
-    "Bottleneck",
     "SPP",
     "YoloNAS_S",
     "YoloNAS_M",
@@ -325,7 +294,5 @@ __all__ = [
     "SegFormerB4",
     "SegFormerB5",
     "DDRNet39Backbone",
-    "make_divisible",
     "BasicResNetBlock",
-    "BasicBlock",
 ]
