@@ -20,7 +20,7 @@ ema_params:
   decay: 0.9999
   decay_type: constant
 
-loss: LabelSmoothingCrossEntropyLoss
+loss: CrossEntropyLoss
 criterion_params:
   smooth_eps: 0.1
 

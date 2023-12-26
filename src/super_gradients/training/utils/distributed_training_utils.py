@@ -1,7 +1,7 @@
 import sys
 import os
 import itertools
-from typing import List, Tuple
+from typing import Tuple, List
 from contextlib import contextmanager
 
 import numpy as np
@@ -14,8 +14,7 @@ from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
-from super_gradients.common.deprecate import deprecated
-from super_gradients.common.environment.ddp_utils import init_trainer
+from super_gradients.common.environment.ddp_utils import init_trainer, get_world_size
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment.argparse_utils import EXTRA_ARGS
 from super_gradients.common.environment.ddp_utils import find_free_port, is_distributed, is_launched_using_sg
@@ -27,14 +26,6 @@ from super_gradients.common.environment.device_utils import device_config
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.type_factory import TypeFactory
-
-from super_gradients.common.environment.ddp_utils import get_local_rank as _get_local_rank
-from super_gradients.common.environment.ddp_utils import is_ddp_subprocess as _is_ddp_subprocess
-from super_gradients.common.environment.ddp_utils import get_world_size as _get_world_size
-from super_gradients.common.environment.ddp_utils import get_device_ids as _get_device_ids
-from super_gradients.common.environment.ddp_utils import count_used_devices as _count_used_devices
-from super_gradients.common.environment.ddp_utils import require_ddp_setup as _require_ddp_setup
-
 
 logger = get_logger(__name__)
 
@@ -152,44 +143,6 @@ def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoad
         bn.running_mean = running_means[i]
         bn.running_var = running_vars[i]
         bn.momentum = momentums[i]
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_get_local_rank)
-def get_local_rank():
-    """
-    Returns the local rank if running in DDP, and 0 otherwise
-    :return: local rank
-    """
-    return _get_local_rank()
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_is_ddp_subprocess)
-def is_ddp_subprocess():
-    return _is_ddp_subprocess()
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_get_world_size)
-def get_world_size() -> int:
-    """
-    Returns the world size if running in DDP, and 1 otherwise
-    :return: world size
-    """
-    return _get_world_size()
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_get_device_ids)
-def get_device_ids() -> List[int]:
-    return _get_device_ids()
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_count_used_devices)
-def count_used_devices() -> int:
-    return _count_used_devices()
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=_require_ddp_setup)
-def require_ddp_setup() -> bool:
-    return _require_ddp_setup()
 
 
 @contextmanager
@@ -453,7 +406,7 @@ def maybe_all_gather_np_images(image: np.ndarray) -> np.ndarray:
     """
     if is_distributed():
         rank = get_rank()
-        output_container = [None for _ in range(_get_world_size())]
+        output_container = [None for _ in range(get_world_size())]
         all_gather_object(output_container, image)
         if rank == 0:
             image = np.concatenate(output_container, 0)
@@ -470,7 +423,7 @@ def maybe_all_gather_as_list(inputs) -> List:
     :return: np.ndarray, the output image as described above
     """
     if is_distributed():
-        output_container = [None for _ in range(_get_world_size())]
+        output_container = [None for _ in range(get_world_size())]
         all_gather_object(output_container, inputs)
         return output_container
     return [inputs]

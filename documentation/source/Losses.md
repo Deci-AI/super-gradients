@@ -2,7 +2,7 @@
 
 SuperGradients can support any PyTorch-based loss function. Additionally, multiple Loss function implementations for various tasks are also supported:
 
-    LabelSmoothingCrossEntropyLoss
+    CrossEntropyLoss
     MSE
     RSquaredLoss
     ShelfNetOHEMLoss
@@ -31,7 +31,7 @@ model = ...
 
 train_params = {
    ...
-   "loss": "LabelSmoothingCrossEntropyLoss",
+   "loss": "CrossEntropyLoss",
    "criterion_params": {}
    ...
 }
@@ -42,7 +42,7 @@ Since most IDEs support auto-completion, for your convenience, you can use our o
 ```python
 from super_gradients.common.object_names import Losses
 ```
-Then simply instead of "LabelSmoothingCrossEntropyLoss", use 
+Then simply instead of "CrossEntropyLoss", use 
 ```python
 Losses.CROSS_ENTROPY
 ```
