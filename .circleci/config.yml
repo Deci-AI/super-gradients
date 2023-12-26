@@ -255,7 +255,7 @@ jobs:
               BRANCH_MERGED_INTO=$(curl -s -H "Authorization: token ${GITHUB_CLI_TOKEN}" \
                 "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}" \
                 | jq -r '.base.ref')
-              echo "Branch merged into: `${BRANCH_MERGED_INTO}`"
+              echo "Branch merged into: ${BRANCH_MERGED_INTO}"
             
               # This is required since it's possible this branch would not be available locally
               git fetch origin ${BRANCH_MERGED_INTO}:${BRANCH_MERGED_INTO}
