@@ -667,8 +667,9 @@ class PPYoloELoss(nn.Module):
         """
         if reg_max is not None:
             warnings.warn(
-                "reg_max is not needed for PPYoloE loss anymore. "
-                "You can safely omit this argument as it is not used anymore and we infer it automatically from model's outputs"
+                "A reg_max argument is not needed for PPYoloE loss anymore. It is deprecated since SG 3.6.0 and will be removed in the SG 3.8.0."
+                "You can safely omit this argument as it is not used anymore and we infer it automatically from model's outputs",
+                DeprecationWarning,
             )
         super().__init__()
         self.use_varifocal_loss = use_varifocal_loss
