@@ -721,8 +721,11 @@ class Trainer:
 
         if self.training_params.average_best_models:
             net_for_averaging = unwrap_model(self.ema_model.ema if self.ema else self.net)
-
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_dict=validation_results_dict)
+
+            # REMOVE UNNECESSARY ITEMS FROM AVERAGED STATE DICT
+            for key_to_remove in ["optimizer_state_dict", "scaler_state_dict", "ema_net"]:
+                _ = state.pop(key_to_remove, None)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
     def _prep_net_for_train(self) -> None:
