@@ -262,6 +262,7 @@ jobs:
               git fetch origin ${BRANCH_MERGED_INTO}:${BRANCH_MERGED_INTO}
             else
               echo "This job does not appear to be running as part of a pull request."
+              BRANCH_MERGED_INTO="master"
             fi
 
             # TESTS
