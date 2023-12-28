@@ -23,6 +23,15 @@ class SegmentationSample:
     image: Union[np.ndarray, torch.Tensor]
     mask: Union[np.ndarray, torch.Tensor]
 
-    def __init__(self, image: Union[np.ndarray, torch.Tensor, Image], mask: Union[np.ndarray, torch.Tensor, Image]):
+    def __init__(self, image: Union[np.ndarray, Image], mask: Union[np.ndarray, Image]):
+        """
+        Initialize segmentation sample
+        :param image: Input image in [H,W,C] format. Can be numpy array or PIL image (in which case it will be converted to numpy array)
+        :param mask:  Target mask in [H,W] format. Can be numpy array or PIL image (in which case it will be converted to numpy array)
+        """
+        if isinstance(image, Image):
+            image = np.array(image)
+        if isinstance(mask, Image):
+            mask = np.array(mask)
         self.image = image
         self.mask = mask

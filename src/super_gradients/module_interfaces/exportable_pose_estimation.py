@@ -9,6 +9,7 @@ import onnx
 import onnxsim
 import torch
 from super_gradients.conversion.conversion_utils import find_compatible_model_device_for_dtype
+from super_gradients.module_interfaces.supports_input_shape_check import SupportsInputShapeCheck
 from torch import nn, Tensor
 from torch.utils.data import DataLoader
 
@@ -299,6 +300,10 @@ class ExportablePoseEstimationModel:
             )
 
         input_shape = (batch_size, input_image_channels, rows, cols)
+
+        if isinstance(model, SupportsInputShapeCheck):
+            model.validate_input_shape(input_shape)
+
         prep_model_for_conversion_kwargs = {
             "input_size": input_shape,
         }

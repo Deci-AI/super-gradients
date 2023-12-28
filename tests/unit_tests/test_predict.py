@@ -93,6 +93,30 @@ class TestModelPredict(unittest.TestCase):
                     target_bboxes_format="xyxy",
                 )
 
+    def test_segmentation_predict_pplite_t_seg75(self):
+        model = models.get(model_name=Models.PP_LITE_T_SEG75, pretrained_weights="cityscapes")
+
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            predictions = model.predict(self.images)
+            predictions.show()
+            predictions.save(output_folder=tmp_dirname)
+
+    def test_segmentation_predict_stdc1_seg50(self):
+        model = models.get(model_name=Models.STDC1_SEG50, pretrained_weights="cityscapes")
+
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            predictions = model.predict(self.images)
+            predictions.show()
+            predictions.save(output_folder=tmp_dirname)
+
+    def test_segmentation_predict_ddrnet23_slim(self):
+        model = models.get(model_name=Models.DDRNET_23_SLIM, pretrained_weights="cityscapes")
+
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            predictions = model.predict(self.images)
+            predictions.show()
+            predictions.save(output_folder=tmp_dirname)
+
     def test_predict_class_names(self):
         for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.PP_YOLOE_S]:
             model = models.get(model_name, pretrained_weights="coco")
@@ -108,7 +132,6 @@ class TestModelPredict(unittest.TestCase):
             video_path = os.path.join(tmp_dirname, "test.mp4")
             self._prepare_video(video_path)
             for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.YOLO_NAS_POSE_S]:
-
                 pretrained_weights = "coco"
                 if model_name == Models.YOLO_NAS_POSE_S:
                     pretrained_weights += "_pose"
@@ -128,7 +151,7 @@ class TestModelPredict(unittest.TestCase):
             dummy_images = [np.random.random((21, 21, 3)), np.random.random((21, 32, 3)), np.random.random((640, 640, 3))]
             expected_preprocessing_shape = [(3, 32, 32), (3, 32, 32), (3, 640, 640)]
             for image, expected_shape in zip(dummy_images, expected_preprocessing_shape):
-                pred = model.predict(image, skip_image_resizing=True)[0]
+                pred = model.predict(image, skip_image_resizing=True)
                 self.assertEqual(image.shape, pred.draw().shape)
 
                 preprocessed_shape = pipeline.image_processor.preprocess_image(image)[0].shape

@@ -9,7 +9,7 @@ ema: False
 save_ckpt_epoch_list: [ 50, 100, 150, 200, 300 ]
 mixed_precision: True
 zero_weight_decay_on_bias_and_bn: True
-loss: LabelSmoothingCrossEntropyLoss
+loss: CrossEntropyLoss
 train_metrics_list:                               # metrics for evaluation
   - Accuracy
   - Top5

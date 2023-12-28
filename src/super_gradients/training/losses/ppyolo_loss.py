@@ -1,4 +1,5 @@
-from typing import Mapping, Tuple, Union, Optional, List, Dict
+import warnings
+from typing import Mapping, Tuple, Union, Optional, List
 
 import numpy as np
 import torch
@@ -649,8 +650,6 @@ class PPYoloELoss(nn.Module):
         iou_loss_weight: float = 2.5,
         dfl_loss_weight: float = 0.5,
         use_batched_assignment: bool = True,
-        iou_loss: str = "giou",
-        iou_loss_kwargs: Optional[Dict] = None,
     ):
         """
         :param num_classes:                Number of classes
@@ -658,7 +657,7 @@ class PPYoloELoss(nn.Module):
         :param classification_loss_weight: Classification loss weight
         :param iou_loss_weight:            IoU loss weight
         :param dfl_loss_weight:            DFL loss weight
-        :param reg_max:                    Number of regression bins (Must match the number of bins in the PPYoloE head)
+        :param reg_max:                    (Deprecated) Number of regression bins. Default is None (will be inferred from model's outputs)
         :param use_batched_assignment:     Whether to use batched targets assignment or sequential (per-image).
                                            Default is True (batched).
                                            Batched assignment can be faster when number of the target per image is more or
@@ -667,18 +666,18 @@ class PPYoloELoss(nn.Module):
                                            when number of targets per image varies a lot.
         """
         if reg_max is not None:
-            raise ValueError("reg_max is not needed for PPYoloE loss")
-        if iou_loss_kwargs is None:
-            iou_loss_kwargs = {}
+            warnings.warn(
+                "A reg_max argument is not needed for PPYoloE loss anymore. It is deprecated since SG 3.6.0 and will be removed in the SG 3.8.0."
+                "You can safely omit this argument as it is not used anymore and we infer it automatically from model's outputs",
+                DeprecationWarning,
+            )
         super().__init__()
         self.use_varifocal_loss = use_varifocal_loss
         self.classification_loss_weight = classification_loss_weight
         self.dfl_loss_weight = dfl_loss_weight
         self.iou_loss_weight = iou_loss_weight
 
-        from super_gradients.training.losses.yolo_nas_pose_loss import CIoULoss
-
-        self.iou_loss = {"giou": GIoULoss, "ciou": CIoULoss}[iou_loss](**iou_loss_kwargs)
+        self.iou_loss = GIoULoss()
         self.static_assigner = ATSSAssigner(topk=9, num_classes=num_classes)
         self.assigner = TaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
         self.use_static_assigner = use_static_assigner
@@ -690,8 +689,8 @@ class PPYoloELoss(nn.Module):
         """
         Get projection convolution for regression range [0, reg_max] to convert distribution to bbox coordinates
         :param reg_max: Number of regression bins
-        :param device: The device to create projection convolution on
-        :return: Tensor of shape (1, reg_max + 1, 1, 1)
+        :param device:  The device to create projection convolution on
+        :return:        Tensor of shape (1, reg_max + 1, 1, 1)
         """
         proj = torch.linspace(0, reg_max, reg_max + 1, device=device).reshape([1, reg_max + 1, 1, 1])
         return proj

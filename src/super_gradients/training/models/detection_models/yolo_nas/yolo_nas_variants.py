@@ -8,7 +8,12 @@ from torch import Tensor
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry import register_model
-from super_gradients.module_interfaces import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule, ModelHasNoPreprocessingParamsException
+from super_gradients.module_interfaces import (
+    ExportableObjectDetectionModel,
+    AbstractObjectDetectionDecodingModule,
+    ModelHasNoPreprocessingParamsException,
+    SupportsInputShapeCheck,
+)
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
@@ -68,7 +73,7 @@ class YoloNASDecodingModule(AbstractObjectDetectionDecodingModule):
 
 
 @register_model("YoloNAS")
-class YoloNAS(ExportableObjectDetectionModel, CustomizableDetector):
+class YoloNAS(ExportableObjectDetectionModel, SupportsInputShapeCheck, CustomizableDetector):
     """
 
     Export to ONNX/TRT Support matrix
@@ -122,6 +127,12 @@ class YoloNAS(ExportableObjectDetectionModel, CustomizableDetector):
             raise ModelHasNoPreprocessingParamsException()
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
+
+    def get_input_shape_steps(self) -> Tuple[int, int]:
+        return 32, 32
+
+    def get_minimum_input_shape_size(self) -> Tuple[int, int]:
+        return 32, 32
 
 
 @register_model(Models.YOLO_NAS_S)
