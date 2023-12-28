@@ -69,9 +69,6 @@ dataset_params:
           prob: 0.5
       - KeypointsImageStandardize:
           max_value: 255
-      - KeypointsRemoveSmallObjects:
-          min_instance_area: 1
-          min_visible_keypoints: 1
 
   val_dataset_params:
     transforms:
