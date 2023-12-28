@@ -50,20 +50,18 @@ class AlbumentationsTransformsFactory(BaseFactory):
                 conf = deepcopy(conf)  # Avoid changing the original config.
 
                 if "bbox_params" in conf[_type].keys():
-                    bbox_params = conf[_type]["bbox_params"]
-                    self._check_bbox_params(bbox_params)
-
+                    self._check_bbox_params(bbox_params=conf[_type]["bbox_params"])
                     conf[_type]["bbox_params"].update(self.FIXED_BBOX_PARAMS)
 
                 if "keypoint_params" in conf[_type]:
-                    keypoint_params = conf[_type]["keypoint_params"]
-                    self._check_keypoint_params(keypoint_params)
-
+                    if conf[_type]["keypoint_params"] is None:
+                        conf[_type]["keypoint_params"] = {}
+                    self._check_keypoint_params(keypoint_params=conf[_type]["keypoint_params"])
                     conf[_type]["keypoint_params"].update(self.FIXED_KEYPOINT_PARAMS)
 
         return super(AlbumentationsTransformsFactory, self).get(conf)
 
-    def _check_bbox_params(self, bbox_params):
+    def _check_bbox_params(self, bbox_params: dict):
         # Check if all required keys are present
         missing_keys = set(self.REQUIRED_BBOX_PARAM_KEYS) - set(bbox_params.keys())
         if missing_keys:
@@ -74,7 +72,7 @@ class AlbumentationsTransformsFactory(BaseFactory):
         if fixed_keys:
             raise ValueError(f"Unexpected fixed bbox_params keys: {fixed_keys}. Fixed bbox_params {self.FIXED_BBOX_PARAMS} cannot be overriden.")
 
-    def _check_keypoint_params(self, keypoint_params):
+    def _check_keypoint_params(self, keypoint_params: dict):
         if len(keypoint_params.keys()):
             raise ValueError("`keypoint_params` should be left empty. Please leave it as `{keypoint_params: None}` for .json or `keypoint_params: ` for .yaml")
 
