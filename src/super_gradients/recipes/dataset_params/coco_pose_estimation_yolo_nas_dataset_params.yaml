@@ -7,7 +7,7 @@ image_size: 640
 dataset_params_suffix: "${dataset_params.image_size}"
 
 train_dataset_params:
-  data_dir: /Users/Louis.Dupont/PycharmProjects/super-gradients/tests/data/pose_minicoco
+  data_dir: /data/coco # root path to coco data
   images_dir: images/train2017
   json_file: annotations/person_keypoints_train2017.json
 
@@ -64,7 +64,7 @@ train_dataset_params:
 
 
 val_dataset_params:
-  data_dir: /Users/Louis.Dupont/PycharmProjects/super-gradients/tests/data/pose_minicoco
+  data_dir: /data/coco/
   images_dir: images/val2017
   json_file: annotations/person_keypoints_val2017.json
 
