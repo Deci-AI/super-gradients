@@ -73,4 +73,17 @@ pre_prediction_callback:
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True
 
+sg_logger: wandb_sg_logger
+sg_logger_params:
+  project_name: data_saturation
+  entity: super-gradients
+  api_server: "https://wandb.research.deci.ai"
+  tb_files_user_prompt: false
+  launch_tensorboard: false
+  tensorboard_port: null
+  save_checkpoints_remote: false
+  save_tensorboard_remote: false
+  save_logs_remote: false
+  monitor_system: false
+
 _convert_: all

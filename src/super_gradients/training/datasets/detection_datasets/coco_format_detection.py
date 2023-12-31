@@ -31,6 +31,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         tight_box_rotation: bool = False,
         with_crowd: bool = True,
         class_ids_to_ignore: Optional[List[int]] = None,
+        max_samples: Optional[int] = None,
         *args,
         **kwargs,
     ):
@@ -48,6 +49,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         self.tight_box_rotation = tight_box_rotation
         self.with_crowd = with_crowd
         self.class_ids_to_ignore = class_ids_to_ignore or []
+        self.max_samples = max_samples
 
         target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
         kwargs["target_fields"] = target_fields
@@ -78,6 +80,10 @@ class COCOFormatDetectionDataset(DetectionDataset):
         self.original_classes = list([category["name"] for category in self.coco.loadCats(self.class_ids)])
         self.classes = copy.deepcopy(self.original_classes)
         self.sample_id_to_coco_id = self.coco.getImgIds()
+
+        if self.max_samples is not None and len(self.sample_id_to_coco_id) > self.max_samples:
+            self.sample_id_to_coco_id = self.sample_id_to_coco_id[: self.max_samples]
+
         return len(self.sample_id_to_coco_id)
 
     @property
@@ -201,3 +207,9 @@ def remove_useless_info(coco: COCO, use_seg_info: bool = False) -> None:
         if "annotations" in coco.dataset and not use_seg_info:
             for anno in coco.dataset["annotations"]:
                 anno.pop("segmentation", None)
+
+
+# o365 = COCOFormatDetectionDataset(
+#     data_dir="/data/objects365", json_annotation_file="zhiyuan_objv2_val.json", images_dir="", cache_annotations=False, max_samples=20
+# )
+# im = next(iter(o365))
