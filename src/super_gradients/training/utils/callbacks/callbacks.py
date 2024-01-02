@@ -1,5 +1,6 @@
 import copy
 import csv
+import itertools
 import math
 import numbers
 import os
@@ -13,13 +14,8 @@ import numpy as np
 import onnx
 import onnxruntime
 import torch
-from torch.utils.data import DataLoader
-from torchmetrics import MetricCollection, Metric
-from torchvision.utils import draw_segmentation_masks
-
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.deprecate import deprecated
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.device_utils import device_config
@@ -31,9 +27,12 @@ from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, 
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback, cxcywh2xyxy, xyxy2cxcywh
-from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
+from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_as_list
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.training.utils.utils import unwrap_model, infer_model_device, tensor_container_to_device
+from torch.utils.data import DataLoader
+from torchmetrics import MetricCollection, Metric
+from torchvision.utils import draw_segmentation_masks
 
 logger = get_logger(__name__)
 
@@ -315,21 +314,6 @@ class LinearEpochLRWarmup(LRCallbackBase):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
-class EpochStepWarmupLRCallback(LinearEpochLRWarmup):
-    ...
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
-class LinearLRWarmup(LinearEpochLRWarmup):
-    ...
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
-class LinearStepWarmupLRCallback(LinearEpochLRWarmup):
-    ...
-
-
 @register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP, deprecated_name="linear_batch_step")
 class LinearBatchLRWarmup(Callback):
     """
@@ -407,11 +391,6 @@ class LinearBatchLRWarmup(Callback):
             param_group["lr"] = self.lr[param_group["name"]]
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearBatchLRWarmup)
-class BatchStepLinearWarmupLRCallback(LinearBatchLRWarmup):
-    ...
-
-
 @register_lr_scheduler(LRSchedulers.STEP, deprecated_name="step")
 class StepLRScheduler(LRCallbackBase):
     """
@@ -444,11 +423,6 @@ class StepLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=StepLRScheduler)
-class StepLRCallback(StepLRScheduler):
-    ...
-
-
 @register_lr_scheduler(LRSchedulers.EXP, deprecated_name="exp")
 class ExponentialLRScheduler(LRCallbackBase):
     """
@@ -469,11 +443,6 @@ class ExponentialLRScheduler(LRCallbackBase):
     def is_lr_scheduling_enabled(self, context):
         post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=ExponentialLRScheduler)
-class ExponentialLRCallback(ExponentialLRScheduler):
-    ...
 
 
 @register_lr_scheduler(LRSchedulers.POLY, deprecated_name="poly")
@@ -498,11 +467,6 @@ class PolyLRScheduler(LRCallbackBase):
     def is_lr_scheduling_enabled(self, context):
         post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=PolyLRScheduler)
-class PolyLRCallback(PolyLRScheduler):
-    ...
 
 
 @register_lr_scheduler(LRSchedulers.COSINE, deprecated_name="cosine")
@@ -541,47 +505,6 @@ class CosineLRScheduler(LRCallbackBase):
 
         lr = 0.5 * initial_lr * (1.0 + np.cos(step / (total_steps + 1) * math.pi))
         return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=CosineLRScheduler)
-class CosineLRCallback(CosineLRScheduler):
-    ...
-
-
-@register_lr_scheduler(LRSchedulers.FUNCTION, deprecated_name="function")
-class FunctionLRScheduler(LRCallbackBase):
-    """
-    Hard coded rate scheduling for user defined lr scheduling function.
-    """
-
-    @deprecated(deprecated_since="3.2.0", removed_from="3.6.0", reason="This callback is deprecated and will be removed in future versions.")
-    def __init__(self, max_epochs, lr_schedule_function, **kwargs):
-        super().__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
-        assert callable(lr_schedule_function), "self.lr_function must be callable"
-        self.lr_schedule_function = lr_schedule_function
-        self.max_epochs = max_epochs
-
-    def is_lr_scheduling_enabled(self, context):
-        post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-        return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
-
-    def perform_scheduling(self, context):
-        effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        for group_name in self.lr.keys():
-            self.lr[group_name] = self.lr_schedule_function(
-                initial_lr=self.initial_lr[group_name],
-                epoch=effective_epoch,
-                iter=context.batch_idx,
-                max_epoch=effective_max_epochs,
-                iters_per_epoch=self.train_loader_len,
-            )
-        self.update_lr(context.optimizer, context.epoch, context.batch_idx)
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=FunctionLRScheduler)
-class FunctionLRCallback(FunctionLRScheduler):
-    ...
 
 
 class IllegalLRSchedulerMetric(Exception):
@@ -1187,11 +1110,11 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self._reset()
 
     def on_train_batch_end(self, context: PhaseContext) -> None:
-        if self.enable_on_train_loader and context.epoch % self.freq == 0:
+        if self.enable_on_train_loader and (context.epoch + 1) % self.freq == 0:
             self._on_batch_end(context)
 
     def on_train_loader_end(self, context: PhaseContext) -> None:
-        if self.enable_on_train_loader and context.epoch % self.freq == 0:
+        if self.enable_on_train_loader and (context.epoch + 1) % self.freq == 0:
             self._gather_extreme_batch_images_and_log(context, "train")
             self._reset()
 
@@ -1199,20 +1122,32 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self._reset()
 
     def on_validation_batch_end(self, context: PhaseContext) -> None:
-        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+        if self.enable_on_valid_loader and (context.epoch + 1) % self.freq == 0:
             self._on_batch_end(context)
 
     def on_validation_loader_end(self, context: PhaseContext) -> None:
-        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+        if self.enable_on_valid_loader and (context.epoch + 1) % self.freq == 0:
             self._gather_extreme_batch_images_and_log(context, "valid")
             self._reset()
 
     def _gather_extreme_batch_images_and_log(self, context, loader_name: str):
-        images_to_save = self.process_extreme_batch()
-        images_to_save = maybe_all_gather_np_images(images_to_save)
-        if self.max_images > 0:
-            images_to_save = images_to_save[: self.max_images]
+        input_images_to_save = self.process_extreme_batch()
+        images_to_save = maybe_all_gather_as_list(input_images_to_save)
+        images_to_save: List[np.ndarray] = list(itertools.chain(*images_to_save))
+
         if not context.ddp_silent_mode:
+            if self.max_images > 0:
+                images_to_save = images_to_save[: self.max_images]
+
+            # Before saving images to logger we need to pad them to the same size
+            max_height = max([image.shape[0] for image in images_to_save])
+            max_width = max([image.shape[1] for image in images_to_save])
+            images_to_save = [
+                cv2.copyMakeBorder(image, 0, max_height - image.shape[0], 0, max_width - image.shape[1], cv2.BORDER_CONSTANT, value=0)
+                for image in images_to_save
+            ]
+            images_to_save = np.stack(images_to_save, axis=0)
+
             context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=context.epoch, data_format="NHWC")
 
     def _on_batch_end(self, context: PhaseContext) -> None:

@@ -13,16 +13,8 @@ import torchvision
 from omegaconf import ListConfig
 from torch import nn
 
-from super_gradients.common.deprecate import deprecated
 from super_gradients.training.utils.visualization.detection import draw_bbox
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
-from super_gradients.common.exceptions.dataset_exceptions import DatasetItemsException as _DatasetItemsException
-from super_gradients.training.utils.collate_fn import (
-    DetectionCollateFN as _DetectionCollateFN,
-    PPYoloECollateFN as _PPYoloECollateFN,
-    CrowdDetectionPPYoloECollateFN as _CrowdDetectionPPYoloECollateFN,
-    CrowdDetectionCollateFN as _CrowdDetectionCollateFN,
-)
 
 
 class DetectionTargetsFormat(Enum):
@@ -401,7 +393,7 @@ class DetectionVisualization:
     def draw_box_title(
         color_mapping: List[Tuple[int]],
         class_names: List[str],
-        box_thickness: int,
+        box_thickness: Optional[int],
         image_np: np.ndarray,
         x1: int,
         y1: int,
@@ -409,7 +401,7 @@ class DetectionVisualization:
         y2: int,
         class_id: int,
         pred_conf: float = None,
-        is_target: bool = False,
+        bbox_prefix: str = "",
     ):
         """
         Draw a rectangle with class name, confidence on the image
@@ -423,16 +415,16 @@ class DetectionVisualization:
         :param y2: Y coordinate of the bottom right corner of the bounding box
         :param class_id: A corresponding class id
         :param pred_conf: Class confidence score (optional)
-        :param is_target: Indicate if the bounding box is a ground-truth box or not
-
+        :param bbox_prefix: Prefix to add to the title of the bounding boxes
         """
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
-        if is_target:
-            title = f"[GT] {class_name}"
-        else:
-            title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+        title = class_name
+        if bbox_prefix:
+            title = f"{bbox_prefix} {class_name}"
+        if pred_conf is not None:
+            title = f"{title} {str(round(pred_conf, 2))}"
 
         image_np = draw_bbox(image=image_np, title=title, x1=x1, y1=y1, x2=x2, y2=y2, box_thickness=box_thickness, color=color)
         return image_np
@@ -443,32 +435,87 @@ class DetectionVisualization:
         pred_boxes: np.ndarray,
         target_boxes: np.ndarray,
         class_names: List[str],
-        box_thickness: int,
+        box_thickness: Optional[int],
         gt_alpha: float,
         image_scale: float,
         checkpoint_dir: str,
         image_name: str,
     ):
+        return DetectionVisualization.visualize_image(
+            image_np=image_np,
+            pred_boxes=pred_boxes,
+            target_boxes=target_boxes,
+            class_names=class_names,
+            box_thickness=box_thickness,
+            gt_alpha=gt_alpha,
+            image_scale=image_scale,
+            checkpoint_dir=checkpoint_dir,
+            image_name=image_name,
+        )
+
+    @staticmethod
+    def visualize_image(
+        image_np: np.ndarray,
+        class_names: List[str],
+        target_boxes: Optional[np.ndarray] = None,
+        pred_boxes: Optional[np.ndarray] = None,
+        box_thickness: Optional[int] = 2,
+        gt_alpha: float = 0.6,
+        image_scale: float = 1.0,
+        checkpoint_dir: Optional[str] = None,
+        image_name: Optional[str] = None,
+    ):
         image_np = cv2.resize(image_np, (0, 0), fx=image_scale, fy=image_scale, interpolation=cv2.INTER_NEAREST)
         color_mapping = DetectionVisualization._generate_color_mapping(len(class_names))
 
-        # Draw predictions
-        pred_boxes[:, :4] *= image_scale
-        for box in pred_boxes:
-            image_np = DetectionVisualization.draw_box_title(
-                color_mapping, class_names, box_thickness, image_np, *box[:4].astype(int), class_id=int(box[5]), pred_conf=box[4]
-            )
+        if pred_boxes is not None:
 
-        # Draw ground truths
-        target_boxes_image = np.zeros_like(image_np, np.uint8)
-        for box in target_boxes:
-            target_boxes_image = DetectionVisualization.draw_box_title(
-                color_mapping, class_names, box_thickness, target_boxes_image, *box[2:], class_id=box[1], is_target=True
-            )
+            # Draw predictions
+            pred_boxes[:, :4] *= image_scale
+            for xyxy_score_label in pred_boxes:
+                image_np = DetectionVisualization.draw_box_title(
+                    color_mapping=color_mapping,
+                    class_names=class_names,
+                    box_thickness=box_thickness,
+                    image_np=image_np,
+                    x1=int(xyxy_score_label[0]),
+                    y1=int(xyxy_score_label[1]),
+                    x2=int(xyxy_score_label[2]),
+                    y2=int(xyxy_score_label[3]),
+                    class_id=int(xyxy_score_label[5]),
+                    pred_conf=float(xyxy_score_label[4]),
+                    bbox_prefix="[Pred]" if target_boxes is not None else "",  # If we have TARGETS, we want to add a prefix to distinguish.
+                )
 
-        # Transparent overlay of ground truth boxes
-        mask = target_boxes_image.astype(bool)
-        image_np[mask] = cv2.addWeighted(image_np, 1 - gt_alpha, target_boxes_image, gt_alpha, 0)[mask]
+        if target_boxes is not None:
+
+            # If gt_alpha is set, we will show it as a transparent overlay.
+            if gt_alpha is not None:
+                # Transparent overlay of ground truth boxes
+                image_with_targets = np.zeros_like(image_np, np.uint8)
+            else:
+                image_with_targets = image_np
+
+            for label_xyxy in target_boxes:
+                image_with_targets = DetectionVisualization.draw_box_title(
+                    color_mapping=color_mapping,
+                    class_names=class_names,
+                    box_thickness=box_thickness,
+                    image_np=image_with_targets,
+                    x1=int(label_xyxy[1]),
+                    y1=int(label_xyxy[2]),
+                    x2=int(label_xyxy[3]),
+                    y2=int(label_xyxy[4]),
+                    class_id=int(label_xyxy[0]),
+                    bbox_prefix="[GT]" if pred_boxes is not None else "",  # If we have PREDICTIONS, we want to add a prefix to distinguish.
+                )
+
+            if gt_alpha is not None:
+                # Transparent overlay of ground truth boxes
+                mask = image_with_targets.astype(bool)
+                image_np[mask] = cv2.addWeighted(image_np, 1 - gt_alpha, image_with_targets, gt_alpha, 0)[mask]
+            else:
+                image_np = image_with_targets
 
         if checkpoint_dir is None:
             return image_np
@@ -510,7 +557,7 @@ class DetectionVisualization:
         class_names: List[str],
         checkpoint_dir: str = None,
         undo_preprocessing_func: Callable[[torch.Tensor], np.ndarray] = undo_image_preprocessing,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         image_scale: float = 1.0,
         gt_alpha: float = 0.4,
     ):
@@ -554,7 +601,15 @@ class DetectionVisualization:
 
             image_name = "_".join([str(batch_name), str(i)])
             res_image = DetectionVisualization._visualize_image(
-                image_np[i], preds, targets_cur, class_names, box_thickness, gt_alpha, image_scale, checkpoint_dir, image_name
+                image_np=image_np[i],
+                pred_boxes=preds,
+                target_boxes=targets_cur,
+                class_names=class_names,
+                box_thickness=box_thickness,
+                gt_alpha=gt_alpha,
+                image_scale=image_scale,
+                checkpoint_dir=checkpoint_dir,
+                image_name=image_name,
             )
             if res_image is not None:
                 out_images.append(res_image)
@@ -699,31 +754,6 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     """
     scaled_bboxes = bbox * scale_ratio + np.array([[padw, padh, padw, padh]])
     return change_bbox_bounds_for_image_size(scaled_bboxes, img_shape=(h_max, w_max))
-
-
-@deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_DatasetItemsException)
-class DatasetItemsException(_DatasetItemsException):
-    ...
-
-
-@deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_DetectionCollateFN)
-class DetectionCollateFN(_DetectionCollateFN):
-    ...
-
-
-@deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_PPYoloECollateFN)
-class PPYoloECollateFN(_PPYoloECollateFN):
-    ...
-
-
-@deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_CrowdDetectionPPYoloECollateFN)
-class CrowdDetectionPPYoloECollateFN(_CrowdDetectionPPYoloECollateFN):
-    ...
-
-
-@deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_CrowdDetectionCollateFN)
-class CrowdDetectionCollateFN(_CrowdDetectionCollateFN):
-    ...
 
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:
@@ -1010,7 +1040,7 @@ class DistanceMatching(DetectionMatching):
             pred_i = preds_idx_to_use[pred_selected_i]
             target_i = target_sorted[pred_selected_i, target_sorted_i]
 
-            distance_thresholds_tensor = torch.tensor(self.distance_thresholds)
+            distance_thresholds_tensor = torch.tensor(self.distance_thresholds, device=distances.device)
             is_distance_below_threshold = sorted_distances[pred_selected_i, target_sorted_i] < distance_thresholds_tensor
             are_candidates_free = torch.logical_and(~preds_matched[pred_i, :], ~targets_matched[target_i, :])
             are_candidates_good = torch.logical_and(is_distance_below_threshold, are_candidates_free)
@@ -1048,11 +1078,11 @@ class DistanceMatching(DetectionMatching):
         cls_mismatch_crowd = preds_cls[preds_idx_to_use].view(-1, 1) != crowd_targets_cls.view(1, -1)
 
         # Iterate over each distance metric and its corresponding threshold
-        distances = self.distance_metric.calculate_distance(crowd_target_box_xyxy, preds_box_xyxy[preds_idx_to_use])
+        distances = self.distance_metric.calculate_distance(preds_box_xyxy[preds_idx_to_use], crowd_target_box_xyxy)
         distances[cls_mismatch_crowd] = float("inf")
 
         best_distance, _ = distances.min(1)
-        is_matching_with_crowd = best_distance.view(-1, 1) < torch.tensor(self.distance_thresholds).view(1, -1)
+        is_matching_with_crowd = best_distance.view(-1, 1) < torch.tensor(self.distance_thresholds, device=distances.device).view(1, -1)
 
         preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
 
@@ -1348,7 +1378,7 @@ def compute_detection_metrics(
     precision = torch.zeros((n_class, nb_iou_thrs), device=device)
     recall = torch.zeros((n_class, nb_iou_thrs), device=device)
 
-    nb_score_thrs = 101
+    nb_score_thrs = len(recall_thresholds)
     all_score_thresholds = torch.linspace(0, 1, nb_score_thrs, device=device)
     f1_per_class_per_threshold = torch.zeros((n_class, nb_score_thrs), device=device) if calc_best_score_thresholds else None
     best_score_threshold_per_cls = dict() if calc_best_score_thresholds else None
@@ -1364,7 +1394,6 @@ def compute_detection_metrics(
             score_threshold=score_threshold,
             device=device,
             calc_best_score_thresholds=calc_best_score_thresholds,
-            nb_score_thrs=nb_score_thrs,
         )
         ap[cls_i, :] = cls_ap
         precision[cls_i, :] = cls_precision
@@ -1392,7 +1421,6 @@ def compute_detection_metrics_per_cls(
     score_threshold: float,
     device: str,
     calc_best_score_thresholds: bool = False,
-    nb_score_thrs: int = 101,
 ):
     """
     Compute the list of precision, recall and MaP of a given class for every recall threshold.
@@ -1418,6 +1446,7 @@ def compute_detection_metrics_per_cls(
             :best_score_threshold:      torch.float if calc_best_score_thresholds is True else None
     """
     nb_iou_thrs = preds_matched.shape[-1]
+    nb_score_thrs = len(recall_thresholds)
 
     mean_f1_per_threshold = torch.zeros(nb_score_thrs, device=device) if calc_best_score_thresholds else None
     best_score_threshold = torch.tensor(0.0, dtype=torch.float, device=device) if calc_best_score_thresholds else None

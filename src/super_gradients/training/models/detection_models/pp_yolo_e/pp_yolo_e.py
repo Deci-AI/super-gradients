@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Union, Optional, List, Tuple, Any, Callable
+from typing import Union, Optional, List, Tuple, Any, Callable, Dict
 
 import torch
 from torch import Tensor
@@ -10,7 +10,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import register_model
-from super_gradients.module_interfaces import AbstractObjectDetectionDecodingModule, ExportableObjectDetectionModel, HasPredict
+from super_gradients.module_interfaces import AbstractObjectDetectionDecodingModule, ExportableObjectDetectionModel, HasPredict, SupportsInputShapeCheck
 from super_gradients.module_interfaces.exportable_detector import ModelHasNoPreprocessingParamsException
 from super_gradients.modules import RepVGGBlock
 from super_gradients.training.models.arch_params_factory import get_arch_params
@@ -99,7 +99,7 @@ class PPYoloEDecodingModule(AbstractObjectDetectionDecodingModule):
         return pred_bboxes.size(1)
 
 
-class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
+class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInputShapeCheck):
     def __init__(self, arch_params):
         super().__init__()
         if isinstance(arch_params, HpmStruct):
@@ -267,6 +267,15 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_input_channels(self) -> int:
         return self.backbone.get_input_channels()
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"head": lr, "default": 0}
+
+    def get_input_shape_steps(self) -> Tuple[int, int]:
+        return 32, 32
+
+    def get_minimum_input_shape_size(self) -> Tuple[int, int]:
+        return 32, 32
 
 
 @register_model(Models.PP_YOLOE_S)

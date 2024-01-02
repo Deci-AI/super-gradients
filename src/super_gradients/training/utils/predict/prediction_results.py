@@ -11,9 +11,10 @@ from super_gradients.training.utils.media.image import show_image, save_image
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.visualization.detection import draw_bbox
 from super_gradients.training.utils.visualization.classification import draw_label
+from super_gradients.training.utils.visualization.segmentation import overlay_segmentation
 
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
-from .predictions import Prediction, DetectionPrediction, ClassificationPrediction
+from .predictions import Prediction, DetectionPrediction, ClassificationPrediction, SegmentationPrediction
 from ...datasets.data_formats.bbox_formats import convert_bboxes
 
 from tqdm import tqdm
@@ -109,7 +110,7 @@ class ImageDetectionPrediction(ImagePrediction):
 
     def draw(
         self,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
         target_bboxes: Optional[np.ndarray] = None,
@@ -119,7 +120,7 @@ class ImageDetectionPrediction(ImagePrediction):
     ) -> np.ndarray:
         """Draw the predicted bboxes on the image.
 
-        :param box_thickness:           Thickness of bounding boxes.
+        :param box_thickness:           (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :param show_confidence:         Whether to show confidence scores on the image.
         :param color_mapping:           List of tuples representing the colors for each class.
                                         Default is None, which generates a default color mapping based on the number of class names.
@@ -219,7 +220,7 @@ class ImageDetectionPrediction(ImagePrediction):
 
     def show(
         self,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
         target_bboxes: Optional[np.ndarray] = None,
@@ -230,7 +231,7 @@ class ImageDetectionPrediction(ImagePrediction):
 
         """Display the image with predicted bboxes.
 
-        :param box_thickness:           Thickness of bounding boxes.
+        :param box_thickness:           (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :param show_confidence:         Whether to show confidence scores on the image.
         :param color_mapping:           List of tuples representing the colors for each class.
                                         Default is None, which generates a default color mapping based on the number of class names.
@@ -259,7 +260,7 @@ class ImageDetectionPrediction(ImagePrediction):
     def save(
         self,
         output_path: str,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
         target_bboxes: Optional[np.ndarray] = None,
@@ -270,7 +271,7 @@ class ImageDetectionPrediction(ImagePrediction):
         """Save the predicted bboxes on the images.
 
         :param output_path:             Path to the output video file.
-        :param box_thickness:           Thickness of bounding boxes.
+        :param box_thickness:           (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :param show_confidence:         Whether to show confidence scores on the image.
         :param color_mapping:           List of tuples representing the colors for each class.
                                         Default is None, which generates a default color mapping based on the number of class names.
@@ -294,6 +295,60 @@ class ImageDetectionPrediction(ImagePrediction):
             target_class_ids=target_class_ids,
             class_names=class_names,
         )
+        save_image(image=image, path=output_path)
+
+
+@dataclass
+class ImageSegmentationPrediction(ImagePrediction):
+    """Object wrapping an image and a segmentation model's prediction.
+
+    :attr image:        Input image
+    :attr predictions:  Predictions of the model
+    :attr class_names:  List of the class names to predict
+    """
+
+    image: np.ndarray
+    prediction: SegmentationPrediction
+    class_names: List[str]
+
+    def draw(self, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None, class_names: Optional[List[str]] = None) -> np.ndarray:
+        """Draw the predicted segmentation on the image.
+
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        :param class_names:     List of class names to predict (segmentation classes)
+        :return:                Image with predicted segmentation. Note that this does not modify the original image.
+        """
+        image = self.image.copy()
+        class_names = class_names or self.class_names
+        if len(class_names) == 1:
+            class_names = ["background"] + class_names
+        color_mapping = color_mapping or generate_color_mapping(len(class_names))
+
+        return overlay_segmentation(
+            image=image, pred_mask=self.prediction, num_classes=len(class_names), alpha=alpha, colors=color_mapping, class_names=class_names
+        )
+
+    def show(self, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+        """Display the image with segmentation prediction overlay.
+
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
+        image = self.draw(alpha=alpha, color_mapping=color_mapping, class_names=self.class_names)
+        show_image(image)
+
+    def save(self, output_path: str, alpha=0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+        """Save the predicted segmentation on the images.
+
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param output_path:     Path to the output file.
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
+        image = self.draw(alpha=alpha, color_mapping=color_mapping, class_names=self.class_names)
         save_image(image=image, path=output_path)
 
 
@@ -390,7 +445,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
 
     def show(
         self,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
         target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
@@ -400,7 +455,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
     ) -> None:
         """Display the predicted bboxes on the images.
 
-        :param box_thickness:           Thickness of bounding boxes.
+        :param box_thickness:           (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :param show_confidence:         Whether to show confidence scores on the image.
         :param color_mapping:           List of tuples representing the colors for each class.
                                         Default is None, which generates a default color mapping based on the number of class names.
@@ -461,7 +516,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
     def save(
         self,
         output_folder: str,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
         target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
@@ -472,7 +527,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
         """Save the predicted bboxes on the images.
 
         :param output_folder:           Folder path, where the images will be saved.
-        :param box_thickness:           Thickness of bounding boxes.
+        :param box_thickness:           (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :param show_confidence:         Whether to show confidence scores on the image.
         :param color_mapping:           List of tuples representing the colors for each class.
                                         Default is None, which generates a default color mapping based on the number of class names.
@@ -517,14 +572,14 @@ class VideoDetectionPrediction(VideoPredictions):
 
     def draw(
         self,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
         class_names: Optional[List[str]] = None,
     ) -> Iterator[np.ndarray]:
         """Draw the predicted bboxes on the images.
 
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :param show_confidence: Whether to show confidence scores on the image.
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
@@ -542,14 +597,14 @@ class VideoDetectionPrediction(VideoPredictions):
 
     def show(
         self,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
         class_names: Optional[List[str]] = None,
     ) -> None:
         """Display the predicted bboxes on the images.
 
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :param show_confidence: Whether to show confidence scores on the image.
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
@@ -561,7 +616,7 @@ class VideoDetectionPrediction(VideoPredictions):
     def save(
         self,
         output_path: str,
-        box_thickness: int = 2,
+        box_thickness: Optional[int] = None,
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
         class_names: Optional[List[str]] = None,
@@ -569,11 +624,93 @@ class VideoDetectionPrediction(VideoPredictions):
         """Save the predicted bboxes on the images.
 
         :param output_path:     Path to the output video file.
-        :param box_thickness:   Thickness of bounding boxes.
+        :param box_thickness:   (Optional) Thickness of bounding boxes. If None, will adapt to the box size.
         :param show_confidence: Whether to show confidence scores on the image.
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         :param class_names:     List of class names to show. By default, is None which shows all classes using during training.
         """
         frames = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping, class_names=class_names)
+        save_video(output_path=output_path, frames=frames, fps=self.fps)
+
+
+@dataclass
+class ImagesSegmentationPrediction(ImagesPredictions):
+    """Object wrapping the list of image segmentation predictions.
+
+    :attr _images_prediction_lst:  List of the predictions results
+    """
+
+    _images_prediction_lst: List[ImageSegmentationPrediction]
+
+    def show(self, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+        """Display the predicted segmentation on the images.
+
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
+        for prediction in self._images_prediction_lst:
+            prediction.show(color_mapping=color_mapping)
+
+    def save(self, output_folder: str, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+        """Save the predicted bboxes on the images.
+
+        :param output_folder:     Folder path, where the images will be saved.
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
+        if output_folder:
+            os.makedirs(output_folder, exist_ok=True)
+
+        for i, prediction in enumerate(self._images_prediction_lst):
+            image_output_path = os.path.join(output_folder, f"pred_{i}.jpg")
+            prediction.save(output_path=image_output_path, color_mapping=color_mapping)
+
+
+@dataclass
+class VideoSegmentationPrediction(VideoPredictions):
+    """Object wrapping the list of image segmentation predictions as a Video.
+
+    :attr _images_prediction_lst:   List of the predictions results
+    :att fps:                       Frames per second of the video
+    """
+
+    _images_prediction_lst: List[ImageSegmentationPrediction]
+    fps: int
+
+    def draw(self, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None, class_names: Optional[List[str]] = None) -> List[np.ndarray]:
+        """Draw the predicted segmentation on the images.
+
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        :param class_names:     List of class names to predict (segmentation classes).
+        :return:                List of images with predicted segmentation. Note that this does not modify the original image.
+        """
+        frames_with_segmentation = [result.draw(alpha=alpha, color_mapping=color_mapping, class_names=class_names) for result in self._images_prediction_lst]
+        return frames_with_segmentation
+
+    def show(self, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None, class_names: Optional[List[str]] = None) -> None:
+        """Display the predicted segmentation on the images.
+
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        :param class_names:     List of class names to predict (segmentation classes).
+        """
+        frames = self.draw(alpha=alpha, color_mapping=color_mapping, class_names=class_names)
+        show_video_from_frames(window_name="Segmentation", frames=frames, fps=self.fps)
+
+    def save(
+        self, output_path: str, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None, class_names: Optional[List[str]] = None
+    ) -> None:
+        """Save the predicted bboxes on the images.
+
+        :param output_path:     Path to the output video file.
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        :param class_names:     List of class names to predict (segmentation classes).
+        """
+        frames = self.draw(alpha=alpha, color_mapping=color_mapping, class_names=class_names)
         save_video(output_path=output_path, frames=frames, fps=self.fps)

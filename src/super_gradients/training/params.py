@@ -81,6 +81,8 @@ DEFAULT_TRAINING_PARAMS = {
         "options": None,  # A dictionary of options to pass to the backend.
         "disable": False,  # Turn torch.compile() into a no-op for testing
     },  # torch.compile options from https://pytorch.org/docs/stable/generated/torch.compile.html
+    "finetune": False  # Whether to freeze a fixed part of the model (supported only for models that implement
+    # get_finetune_lr_dict, see SgModule.get_finetune_lr_dict. Tailored for each model class.)
 }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}

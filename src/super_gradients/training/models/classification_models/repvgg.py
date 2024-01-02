@@ -8,7 +8,7 @@ Refrerences:
 
 Based on https://github.com/DingXiaoH/RepVGG
 """
-from typing import Union
+from typing import Union, Dict
 
 import torch.nn as nn
 
@@ -129,6 +129,9 @@ class RepVGG(BaseClassifier):
             self.linear = new_head
         else:
             self.linear = nn.Linear(int(512 * self.final_width_mult), new_num_classes)
+
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"linear": lr, "default": 0}
 
 
 @register_model(Models.REPVGG_CUSTOM)

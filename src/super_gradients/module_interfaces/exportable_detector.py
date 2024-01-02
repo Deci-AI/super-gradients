@@ -13,6 +13,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
 from super_gradients.conversion.conversion_utils import find_compatible_model_device_for_dtype
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
+from super_gradients.module_interfaces.supports_input_shape_check import SupportsInputShapeCheck
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
 from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules, infer_model_dtype
@@ -287,7 +288,7 @@ class ExportableObjectDetectionModel:
         if input_image_shape is None:
             raise ValueError(
                 "Image shape is not specified and cannot be inferred from the model. "
-                "Please specify the image shape explicitly: model.export(..., image_shape=(height, width))"
+                "Please specify the image shape explicitly: model.export(..., input_image_shape=(height, width))"
             )
 
         try:
@@ -307,6 +308,10 @@ class ExportableObjectDetectionModel:
             )
 
         input_shape = (batch_size, input_image_channels, rows, cols)
+
+        if isinstance(model, SupportsInputShapeCheck):
+            model.validate_input_shape(input_shape)
+
         prep_model_for_conversion_kwargs = {
             "input_size": input_shape,
         }

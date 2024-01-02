@@ -1,7 +1,7 @@
 import collections
 import math
 import warnings
-from typing import Union, Type, List, Tuple, Optional, Any, Callable
+from typing import Union, Type, List, Tuple, Optional, Any, Callable, Dict
 from functools import lru_cache
 
 import numpy as np
@@ -10,7 +10,7 @@ import torch.nn as nn
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
-from super_gradients.module_interfaces import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule, HasPredict
+from super_gradients.module_interfaces import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule, HasPredict, SupportsInputShapeCheck
 from super_gradients.module_interfaces.exportable_detector import ModelHasNoPreprocessingParamsException
 from super_gradients.modules import CrossModelSkipConnection, Conv
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
@@ -467,7 +467,7 @@ class YoloHead(nn.Module):
         )
 
 
-class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
+class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInputShapeCheck):
     def __init__(self, backbone: Type[nn.Module], arch_params: HpmStruct, initialize_module: bool = True):
         super().__init__()
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params
@@ -733,6 +733,9 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
             self._initialize_biases()
             self._initialize_weights()
 
+    def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
+        return {"_head": lr, "default": 0}
+
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return YoloXDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions, **kwargs)
 
@@ -748,6 +751,12 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
             return self._backbone.get_input_channels()
         else:
             raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `get_input_channels`")
+
+    def get_input_shape_steps(self) -> Tuple[int, int]:
+        return 32, 32
+
+    def get_minimum_input_shape_size(self) -> Tuple[int, int]:
+        return 32, 32
 
 
 class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):

@@ -22,7 +22,7 @@ ______________________________________________________________________
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
   <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
-  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-34-brightgreen" />
+  <a href="https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/model_zoo.md" ><img src="https://img.shields.io/badge/pre--trained%20models-34-brightgreen" />
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
@@ -97,7 +97,7 @@ For more information on how to do it go to [Getting Started](#getting-started)
 ```bash
 python -m super_gradients.train_from_recipe architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
-More example on how and why to use recipes can be found in [Recipes](#recipes)
+More examples on how and why to use recipes can be found in [Recipes](#recipes)
 
 
 ### Production readiness
@@ -218,18 +218,19 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ### Pose Estimation
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On) [Pose Estimation Transfer Learning](https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb) [Pose Estimation Transfer Learning](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb)
 
 
 ###  Object Detection
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3SkMohx) [Object Detection Transfer Learning](https://bit.ly/3SkMohx)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/detection_transfer_learning.ipynb) [Object Detection Transfer Learning](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/detection_transfer_learning.ipynb)
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/detection_how_to_connect_custom_dataset.ipynb) [How to Connect Custom Dataset](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/detection_how_to_connect_custom_dataset.ipynb)
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/yolo_nas_custom_dataset_fine_tuning_with_qat.ipynb) [Quantization Aware Training YoloNAS on Custom Dataset](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/yolo_nas_custom_dataset_fine_tuning_with_qat.ipynb)
 
+
 ### How to Predict Using Pre-trained Model
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3f4mssd) [How to Predict Using Pre-trained Model](https://bit.ly/3f4mssd)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/how_to_use_knowledge_distillation_for_classification.ipynb) [Knowledge Distillation Training](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/how_to_run_model_predict.ipynb) [How to Predict Using Pre-trained Model](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/how_to_run_model_predict.ipynb)
 
 
 
@@ -262,7 +263,7 @@ Learn more about SuperGradients knowledge distillation training with our pre-tra
 
 To train a model, it is necessary to configure 4 main components. 
 These components are aggregated into a single "main" recipe `.yaml` file that inherits the aforementioned dataset, architecture, raining and checkpoint params.
-It is also possible (and recomended for flexibility) to override default settings with custom ones.
+It is also possible (and recommended for flexibility) to override default settings with custom ones.
 All recipes can be found [here](http://bit.ly/3gfLw07)
 </br>
 Recipes support out of the box every model, metric or loss that is implemented in SuperGradients, but you can easily extend this to any custom object that you need by "registering it". Check out [this](http://bit.ly/3TQ4iZB) tutorial for more information.
