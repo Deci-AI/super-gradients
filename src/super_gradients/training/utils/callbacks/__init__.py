@@ -33,6 +33,8 @@ from super_gradients.training.utils.callbacks.ppyoloe_switch_callback import PPY
 from super_gradients.common.object_names import Callbacks, LRSchedulers, LRWarmups
 from super_gradients.common.registry.registry import CALLBACKS, LR_SCHEDULERS_CLS_DICT, LR_WARMUP_CLS_DICT
 from super_gradients.training.utils.callbacks.extreme_batch_pose_visualization_callback import ExtremeBatchPoseEstimationVisualizationCallback
+from super_gradients.training.utils.callbacks.hydra_switch_callback import HydraTrainingStageSwitchCallback
+from super_gradients.training.utils.callbacks.hydra_distribution_callback import HydraDistributionVisualizationCallback
 
 __all__ = [
     "Callback",
@@ -76,4 +78,6 @@ __all__ = [
     "CosineLRCallback",
     "FunctionLRCallback",
     "ExtremeBatchPoseEstimationVisualizationCallback",
+    "HydraTrainingStageSwitchCallback",
+    "HydraDistributionVisualizationCallback",
 ]

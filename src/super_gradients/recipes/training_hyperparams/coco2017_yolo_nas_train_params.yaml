@@ -35,12 +35,16 @@ ema_params:
   decay_type: threshold
 
 mixed_precision: False
-sync_bn: True
+sync_bn: False
 
 # This is how you can enable visualization of predictions during training
 # A batch with the largest loss will be visualized for train and valid loaders
 # Visualization images will be logged using configured logger
-# phase_callbacks:
+phase_callbacks:
+   - HydraTrainingStageSwitchCallback:
+       next_stage_start_epoch: 15
+   - HydraDistributionVisualizationCallback
+
 #  - ExtremeBatchDetectionVisualizationCallback:
 #      loss_to_monitor: "PPYoloELoss/loss"
 #      max: True

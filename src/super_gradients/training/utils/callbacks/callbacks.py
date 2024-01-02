@@ -746,7 +746,7 @@ class TrainingStageSwitchCallbackBase(PhaseCallback):
         self.next_stage_start_epoch = next_stage_start_epoch
 
     def __call__(self, context: PhaseContext):
-        if context.epoch == self.next_stage_start_epoch:
+        if context.epoch >= self.next_stage_start_epoch:
             self.apply_stage_change(context)
 
     def apply_stage_change(self, context: PhaseContext):

@@ -29,6 +29,7 @@ dataset_params:
 
 arch_params:
   num_classes: 365
+  num_branches: 5
 
 training_hyperparams:
   resume: ${resume}

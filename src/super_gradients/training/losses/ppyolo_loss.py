@@ -648,7 +648,8 @@ class PPYoloELoss(nn.Module):
         classification_loss_weight: float = 1.0,
         iou_loss_weight: float = 2.5,
         dfl_loss_weight: float = 0.5,
-        use_batched_assignment: bool = True,
+        selection_loss_weight: float = 1.0,
+        use_batched_assignment: bool = False,
     ):
         """
         :param num_classes:                Number of classes
@@ -665,10 +666,12 @@ class PPYoloELoss(nn.Module):
                                            when number of targets per image varies a lot.
         """
         super().__init__()
+        self.phase = 1
         self.use_varifocal_loss = use_varifocal_loss
         self.classification_loss_weight = classification_loss_weight
         self.dfl_loss_weight = dfl_loss_weight
         self.iou_loss_weight = iou_loss_weight
+        self.selection_loss_weight = selection_loss_weight
 
         self.iou_loss = GIoULoss()
         self.static_assigner = ATSSAssigner(topk=9, num_classes=num_classes)
@@ -765,6 +768,7 @@ class PPYoloELoss(nn.Module):
         self,
         predictions: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
         targets: Tensor,
+        reduce_batch: bool = True,
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
         Compute the loss using batched targets-anchors assignment.
@@ -820,11 +824,14 @@ class PPYoloELoss(nn.Module):
         # cls loss
         if self.use_varifocal_loss:
             one_hot_label = torch.nn.functional.one_hot(assigned_labels, self.num_classes + 1)[..., :-1]
-            cls_loss_sum = self._varifocal_loss(pred_scores, assigned_scores, one_hot_label)
+            cls_loss_sum = self._varifocal_loss(pred_scores, assigned_scores, one_hot_label, reduce_batch)
         else:
-            cls_loss_sum = self._focal_loss(pred_scores, assigned_scores, alpha_l)
+            cls_loss_sum = self._focal_loss(pred_scores, assigned_scores, alpha_l, reduce_batch)
 
-        assigned_scores_sum = assigned_scores.sum()
+        if reduce_batch:
+            assigned_scores_sum = assigned_scores.sum()
+        else:
+            assigned_scores_sum = assigned_scores.sum(axis=[1, 2])
 
         iou_loss_sum, dfl_loss_sum = self._bbox_loss(
             pred_distri,
@@ -833,6 +840,7 @@ class PPYoloELoss(nn.Module):
             assigned_labels,
             assigned_bboxes / stride_tensor,  # rescale bbox
             assigned_scores,
+            reduce_batch=reduce_batch,
         )
 
         return cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum
@@ -841,6 +849,7 @@ class PPYoloELoss(nn.Module):
         self,
         predictions: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
         targets: Tensor,
+        reduce_batch: bool = True,
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
         Compute the loss using sequential (per-image) targets-anchors assignment.
@@ -919,12 +928,27 @@ class PPYoloELoss(nn.Module):
                 assigned_scores,
             )
 
-            cls_loss_sum = cls_loss + cls_loss_sum
-            iou_loss_sum = loss_iou + iou_loss_sum
-            dfl_loss_sum = loss_dfl + dfl_loss_sum
-            assigned_scores_sum_total = assigned_scores_sum + assigned_scores_sum_total
+            if reduce_batch:
+                cls_loss_sum = cls_loss + cls_loss_sum
+                iou_loss_sum = loss_iou + iou_loss_sum
+                dfl_loss_sum = loss_dfl + dfl_loss_sum
+                assigned_scores_sum_total = assigned_scores_sum + assigned_scores_sum_total
+            else:
+                if not isinstance(cls_loss_sum, torch.Tensor):
+                    cls_loss_sum = cls_loss.unsqueeze(0)
+                    iou_loss_sum = loss_iou.unsqueeze(0)
+                    dfl_loss_sum = loss_dfl.unsqueeze(0)
+                    assigned_scores_sum_total = assigned_scores_sum.unsqueeze(0)
+                else:
+                    cls_loss_sum = torch.cat((cls_loss_sum, cls_loss.unsqueeze(0)), dim=0)
+                    iou_loss_sum = torch.cat((iou_loss_sum, loss_iou.unsqueeze(0)), dim=0)
+                    dfl_loss_sum = torch.cat((dfl_loss_sum, loss_dfl.unsqueeze(0)), dim=0)
+                    assigned_scores_sum_total = torch.cat((assigned_scores_sum_total, assigned_scores_sum.unsqueeze(0)), dim=0)
 
         return cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum_total
+
+    def set_phase(self, phase: int) -> None:
+        self.phase = phase
 
     def forward(
         self,
@@ -942,22 +966,58 @@ class PPYoloELoss(nn.Module):
         :return:
         """
         # in test/eval mode the model outputs a tuple where the second item is the raw predictions
-        if isinstance(outputs, tuple) and len(outputs) == 2:
+        if isinstance(outputs, tuple) and len(outputs) == 3:
             # in test/eval mode the Yolo model outputs a tuple where the second item is the raw predictions
-            _, predictions = outputs
+            _, selection, predictions = outputs
         else:
-            predictions = outputs
+            selection, predictions = outputs
 
-        if self.use_batched_assignment:
-            cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum = self._forward_batched(predictions, targets)
+        if self.phase == 1 and isinstance(predictions[0], tuple):  # in eval mode, we always treat it as phase 2
+            cls_loss_sum_l, iou_loss_sum_l, dfl_loss_sum_l, assigned_scores_sum_l = [], [], [], []
+            for p in predictions:
+                if self.use_batched_assignment:
+                    cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum = self._forward_batched(p, targets, reduce_batch=False)
+                else:
+                    cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum = self._forward_sequential(p, targets, reduce_batch=False)
+
+                cls_loss_sum_l.append(cls_loss_sum)
+                iou_loss_sum_l.append(iou_loss_sum)
+                dfl_loss_sum_l.append(dfl_loss_sum)
+                assigned_scores_sum_l.append(assigned_scores_sum)
+
+            cls_loss_sum_l = torch.stack(cls_loss_sum_l)
+            iou_loss_sum_l = torch.stack(iou_loss_sum_l)
+            dfl_loss_sum_l = torch.stack(dfl_loss_sum_l)
+            assigned_scores_sum_l = torch.stack(assigned_scores_sum_l)
+
+            non_reduced_cls_loss = self.classification_loss_weight * cls_loss_sum_l
+            non_reduced_iou_loss = self.iou_loss_weight * iou_loss_sum_l
+            non_reduced_dfl_loss = self.dfl_loss_weight * dfl_loss_sum_l
+            non_reduced_loss = non_reduced_cls_loss + non_reduced_iou_loss + non_reduced_dfl_loss
+
+            lowest_loss = torch.argmin(non_reduced_loss, dim=0, keepdim=False)
+            selection_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+                selection, torch.nn.functional.one_hot(lowest_loss, num_classes=5).type(selection.type())
+            )
+
+            cls_loss_sum = torch.mean(cls_loss_sum_l.sum(dim=1))
+            iou_loss_sum = torch.mean(iou_loss_sum_l.sum(dim=1))
+            dfl_loss_sum = torch.mean(dfl_loss_sum_l.sum(dim=1))
+            assigned_scores_sum = torch.mean(assigned_scores_sum_l.sum(dim=1))
+            selection_loss = selection_loss.sum()
         else:
-            cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum = self._forward_sequential(predictions, targets)
+            selection_loss = torch.tensor(0).cuda()
+            if self.use_batched_assignment:
+                cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum = self._forward_batched(predictions, targets)
+            else:
+                cls_loss_sum, iou_loss_sum, dfl_loss_sum, assigned_scores_sum = self._forward_sequential(predictions, targets)
 
         if super_gradients.is_distributed():
             torch.distributed.all_reduce(cls_loss_sum, op=torch.distributed.ReduceOp.SUM)
             torch.distributed.all_reduce(iou_loss_sum, op=torch.distributed.ReduceOp.SUM)
             torch.distributed.all_reduce(dfl_loss_sum, op=torch.distributed.ReduceOp.SUM)
             torch.distributed.all_reduce(assigned_scores_sum, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(selection_loss, op=torch.distributed.ReduceOp.SUM)
             # This is not an error, it will cancel out since loss is reduced using averaging in DDP
             assigned_scores_sum /= get_world_size()
 
@@ -966,15 +1026,16 @@ class PPYoloELoss(nn.Module):
         cls_loss = self.classification_loss_weight * cls_loss_sum / assigned_scores_sum
         iou_loss = self.iou_loss_weight * iou_loss_sum / assigned_scores_sum
         dfl_loss = self.dfl_loss_weight * dfl_loss_sum / assigned_scores_sum
-        loss = cls_loss + iou_loss + dfl_loss
+        selection_loss = self.selection_loss_weight * selection_loss / assigned_scores_sum
+        loss = cls_loss + iou_loss + dfl_loss + selection_loss
 
-        log_losses = torch.stack([cls_loss.detach(), iou_loss.detach(), dfl_loss.detach(), loss.detach()])
+        log_losses = torch.stack([cls_loss.detach(), iou_loss.detach(), dfl_loss.detach(), selection_loss.detach(), loss.detach()])
 
         return loss, log_losses
 
     @property
     def component_names(self):
-        return ["loss_cls", "loss_iou", "loss_dfl", "loss"]
+        return ["loss_cls", "loss_iou", "loss_dfl", "loss_selection", "loss"]
 
     def _df_loss(self, pred_dist: Tensor, target: Tensor) -> Tensor:
         target_left = target.long()
@@ -1048,18 +1109,24 @@ class PPYoloELoss(nn.Module):
         return torch.cat([lt, rb], dim=-1).clip(0, self.reg_max - 0.01)
 
     @staticmethod
-    def _focal_loss(pred_logits: Tensor, label: Tensor, alpha=0.25, gamma=2.0) -> Tensor:
+    def _focal_loss(pred_logits: Tensor, label: Tensor, alpha=0.25, gamma=2.0, reduce_batch: bool = True) -> Tensor:
         pred_score = pred_logits.sigmoid()
         weight = (pred_score - label).pow(gamma)
         if alpha > 0:
             alpha_t = alpha * label + (1 - alpha) * (1 - label)
             weight *= alpha_t
         loss = weight * torch.nn.functional.binary_cross_entropy_with_logits(pred_logits, label, reduction="none")
-        return loss.sum()
+        if reduce_batch:
+            return loss.sum()
+        else:
+            return loss.sum(axis=[1, 2])
 
     @staticmethod
-    def _varifocal_loss(pred_logits: Tensor, gt_score: Tensor, label: Tensor, alpha=0.75, gamma=2.0) -> Tensor:
+    def _varifocal_loss(pred_logits: Tensor, gt_score: Tensor, label: Tensor, alpha=0.75, gamma=2.0, reduce_batch: bool = True) -> Tensor:
         pred_score = pred_logits.sigmoid()
         weight = alpha * pred_score.pow(gamma) * (1 - label) + gt_score * label
         loss = weight * torch.nn.functional.binary_cross_entropy_with_logits(pred_logits, gt_score, reduction="none")
-        return loss.sum()
+        if reduce_batch:
+            return loss.sum()
+        else:
+            return loss.sum(axis=[1, 2])

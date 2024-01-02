@@ -97,7 +97,9 @@ class YoloNAS(ExportableObjectDetectionModel, CustomizableDetector):
         inplace_act: Optional[bool] = True,
         in_channels: int = 3,
     ):
-        super().__init__(backbone, heads, neck, num_classes, bn_eps, bn_momentum, inplace_act, in_channels)
+        super().__init__(
+            backbone, heads, neck, num_classes=num_classes, bn_eps=bn_eps, bn_momentum=bn_momentum, inplace_act=inplace_act, in_channels=in_channels
+        )
 
     @classmethod
     def get_post_prediction_callback(cls, conf: float, iou: float) -> PPYoloEPostPredictionCallback:

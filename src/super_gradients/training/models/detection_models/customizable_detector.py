@@ -14,8 +14,8 @@ from omegaconf import DictConfig
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
-from super_gradients.module_interfaces import SupportsReplaceNumClasses, SupportsReplaceInputChannels, HasPredict
-from super_gradients.modules.head_replacement_utils import replace_num_classes_with_random_weights
+from super_gradients.module_interfaces import SupportsReplaceInputChannels, HasPredict
+from super_gradients.modules import ConvBNAct
 from super_gradients.training.utils.utils import HpmStruct, arch_params_deprecated
 from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
@@ -39,6 +39,7 @@ class CustomizableDetector(HasPredict, SgModule):
         backbone: Union[str, dict, HpmStruct, DictConfig],
         heads: Union[str, dict, HpmStruct, DictConfig],
         neck: Optional[Union[str, dict, HpmStruct, DictConfig]] = None,
+        num_branches: int = 5,
         num_classes: int = None,
         bn_eps: Optional[float] = None,
         bn_momentum: Optional[float] = None,
@@ -49,6 +50,7 @@ class CustomizableDetector(HasPredict, SgModule):
         :param backbone:    Backbone configuration.
         :param heads:       Head configuration.
         :param neck:        Neck configuration.
+        :param num_branches: Number of branches.
         :param num_classes: num classes to predict.
         :param bn_eps:      Epsilon for batch norm.
         :param bn_momentum: Momentum for batch norm.
@@ -57,11 +59,14 @@ class CustomizableDetector(HasPredict, SgModule):
         """
         super().__init__()
 
+        self.phase = 1
         self.heads_params = heads
+        self.neck_params = neck
         self.bn_eps = bn_eps
         self.bn_momentum = bn_momentum
         self.inplace_act = inplace_act
         self.in_channels = in_channels
+        self.num_branches = num_branches
         factory = det_factory.DetectionModulesFactory()
 
         # move num_classes into heads params
@@ -69,12 +74,22 @@ class CustomizableDetector(HasPredict, SgModule):
             self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", num_classes)
 
         self.backbone = factory.get(factory.insert_module_param(backbone, "in_channels", in_channels))
+        self.necks = nn.ModuleList()
+        self.heads_sets = nn.ModuleList()
         if neck is not None:
-            self.neck = factory.get(factory.insert_module_param(neck, "in_channels", self.backbone.out_channels))
-            self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.neck.out_channels))
+            for i in range(num_branches):
+                neck = factory.get(factory.insert_module_param(self.neck_params, "in_channels", self.backbone.out_channels))
+                heads = factory.get(factory.insert_module_param(self.heads_params, "in_channels", neck.out_channels))
+                self.necks.append(neck)
+                self.heads_sets.append(heads)
         else:
-            self.neck = nn.Identity()
-            self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.backbone.out_channels))
+            for i in range(num_branches):
+                neck = nn.Identity()
+                heads = factory.get(factory.insert_module_param(heads, "in_channels", self.backbone.out_channels))
+                self.necks.append(neck)
+                self.heads_sets.append(heads)
+
+        self.selector = self._get_selector()
 
         self._initialize_weights(bn_eps, bn_momentum, inplace_act)
 
@@ -84,10 +99,78 @@ class CustomizableDetector(HasPredict, SgModule):
         self._default_nms_iou: Optional[float] = None
         self._default_nms_conf: Optional[float] = None
 
+    def _get_selector(self):
+        return nn.Sequential(
+            ConvBNAct(self.backbone.out_channels[-1], self.backbone.out_channels[-1], 1, 0, activation_type=nn.ReLU),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(self.backbone.out_channels[-1], self.num_branches),
+        )
+
+    def set_phase(self, phase: int):
+        self.phase = phase
+
     def forward(self, x):
         x = self.backbone(x)
-        x = self.neck(x)
-        return self.heads(x)
+        selection = self.selector(x[-1])
+
+        if self.phase == 2 or not self.training:
+            selection = torch.argmax(selection, dim=1)
+
+            xs = self._split_batch(x)
+            list_of_outputs = []
+
+            for _x, sel in zip(xs, selection):
+                _x = self.necks[sel](_x)
+                _x = self.heads_sets[sel](_x)
+                list_of_outputs.append(_x)
+
+            if not self.training:  # if in eval mode
+                outputs = (
+                    self._merge_batch([list_of_outputs[i][0] for i in range(len(list_of_outputs))]),
+                    selection,
+                    self._merge_batch([list_of_outputs[i][1] for i in range(len(list_of_outputs))]),
+                )
+            else:
+                outputs = selection, self._merge_batch(list_of_outputs)
+            return outputs
+        elif self.phase == 1:
+            xs = []
+            for neck in self.necks:
+                xs.append(neck(x))
+
+            outputs = []
+            for head, x in zip(self.heads_sets, xs):
+                outputs.append(head(x))
+
+            return selection, outputs
+        else:
+            raise ValueError(f"unsupported phase: {self.phase}")
+
+    @staticmethod
+    def _split_batch(outputs: List[torch.Tensor]) -> List[List[torch.Tensor]]:
+        list_of_outputs = []
+        for index_in_batch in range(len(outputs[0])):
+            sliced_outputs = []
+            for output_index in range(len(outputs)):
+                sliced_outputs.append(outputs[output_index][index_in_batch].unsqueeze(0))
+            list_of_outputs.append(sliced_outputs)
+
+        return list_of_outputs
+
+    @staticmethod
+    def _merge_batch(list_of_outputs: List[List[torch.Tensor]]) -> List[torch.Tensor]:
+        outputs = []
+        for output_index in range(len(list_of_outputs[0])):
+            if isinstance(list_of_outputs[0][output_index], list) or list_of_outputs[0][output_index].dim() < 3:
+                outputs.append(list_of_outputs[0][output_index])
+                continue
+
+            batch_items = [list_of_outputs[i][output_index] for i in range(len(list_of_outputs))]
+
+            outputs.append(torch.cat(batch_items, dim=0))
+
+        return outputs
 
     def _initialize_weights(self, bn_eps: Optional[float] = None, bn_momentum: Optional[float] = None, inplace_act: Optional[bool] = True):
         for m in self.modules():
@@ -104,17 +187,7 @@ class CustomizableDetector(HasPredict, SgModule):
                 module.prep_model_for_conversion(input_size, **kwargs)
 
     def replace_head(self, new_num_classes: Optional[int] = None, new_head: Optional[nn.Module] = None):
-        if new_num_classes is None and new_head is None:
-            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
-        if new_head is not None:
-            self.heads = new_head
-        elif isinstance(self.heads, SupportsReplaceNumClasses):
-            self.heads.replace_num_classes(new_num_classes, replace_num_classes_with_random_weights)
-        else:
-            factory = det_factory.DetectionModulesFactory()
-            self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", new_num_classes)
-            self.heads = factory.get(factory.insert_module_param(self.heads_params, "in_channels", self.neck.out_channels))
-            self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)
+        raise NotImplementedError("unsupported method: replace_head")
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         if isinstance(self.backbone, SupportsReplaceInputChannels):
