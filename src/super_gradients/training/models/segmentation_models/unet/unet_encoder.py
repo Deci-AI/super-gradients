@@ -122,14 +122,15 @@ class ConvBaseStage(BackboneStage, ABC):
         out_channels: int,
         stride: int,
         num_blocks: int,
-        anti_alias: bool,
+        anti_alias: Optional[bool] = None,
         downsample_mode: Optional[Union[str, DownSampleMode]] = None,
         **kwargs,
     ):
         blocks = []
         # Init down-sample module
-        if anti_alias:
+        if anti_alias is not None:  # captures `False` and `True`
             logger.warning("`anti_alias` argument is deprecated and will be removed in future versions.")
+        if anti_alias:
             if downsample_mode is not None:
                 raise ValueError(f"Only one argument should set as downsample_mode found: anti_alias: `True`," f" and downsample_mode: {downsample_mode}.")
             downsample_mode = DownSampleMode.ANTI_ALIAS
