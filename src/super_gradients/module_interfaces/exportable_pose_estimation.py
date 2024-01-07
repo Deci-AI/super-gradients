@@ -280,7 +280,7 @@ class ExportablePoseEstimationModel:
         if input_image_shape is None:
             raise ValueError(
                 "Image shape is not specified and cannot be inferred from the model. "
-                "Please specify the image shape explicitly: model.export(..., image_shape=(height, width))"
+                "Please specify the image shape explicitly: model.export(..., input_image_shape=(height, width))"
             )
 
         try:
