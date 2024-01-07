@@ -119,7 +119,7 @@ class Pipeline(ABC):
         else:
             raise ValueError(f"Input {inputs} not supported for prediction.")
 
-    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> ImagesPredictions:
+    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> Union[ImagesPredictions, ImagePrediction]:
         """Predict an image or a list of images.
 
         :param images:      Images to predict.
@@ -248,8 +248,11 @@ class Pipeline(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _combine_image_prediction_to_images(self, images_prediction_lst: Iterable[ImagePrediction], n_images: Optional[int] = None) -> ImagesPredictions:
-        """Instantiate an object wrapping the list of images and the pipeline's predictions on them.
+    def _combine_image_prediction_to_images(
+        self, images_prediction_lst: Iterable[ImagePrediction], n_images: Optional[int] = None
+    ) -> Union[ImagesPredictions, ImagePrediction]:
+        """Instantiate an object wrapping the list of images (or ImagePrediction for single prediction)
+          and the pipeline's predictions on them.
 
         :param images_prediction_lst:   List of image predictions.
         :param n_images:                (Optional) Number of images in the list. This used for tqdm progress bar to work with iterables, but is not required.
@@ -338,14 +341,15 @@ class DetectionPipeline(Pipeline):
 
     def _combine_image_prediction_to_images(
         self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
-    ) -> ImagesDetectionPrediction:
+    ) -> Union[ImagesDetectionPrediction, ImageDetectionPrediction]:
         if n_images is not None and n_images == 1:
             # Do not show tqdm progress bar if there is only one image
-            images_predictions = [next(iter(images_predictions))]
+            images_predictions = next(iter(images_predictions))
         else:
             images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+            images_predictions = ImagesDetectionPrediction(_images_prediction_lst=images_predictions)
 
-        return ImagesDetectionPrediction(_images_prediction_lst=images_predictions)
+        return images_predictions
 
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
@@ -421,14 +425,15 @@ class PoseEstimationPipeline(Pipeline):
 
     def _combine_image_prediction_to_images(
         self, images_predictions: Iterable[PoseEstimationPrediction], n_images: Optional[int] = None
-    ) -> ImagesPoseEstimationPrediction:
+    ) -> Union[ImagesPoseEstimationPrediction, ImagePoseEstimationPrediction]:
         if n_images is not None and n_images == 1:
             # Do not show tqdm progress bar if there is only one image
-            images_predictions = [next(iter(images_predictions))]
+            images_predictions = next(iter(images_predictions))
         else:
             images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+            images_predictions = ImagesPoseEstimationPrediction(_images_prediction_lst=images_predictions)
 
-        return ImagesPoseEstimationPrediction(_images_prediction_lst=images_predictions)
+        return images_predictions
 
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
@@ -485,14 +490,15 @@ class ClassificationPipeline(Pipeline):
 
     def _combine_image_prediction_to_images(
         self, images_predictions: Iterable[ImageClassificationPrediction], n_images: Optional[int] = None
-    ) -> ImagesClassificationPrediction:
+    ) -> Union[ImagesClassificationPrediction, ImageClassificationPrediction]:
         if n_images is not None and n_images == 1:
             # Do not show tqdm progress bar if there is only one image
-            images_predictions = [next(iter(images_predictions))]
+            images_predictions = next(iter(images_predictions))
         else:
             images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+            images_predictions = ImagesClassificationPrediction(_images_prediction_lst=images_predictions)
 
-        return ImagesClassificationPrediction(_images_prediction_lst=images_predictions)
+        return images_predictions
 
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
@@ -555,14 +561,15 @@ class SegmentationPipeline(Pipeline):
 
     def _combine_image_prediction_to_images(
         self, images_predictions: Iterable[ImageSegmentationPrediction], n_images: Optional[int] = None
-    ) -> ImagesSegmentationPrediction:
+    ) -> Union[ImagesSegmentationPrediction, ImageSegmentationPrediction]:
         if n_images is not None and n_images == 1:
             # Do not show tqdm progress bar if there is only one image
-            images_predictions = [next(iter(images_predictions))]
+            images_predictions = next(iter(images_predictions))
         else:
             images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+            images_predictions = ImagesSegmentationPrediction(_images_prediction_lst=images_predictions)
 
-        return ImagesSegmentationPrediction(_images_prediction_lst=images_predictions)
+        return images_predictions
 
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageSegmentationPrediction], fps: float, n_images: Optional[int] = None
