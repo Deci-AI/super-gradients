@@ -40,12 +40,15 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         self.class_agnostic_nms = class_agnostic_nms
 
     @torch.no_grad()
-    def forward(self, outputs: Any, device: str = None):
+    def forward(self, outputs: Any, device: str = None) -> List[List[Tensor]]:
         """
 
-        :param x: Tuple of (bboxes, scores) of shape [B, Anchors, 4], [B, Anchors, C]
-        :param device: (Deprecated) Not used anymore device parameter
-        :return:
+        :param outputs: Outputs of model's forward() method
+        :param device:  (Deprecated) Not used anymore, exists only for sake of keeping the same interface as in the parent class.
+                        Will be removed in the SG 3.7.0.
+                        A device parameter in case we want to move tensors to a specific device.
+        :return:        List of lists of tensors of shape [Ni, 6] where Ni is the number of detections in i-th image.
+                        Format of each row is [x1, y1, x2, y2, confidence, class]
         """
         nms_result = []
         predictions = self._get_decoded_predictions_from_model_output(outputs)
