@@ -35,6 +35,18 @@ parameters:
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
     default: "10.5.1"
 #    default: "dev:alpha"
+  GHA_Event:
+    type: string
+    default: ""
+  GHA_Actor:
+    type: string
+    default: ""
+  GHA_Action:
+    type: string
+    default: ""
+  GHA_Meta:
+    type: string
+    default: ""
 
 orbs:
   deci-common: deci-ai/circleci-common-orb@<< pipeline.parameters.orb_version >>
@@ -873,45 +885,50 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
-#  sanity_tests:
-#    when:  << pipeline.parameters.run_sanity_tests_flow >>
-#    jobs:
-#      - hydra_sweeper_test:
-#          context:
-#            - slack
-#      - recipe_sanity_tests_classification_pt1:
-#          context:
-#            - slack
-#      - recipe_sanity_tests_classification_pt2:
-#          context:
-#            - slack
-#      - recipe_sanity_tests_segmentation:
-#          context:
-#            - slack
-#      - recipe_sanity_tests_detection:
-#          context:
-#            - slack
-#      - recipe_sanity_tests_pose_estimation:
-#          context:
-#            - slack
-#      - recipe_accuracy_tests:
-#          context:
-#            - slack
-#      - run_and_convert_notebooks_to_docs:
-#          context:
-#            - slack
-#  run_and_convert_notebooks_to_docs:
-#    when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
-#    jobs:
-#      - run_and_convert_notebooks_to_docs:
-#          context:
-#            - slack
+  # sanity_tests:
+  #   when:  << pipeline.parameters.run_sanity_tests_flow >>
+  #   jobs:
+  #     - hydra_sweeper_test:
+  #         context:
+  #           - slack
+  #     - recipe_sanity_tests_classification_pt1:
+  #         context:
+  #           - slack
+  #     - recipe_sanity_tests_classification_pt2:
+  #         context:
+  #           - slack
+  #     - recipe_sanity_tests_segmentation:
+  #         context:
+  #           - slack
+  #     - recipe_sanity_tests_detection:
+  #         context:
+  #           - slack
+  #     - recipe_sanity_tests_pose_estimation:
+  #         context:
+  #           - slack
+  #     - recipe_accuracy_tests:
+  #         context:
+  #           - slack
+  #     - run_and_convert_notebooks_to_docs:
+  #         context:
+  #           - slack
+  run_and_convert_notebooks_to_docs:
+    when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
+    jobs:
+      - run_and_convert_notebooks_to_docs:
+          context:
+            - slack
 
   release:
-    unless:
+    when: 
       or:
-        - << pipeline.parameters.ad_hoc_container_build >>
-        - << pipeline.parameters.ad_hoc_container_build_code_only >>
+        - and:
+            - << pipeline.parameters.GHA_Action >>
+            - equal: [ "release", << pipeline.parameters.GHA_Event >> ]
+        - or:
+            - << pipeline.parameters.ad_hoc_container_build >>
+            - << pipeline.parameters.ad_hoc_container_build_code_only >>
+
     jobs:
       - deci-common/persist_version_info:
           version_override: $CIRCLE_TAG
@@ -928,50 +945,50 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
-#      - hydra_sweeper_test:
-#          context:
-#            - slack
-#          <<: *release_tag_filter
-#      - recipe_sanity_tests_classification_pt1:
-#          context:
-#            - slack
-#          <<: *release_tag_filter
-#      - recipe_sanity_tests_classification_pt2:
-#          context:
-#            - slack
-#          <<: *release_tag_filter
-#      - recipe_sanity_tests_segmentation:
-#          context:
-#            - slack
-#          <<: *release_tag_filter
-#      - recipe_sanity_tests_detection:
-#          context:
-#            - slack
-#          <<: *release_tag_filter
-#      - recipe_sanity_tests_pose_estimation:
-#          context:
-#            - slack
-#          <<: *release_tag_filter
-#      - recipe_accuracy_tests:
-#          context:
-#            - slack
-#          <<: *release_tag_filter
-#      - run_and_convert_notebooks_to_docs:
-#          context:
-#            - slack
-#          <<: *release_tag_filter
+      - hydra_sweeper_test:
+          context:
+            - slack
+          <<: *release_tag_filter
+      - recipe_sanity_tests_classification_pt1:
+          context:
+            - slack
+          <<: *release_tag_filter
+      - recipe_sanity_tests_classification_pt2:
+          context:
+            - slack
+          <<: *release_tag_filter
+      - recipe_sanity_tests_segmentation:
+          context:
+            - slack
+          <<: *release_tag_filter
+      - recipe_sanity_tests_detection:
+          context:
+            - slack
+          <<: *release_tag_filter
+      - recipe_sanity_tests_pose_estimation:
+          context:
+            - slack
+          <<: *release_tag_filter
+      - recipe_accuracy_tests:
+          context:
+            - slack
+          <<: *release_tag_filter
+      - run_and_convert_notebooks_to_docs:
+          context:
+            - slack
+          <<: *release_tag_filter
       - release_version:
           py_version: "3.8"
           requires:
             - "build3.8"
-#            - hydra_sweeper_test
-#            - recipe_accuracy_tests
-#            - recipe_sanity_tests_classification_pt1
-#            - recipe_sanity_tests_classification_pt2
-#            - recipe_sanity_tests_segmentation
-#            - recipe_sanity_tests_detection
-#            - recipe_sanity_tests_pose_estimation
-#            - run_and_convert_notebooks_to_docs
+            - hydra_sweeper_test
+            - recipe_accuracy_tests
+            - recipe_sanity_tests_classification_pt1
+            - recipe_sanity_tests_classification_pt2
+            - recipe_sanity_tests_segmentation
+            - recipe_sanity_tests_detection
+            - recipe_sanity_tests_pose_estimation
+            - run_and_convert_notebooks_to_docs
           <<: *release_tag_filter
       - deci-common/pip_upload_package_from_codeartifact_to_global_pypi:
           package_name: "super-gradients"
