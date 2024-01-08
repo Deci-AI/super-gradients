@@ -214,11 +214,14 @@ def extract_code_breaking_changes(module_path: str, source_code: str, current_co
     return breaking_changes
 
 
-def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, List]]]:
+def analyze_breaking_changes(verbose: bool = 1, source_branch: str = "master") -> List[Dict[str, Union[str, List]]]:
     """Analyze changes between the current branch (HEAD) and the master branch.
-    :param verbose: If True, print the summary of breaking changes in a nicely formatted way
+    :param verbose:         If True, print the summary of breaking changes in a nicely formatted way
+    :param source_branch:   The branch source branch, to which we will compare the HEAD.
     :return:        List of changes, where each change is a dictionary listing each type of change for each module.
     """
+    print("\n" + "=" * 50)
+    print(f"Analyzing breaking changes, comparing `HEAD` to `{source_branch}`...")
     # GitHelper requires `git` library which should NOT be required for the other functions
     from .git_utils import GitHelper
 
@@ -227,7 +230,7 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
 
     changed_sg_modules = [
         module_path
-        for module_path in git_explorer.diff_files(source_branch="master", current_branch="HEAD")
+        for module_path in git_explorer.diff_files(source_branch=source_branch, current_branch="HEAD")
         if module_path.startswith("src/super_gradients/") and not module_path.startswith("src/super_gradients/examples/")
     ]
 
@@ -235,7 +238,7 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
     breaking_changes_list = []
     for module_path in changed_sg_modules:
 
-        master_code = git_explorer.load_branch_file(branch="master", file_path=module_path)
+        master_code = git_explorer.load_branch_file(branch=source_branch, file_path=module_path)
         head_code = git_explorer.load_branch_file(branch="HEAD", file_path=module_path)
         breaking_changes = extract_code_breaking_changes(module_path=module_path, source_code=master_code, current_code=head_code)
 
