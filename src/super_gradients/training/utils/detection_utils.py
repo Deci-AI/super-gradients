@@ -187,11 +187,13 @@ class DetectionPostPredictionCallback(ABC, nn.Module):
         super().__init__()
 
     @abstractmethod
-    def forward(self, x, device: str):
+    def forward(self, x, device: str = None):
         """
 
         :param x:       the output of your model
-        :param device:  the device to move all output tensors into
+        :param device:  (Deprecated) Not used anymore, exists only for sake of keeping the same interface as in the parent class.
+                        Will be removed in the SG 3.7.0.
+                        A device parameter in case we want to move tensors to a specific device.
         :return:        a list with length batch_size, each item in the list is a detections
                         with shape: nx6 (x1, y1, x2, y2, confidence, class) where x and y are in range [0,1]
         """
@@ -469,7 +471,6 @@ class DetectionVisualization:
         color_mapping = DetectionVisualization._generate_color_mapping(len(class_names))
 
         if pred_boxes is not None:
-
             # Draw predictions
             pred_boxes[:, :4] *= image_scale
             for xyxy_score_label in pred_boxes:
@@ -488,7 +489,6 @@ class DetectionVisualization:
                 )
 
         if target_boxes is not None:
-
             # If gt_alpha is set, we will show it as a transparent overlay.
             if gt_alpha is not None:
                 # Transparent overlay of ground truth boxes
