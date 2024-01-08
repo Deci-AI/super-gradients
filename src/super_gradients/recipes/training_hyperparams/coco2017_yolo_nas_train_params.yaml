@@ -23,7 +23,6 @@ loss: PPYoloELoss
 criterion_params:
   use_static_assigner: False
   num_classes: ${arch_params.num_classes}
-  reg_max: 16
 
 optimizer: AdamW
 optimizer_params:
