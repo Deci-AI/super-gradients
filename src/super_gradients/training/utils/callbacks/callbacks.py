@@ -609,7 +609,7 @@ class LRSchedulerCallback(PhaseCallback):
     :param phase:           Phase of when to trigger it.
     """
 
-    def __init__(self, scheduler: torch.optim.lr_scheduler._LRScheduler, phase: Phase, metric_name: str = None):
+    def __init__(self, scheduler: torch.optim.lr_scheduler._LRScheduler, phase: Union[Phase, str], metric_name: str = None):
         super(LRSchedulerCallback, self).__init__(phase)
         self.scheduler = scheduler
         self.metric_name = metric_name
@@ -629,7 +629,7 @@ class LRSchedulerCallback(PhaseCallback):
 
 @register_callback(Callbacks.METRICS_UPDATE)
 class MetricsUpdateCallback(PhaseCallback):
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
         super(MetricsUpdateCallback, self).__init__(phase)
 
     def __call__(self, context: PhaseContext):
@@ -639,7 +639,7 @@ class MetricsUpdateCallback(PhaseCallback):
 
 
 class KDModelMetricsUpdateCallback(MetricsUpdateCallback):
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
         super().__init__(phase=phase)
 
     def __call__(self, context: PhaseContext):
@@ -654,7 +654,7 @@ class PhaseContextTestCallback(PhaseCallback):
     A callback that saves the phase context the for testing.
     """
 
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
         super(PhaseContextTestCallback, self).__init__(phase)
         self.context = None
 
@@ -676,7 +676,7 @@ class DetectionVisualizationCallback(PhaseCallback):
 
     def __init__(
         self,
-        phase: Phase,
+        phase: Union[Phase, str],
         freq: int,
         post_prediction_callback: DetectionPostPredictionCallback,
         classes: list,
@@ -712,7 +712,7 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
     :param last_img_idx_in_batch:   Last image index to add to log. (default=-1, will take entire batch).
     """
 
-    def __init__(self, phase: Phase, freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
+    def __init__(self, phase: Union[Phase, str], freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
         super(BinarySegmentationVisualizationCallback, self).__init__(phase)
         self.freq = freq
         self.batch_idx = batch_idx

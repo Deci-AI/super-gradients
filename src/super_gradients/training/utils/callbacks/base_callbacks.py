@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Any
+from typing import List, Any, Union
 
 from typing import Optional
 import torch
@@ -896,7 +896,18 @@ class PhaseCallback(Callback):
     POST_TRAINING = "POST_TRAINING"
     """
 
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
+        if isinstance(phase, str):
+            try:
+                # Convert the string to the corresponding Phase enum value
+                phase = Phase[phase]
+            except KeyError:
+                # Handle the case where the string does not match any Phase enum member
+                raise ValueError(f"Invalid phase string: '{phase}'. Must be one of: {[p.name for p in Phase]}")
+        elif not isinstance(phase, Phase):
+            # Handle the case where the phase is neither a string nor a Phase enum member
+            raise TypeError("phase must be a string or a Phase enum member")
+
         self.phase = phase
 
     def __call__(self, *args, **kwargs):
