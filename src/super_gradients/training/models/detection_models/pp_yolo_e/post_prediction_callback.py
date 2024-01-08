@@ -1,9 +1,10 @@
-from typing import List
+from typing import List, Any, Tuple
 
 import torch
 import torchvision
 
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
+from torch import Tensor
 
 
 class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
@@ -20,11 +21,12 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         class_agnostic_nms: bool = False,
     ):
         """
-        :param score_threshold: Predictions confidence threshold. Predictions with score lower than score_threshold will not participate in Top-K & NMS
-        :param nms_threshold: IoU threshold for NMS step.
-        :param nms_top_k: Number of predictions participating in NMS step
-        :param max_predictions: maximum number of boxes to return after NMS step
-        :param multi_label_per_box: controls whether to decode multiple labels per box.
+        :param score_threshold:     Predictions confidence threshold.
+                                    Predictions with score lower than score_threshold will not participate in Top-K & NMS
+        :param nms_threshold:       IoU threshold for NMS step.
+        :param nms_top_k:           Number of predictions participating in NMS step
+        :param max_predictions:     Maximum number of boxes to return after NMS step
+        :param multi_label_per_box: Controls whether to decode multiple labels per box.
                                     True - each anchor can produce multiple labels of different classes
                                            that pass confidence threshold check (default).
                                     False - each anchor can produce only one label of the class with the highest score.
@@ -38,26 +40,18 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         self.class_agnostic_nms = class_agnostic_nms
 
     @torch.no_grad()
-    def forward(self, outputs, device: str):
+    def forward(self, outputs: Any, device: str = None):
         """
 
         :param x: Tuple of (bboxes, scores) of shape [B, Anchors, 4], [B, Anchors, C]
-        :param device:
+        :param device: (Deprecated) Not used anymore device parameter
         :return:
         """
         nms_result = []
-
-        if isinstance(outputs, tuple) and len(outputs) == 2:
-            if torch.is_tensor(outputs[0]) and torch.is_tensor(outputs[1]) and outputs[0].shape[1] == outputs[1].shape[1] and outputs[0].shape[2] == 4:
-                predictions = outputs
-            else:
-                # First is model predictions, second element of tuple is logits for loss computation
-                predictions = outputs[0]
-        else:
-            raise ValueError(f"Unsupported output format: {outputs}")
+        predictions = self._get_decoded_predictions_from_model_output(outputs)
 
         for pred_bboxes, pred_scores in zip(*predictions):
-            # Cast to float to avoid lack of fp16 support in torchvision.ops.boxes.batched_nms
+            # Cast to float to avoid lack of fp16 support in torchvision.ops.boxes.batched_nms when doing CPU inference
             pred_bboxes = pred_bboxes.float()  # [Anchors, 4]
             pred_scores = pred_scores.float()  # [Anchors, C]
 
@@ -99,6 +93,26 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
             nms_result.append(final_boxes)
 
         return self._filter_max_predictions(nms_result)
+
+    def _get_decoded_predictions_from_model_output(self, outputs: Any) -> Tuple[Tensor, Tensor]:
+        """
+        Get the decoded predictions from the PPYoloE/YoloNAS output.
+        Depending on the model regime (train/eval) the output format may differ so this method picks the right output.
+
+        :param outputs: Model's forward() return value
+        :return:        Tuple of (bboxes, scores) of shape [B, Anchors, 4], [B, Anchors, C]
+        """
+        if isinstance(outputs, tuple) and len(outputs) == 2:
+            if torch.is_tensor(outputs[0]) and torch.is_tensor(outputs[1]) and outputs[0].shape[1] == outputs[1].shape[1] and outputs[0].shape[2] == 4:
+                # This path happens when we are using traced model or ONNX model without postprocessing for inference.
+                predictions = outputs
+            else:
+                # First is model predictions, second element of tuple is logits for loss computation
+                predictions = outputs[0]
+        else:
+            raise ValueError(f"Unsupported output format: {outputs}")
+
+        return predictions
 
     def _filter_max_predictions(self, res: List) -> List:
         res[:] = [im[: self.max_predictions] if (im is not None and im.shape[0] > self.max_predictions) else im for im in res]
