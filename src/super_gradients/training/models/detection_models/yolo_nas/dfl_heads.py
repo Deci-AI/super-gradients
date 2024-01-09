@@ -196,26 +196,7 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             self.anchor_points = anchor_points
             self.stride_tensor = stride_tensor
 
-    @torch.jit.ignore
-    def forward_train(self, feats: Tuple[Tensor, ...]):
-        feats = feats[: self.num_heads]
-        anchors, anchor_points, num_anchors_list, stride_tensor = generate_anchors_for_grid_cell(
-            feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset
-        )
-
-        cls_score_list, reg_distri_list = [], []
-        for i, feat in enumerate(feats):
-            reg_distri, cls_logit = getattr(self, f"head{i + 1}")(feat)
-            # cls and reg
-            # Note we don't apply sigmoid on class predictions to ensure good numerical stability at loss computation
-            cls_score_list.append(torch.permute(cls_logit.flatten(2), [0, 2, 1]))
-            reg_distri_list.append(torch.permute(reg_distri.flatten(2), [0, 2, 1]))
-        cls_score_list = torch.cat(cls_score_list, dim=1)
-        reg_distri_list = torch.cat(reg_distri_list, dim=1)
-
-        return cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor
-
-    def forward_eval(self, feats: Tuple[Tensor, ...]) -> Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]:
+    def forward(self, feats: Tuple[Tensor, ...]) -> Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]:
         feats = feats[: self.num_heads]
         cls_score_list, reg_distri_list, reg_dist_reduced_list = [], [], []
 
@@ -261,12 +242,6 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
     @property
     def out_channels(self):
         return None
-
-    def forward(self, feats: Tuple[Tensor]):
-        if self.training:
-            return self.forward_train(feats)
-        else:
-            return self.forward_eval(feats)
 
     def _generate_anchors(self, feats=None, dtype=None, device=None):
         # just use in eval time
