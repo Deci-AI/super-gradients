@@ -35,6 +35,15 @@ class Metrics:
     PIXEL_ACCURACY = "PixelAccuracy"
     POSE_ESTIMATION_METRICS = "PoseEstimationMetrics"
     DETECTION_METRICS_DISTANCE_BASED = "DetectionMetricsDistanceBased"
+    DELTAMETRIC = "DeltaMetric"
+    DELTA1 = "Delta1"
+    DELTA2 = "Delta2"
+    DELTA3 = "Delta3"
+    DepthMAE = "DepthMAE"
+    DepthMAPE = "DepthMAPE"
+    DepthMSE = "DepthMSE"
+    DepthRMSE = "DepthRMSE"
+    DepthMSLE = "DepthMSLE"
 
 
 class Transforms:
