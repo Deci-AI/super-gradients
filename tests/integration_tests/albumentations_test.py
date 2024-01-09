@@ -2,13 +2,16 @@ import os
 import unittest
 from pathlib import Path
 
-from super_gradients.training.datasets import Cifar10, Cifar100, ImageNetDataset, COCODetectionDataset, CoCoSegmentationDataSet
-from albumentations import Compose, HorizontalFlip, InvertImg
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
+from albumentations import Compose, HorizontalFlip, InvertImg
+
+from super_gradients.training.datasets import Cifar10, Cifar100, ImageNetDataset, COCODetectionDataset, CoCoSegmentationDataSet, COCOPoseEstimationDataset
+from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy
 from super_gradients.training.datasets.depth_estimation_datasets import NYUv2DepthEstimationDataset
 
 
@@ -19,10 +22,11 @@ def visualize_image(image):
     :param image: torch.Tensor representing the input image with values between 0 and 1. Shape: (C, H, W).
     """
     # Convert torch tensor to numpy array
-    image_np = image.permute(1, 2, 0).cpu().numpy()  # Change shape from (C, H, W) to (H, W, C)
+    if isinstance(image, torch.Tensor):
+        image = image.permute(1, 2, 0).cpu().numpy()  # Change shape from (C, H, W) to (H, W, C)
 
     # Display the image
-    plt.imshow(image_np)
+    plt.imshow(image)
     plt.axis("off")
     plt.show()
 
@@ -178,6 +182,161 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
 
         dataset = NYUv2DepthEstimationDataset(root=mini_nyuv2_data_dir, df_path=mini_nyuv2_df_path, transforms=transforms)
         dataset.plot(max_samples_per_plot=8)
+
+    def test_coco_pose_albumentations_intergration(self):
+        mini_coco_data_dir = str(Path(__file__).parent.parent / "data" / "pose_minicoco")
+
+        edge_links = [
+            [0, 1],
+            [0, 2],
+            [1, 2],
+            [1, 3],
+            [2, 4],
+            [3, 5],
+            [4, 6],
+            [5, 6],
+            [5, 7],
+            [5, 11],
+            [6, 8],
+            [6, 12],
+            [7, 9],
+            [8, 10],
+            [11, 12],
+            [11, 13],
+            [12, 14],
+            [13, 15],
+            [14, 16],
+        ]
+
+        edge_colors = [
+            [214, 39, 40],  # Nose -> LeftEye
+            [148, 103, 189],  # Nose -> RightEye
+            [44, 160, 44],  # LeftEye -> RightEye
+            [140, 86, 75],  # LeftEye -> LeftEar
+            [227, 119, 194],  # RightEye -> RightEar
+            [127, 127, 127],  # LeftEar -> LeftShoulder
+            [188, 189, 34],  # RightEar -> RightShoulder
+            [127, 127, 127],  # Shoulders
+            [188, 189, 34],  # LeftShoulder -> LeftElbow
+            [140, 86, 75],  # LeftTorso
+            [23, 190, 207],  # RightShoulder -> RightElbow
+            [227, 119, 194],  # RightTorso
+            [31, 119, 180],  # LeftElbow -> LeftArm
+            [255, 127, 14],  # RightElbow -> RightArm
+            [148, 103, 189],  # Waist
+            [255, 127, 14],  # Left Hip -> Left Knee
+            [214, 39, 40],  # Right Hip -> Right Knee
+            [31, 119, 180],  # Left Knee -> Left Ankle
+            [44, 160, 44],  # Right Knee -> Right Ankle
+        ]
+
+        keypoint_colors = [
+            [148, 103, 189],
+            [31, 119, 180],
+            [148, 103, 189],
+            [31, 119, 180],
+            [148, 103, 189],
+            [31, 119, 180],
+            [148, 103, 189],
+            [31, 119, 180],
+            [148, 103, 189],
+            [31, 119, 180],
+            [148, 103, 189],
+            [31, 119, 180],
+            [148, 103, 189],
+            [31, 119, 180],
+            [148, 103, 189],
+            [31, 119, 180],
+            [148, 103, 189],
+        ]
+
+        from super_gradients.training.transforms import KeypointsRescale, KeypointsPadIfNeeded
+
+        transforms = [
+            KeypointsRescale(height=320, width=640),
+            {
+                "Albumentations": {
+                    "Compose": {
+                        "transforms": [{"RandomBrightnessContrast": {"p": 1}}, {"RandomCrop": dict(width=300, height=320)}],
+                        "bbox_params": {
+                            "min_area": 1,
+                            "min_visibility": 0,
+                            "min_width": 0,
+                            "min_height": 0,
+                            "check_each_transform": True,
+                        },
+                        "keypoint_params": {},
+                    },
+                }
+            },
+            KeypointsPadIfNeeded(min_height=350, min_width=350, image_pad_value=0, mask_pad_value=0, padding_mode="center"),
+        ]
+
+        ds = COCOPoseEstimationDataset(
+            data_dir=mini_coco_data_dir,
+            images_dir="images/val2017",
+            json_file="annotations/person_keypoints_val2017.json",
+            include_empty_samples=True,
+            edge_links=edge_links,
+            edge_colors=edge_colors,
+            keypoint_colors=keypoint_colors,
+            transforms=transforms,
+        )
+
+        sample = next(iter(ds))
+
+        bboxes_xyxy = xywh_to_xyxy(bboxes=np.array(sample.bboxes_xywh), image_shape=sample.image.shape)
+
+        image_with_keypoints = PoseVisualization.draw_poses(
+            image=np.array(sample.image),
+            poses=sample.joints,
+            boxes=bboxes_xyxy,
+            scores=None,
+            is_crowd=sample.is_crowd,
+            edge_links=edge_links,
+            edge_colors=edge_colors,
+            keypoint_colors=keypoint_colors,
+            show_keypoint_confidence=False,
+            joint_thickness=None,
+            box_thickness=None,
+            keypoint_radius=None,
+        )
+
+        visualize_image(image=image_with_keypoints)
+
+        # Make sure we raise an error when using unsupported transforms
+        with self.assertRaises(TypeError):
+            transforms = [
+                KeypointsRescale(height=320, width=640),
+                {
+                    "Albumentations": {
+                        "Compose": {
+                            "transforms": [{"HorizontalFlip": {"p": 1}}],
+                            "bbox_params": {
+                                "min_area": 1,
+                                "min_visibility": 0,
+                                "min_width": 0,
+                                "min_height": 0,
+                                "check_each_transform": True,
+                            },
+                            "keypoint_params": {},
+                        },
+                    }
+                },
+                KeypointsPadIfNeeded(min_height=350, min_width=350, image_pad_value=0, mask_pad_value=0, padding_mode="center"),
+            ]
+            unsupported_ds = COCOPoseEstimationDataset(
+                data_dir=mini_coco_data_dir,
+                images_dir="images/val2017",
+                json_file="annotations/person_keypoints_val2017.json",
+                include_empty_samples=True,
+                edge_links=edge_links,
+                edge_colors=edge_colors,
+                keypoint_colors=keypoint_colors,
+                transforms=transforms,
+            )
+
+            _ = next(iter(unsupported_ds))
 
 
 if __name__ == "__main__":
