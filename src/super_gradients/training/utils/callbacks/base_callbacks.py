@@ -25,6 +25,13 @@ class Phase(Enum):
     AVERAGE_BEST_MODELS_VALIDATION_END = "AVERAGE_MODEL_VALIDATION_END"  # This event corresponds to Callback.on_average_best_models_validation_end
     POST_TRAINING = "POST_TRAINING"  # This event corresponds to Callback.on_training_end
 
+    @staticmethod
+    def from_string(phase_str):
+        try:
+            return Phase[phase_str]
+        except KeyError:
+            raise ValueError(f"Invalid phase string: '{phase_str}'. Must be one of: {[p.name for p in Phase]}")
+
 
 class PhaseContext:
     """
@@ -898,14 +905,8 @@ class PhaseCallback(Callback):
 
     def __init__(self, phase: Union[Phase, str]):
         if isinstance(phase, str):
-            try:
-                # Convert the string to the corresponding Phase enum value
-                phase = Phase[phase]
-            except KeyError:
-                # Handle the case where the string does not match any Phase enum member
-                raise ValueError(f"Invalid phase string: '{phase}'. Must be one of: {[p.name for p in Phase]}")
+            phase = Phase.from_string(phase)
         elif not isinstance(phase, Phase):
-            # Handle the case where the phase is neither a string nor a Phase enum member
             raise TypeError("phase must be a string or a Phase enum member")
 
         self.phase = phase
