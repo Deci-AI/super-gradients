@@ -4,7 +4,7 @@ from typing import Type, List, Iterable, Union, Optional, Callable
 import torch
 from super_gradients.common import UpsampleMode
 from super_gradients.common.factories.type_factory import TypeFactory
-from super_gradients.modules.sampling import make_upsample_module_v2
+from super_gradients.modules.sampling import make_upsample_module_with_explicit_channels
 from super_gradients.training.utils.regularization_utils import DropPath
 from torch import nn, Tensor
 
@@ -289,7 +289,7 @@ class YoloNASUpStage(BaseDetectionModule):
 
         self.conv = Conv(in_channels, out_channels, 1, 1, activation_type)
 
-        self.upsample = make_upsample_module_v2(
+        self.upsample = make_upsample_module_with_explicit_channels(
             in_channels=out_channels, out_channels=out_channels, scale_factor=2, upsample_mode=upsample_mode, align_corners=True
         )
         if num_inputs == 3:

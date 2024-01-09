@@ -33,14 +33,20 @@ def make_upsample_module(scale_factor: int, upsample_mode: Union[str, UpsampleMo
     return module
 
 
-def make_upsample_module_v2(
+def make_upsample_module_with_explicit_channels(
     in_channels: int, out_channels: int, scale_factor: int, upsample_mode: UpsampleMode, align_corners: Optional[bool] = None
 ) -> nn.Module:
     """
-    Factory method for creating upsampling modules.
-    :param scale_factor: upsample scale factor
-    :param upsample_mode: see UpsampleMode for supported options.
-    :return: nn.Module
+    Factory method for creating upsampling module with explicit control of in/out channels.
+    Unlike `make_upsample_module`, this method allows to specify number of desired output channels
+    which is useful for upsampling using pixel shuffle and transposed convolutions.
+
+    :param in_channels:   Number of input channels
+    :param out_channels:  Number of output channels
+    :param scale_factor:  Upsample scale factor
+    :param upsample_mode: The desired mode of upsampling.
+    :param align_corners: See `nn.Upsample` for details.
+    :return:              Created upsampling module.
     """
     projection_before_upsample = None
 
