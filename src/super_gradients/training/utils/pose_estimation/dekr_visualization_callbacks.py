@@ -1,5 +1,5 @@
 import cv2
-from typing import List
+from typing import List, Union
 
 import numpy as np
 import torch
@@ -30,7 +30,7 @@ class DEKRVisualizationCallback(PhaseCallback):
 
     def __init__(
         self,
-        phase: Phase,
+        phase: Union[Phase, str],
         prefix: str,
         mean: List[float],
         std: List[float],
