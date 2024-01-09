@@ -81,12 +81,11 @@ class NStageBackbone(BaseDetectionModule, SupportsReplaceInputChannels):
         return self._out_channels
 
     def forward(self, x):
-        y = x
         outputs = []
         for layer in self._all_layers:
-            y = getattr(self, layer)(y)
+            x = getattr(self, layer)(x)
             if layer in self.out_layers:
-                outputs.append(y)
+                outputs.append(x)
 
         return outputs
 
