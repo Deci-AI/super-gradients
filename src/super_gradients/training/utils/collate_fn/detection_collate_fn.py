@@ -37,7 +37,7 @@ class DetectionCollateFN:
         """
         Stack a batch id column to targets and concatenate
         :param labels_batch: a list of targets per image (each of arbitrary length)
-        :return: one tensor of targets of all imahes of shape [N, 6], where N is the total number of targets in a batch
+        :return: one tensor of targets of all images of shape [N, 6], where N is the total number of targets in a batch
                  and the 1st column is batch item index
         """
         labels_batch = [torch.tensor(labels) for labels in labels_batch]

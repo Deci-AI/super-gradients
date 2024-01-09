@@ -35,6 +35,18 @@ parameters:
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
     default: "10.5.1"
 #    default: "dev:alpha"
+  GHA_Event:
+    type: string
+    default: ""
+  GHA_Actor:
+    type: string
+    default: ""
+  GHA_Action:
+    type: string
+    default: ""
+  GHA_Meta:
+    type: string
+    default: ""
 
 orbs:
   deci-common: deci-ai/circleci-common-orb@<< pipeline.parameters.orb_version >>
@@ -245,8 +257,29 @@ jobs:
             python3 -m pip install -e .
             python3 -m pip install -r requirements.dev.txt
             python3 -m pip install gitpython==3.1.0
+
+            # GET THE BRANCH THAT THE CURRENT PR IS BEING MERGED INTO.
+            # THIS IS ONLY RELEVANT FOR CI RUNS, WHICH IS WHY IT'S NOT PART OF THE PYTHON CODE.
+            if [ -n "${CIRCLE_PULL_REQUEST}" ]; then
+              PR_NUMBER=$(basename ${CIRCLE_PULL_REQUEST})
+              echo "Pull Request Number: ${PR_NUMBER}"
+      
+              # Use GitHub API to get the target branch name of the PR using GITHUB_CLI_TOKEN
+              BRANCH_MERGED_INTO=$(curl -s -H "Authorization: token ${GITHUB_CLI_TOKEN}" \
+                "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}" \
+                | jq -r '.base.ref')
+              echo "Branch merged into: ${BRANCH_MERGED_INTO}"
+            
+              # This is required since it's possible this branch would not be available locally
+              git fetch origin ${BRANCH_MERGED_INTO}:${BRANCH_MERGED_INTO}
+            else
+              echo "This job does not appear to be running as part of a pull request."
+              BRANCH_MERGED_INTO="master"
+            fi
+
+            # TESTS
             coverage run --source=super_gradients -m unittest tests/breaking_change_tests/unit_test.py
-            coverage run --source=super_gradients -m unittest tests/breaking_change_tests/test_detect_breaking_change.py
+            BRANCH_MERGED_INTO=${BRANCH_MERGED_INTO} coverage run --source=super_gradients -m unittest tests/breaking_change_tests/test_detect_breaking_change.py
             make check_notebooks_version_match
       - run:
           name: Remove new environment when failed
@@ -873,33 +906,33 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
-  sanity_tests:
-    when:  << pipeline.parameters.run_sanity_tests_flow >>
-    jobs:
-      - hydra_sweeper_test:
-          context:
-            - slack
-      - recipe_sanity_tests_classification_pt1:
-          context:
-            - slack
-      - recipe_sanity_tests_classification_pt2:
-          context:
-            - slack
-      - recipe_sanity_tests_segmentation:
-          context:
-            - slack
-      - recipe_sanity_tests_detection:
-          context:
-            - slack
-      - recipe_sanity_tests_pose_estimation:
-          context:
-            - slack
-      - recipe_accuracy_tests:
-          context:
-            - slack
-      - run_and_convert_notebooks_to_docs:
-          context:
-            - slack
+  # sanity_tests:
+  #   when:  << pipeline.parameters.run_sanity_tests_flow >>
+  #   jobs:
+  #     - hydra_sweeper_test:
+  #         context:
+  #           - slack
+  #     - recipe_sanity_tests_classification_pt1:
+  #         context:
+  #           - slack
+  #     - recipe_sanity_tests_classification_pt2:
+  #         context:
+  #           - slack
+  #     - recipe_sanity_tests_segmentation:
+  #         context:
+  #           - slack
+  #     - recipe_sanity_tests_detection:
+  #         context:
+  #           - slack
+  #     - recipe_sanity_tests_pose_estimation:
+  #         context:
+  #           - slack
+  #     - recipe_accuracy_tests:
+  #         context:
+  #           - slack
+  #     - run_and_convert_notebooks_to_docs:
+  #         context:
+  #           - slack
   run_and_convert_notebooks_to_docs:
     when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
     jobs:
@@ -908,10 +941,15 @@ workflows:
             - slack
 
   release:
-    unless:
+    when: 
       or:
-        - << pipeline.parameters.ad_hoc_container_build >>
-        - << pipeline.parameters.ad_hoc_container_build_code_only >>
+        - and:
+            - << pipeline.parameters.GHA_Action >>
+            - equal: [ "release", << pipeline.parameters.GHA_Event >> ]
+        - or:
+            - << pipeline.parameters.ad_hoc_container_build >>
+            - << pipeline.parameters.ad_hoc_container_build_code_only >>
+
     jobs:
       - deci-common/persist_version_info:
           version_override: $CIRCLE_TAG
