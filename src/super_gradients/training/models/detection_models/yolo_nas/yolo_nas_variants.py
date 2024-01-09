@@ -72,7 +72,6 @@ class YoloNASDecodingModule(AbstractObjectDetectionDecodingModule):
         return output_pred_bboxes, output_pred_scores
 
 
-@register_model("YoloNAS")
 class YoloNAS(ExportableObjectDetectionModel, SupportsInputShapeCheck, CustomizableDetector):
     """
 
@@ -105,10 +104,22 @@ class YoloNAS(ExportableObjectDetectionModel, SupportsInputShapeCheck, Customiza
     ):
         super().__init__(backbone, heads, neck, num_classes, bn_eps, bn_momentum, inplace_act, in_channels)
 
-    @classmethod
     def get_post_prediction_callback(
-        cls, conf: float, iou: float, nms_top_k: int = 1000, max_predictions=300, multi_label_per_box=True, class_agnostic_nms=False
+        self, *, conf: float, iou: float, nms_top_k: int, max_predictions: int, multi_label_per_box: bool, class_agnostic_nms: bool
     ) -> PPYoloEPostPredictionCallback:
+        """
+        Get a post prediction callback for this model.
+
+        :param conf:                A minimum confidence threshold for predictions to be used in post-processing.
+        :param iou:                 A IoU threshold for boxes non-maximum suppression.
+        :param nms_top_k:           The maximum number of detections to consider for NMS.
+        :param max_predictions:     The maximum number of detections to return.
+        :param multi_label_per_box: If True, each anchor can produce multiple labels of different classes.
+                                    If False, each anchor can produce only one label of the class with the highest score.
+        :param class_agnostic_nms:  If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
+                                    If False NMS is performed separately for each class.
+        :return:
+        """
         return PPYoloEPostPredictionCallback(
             score_threshold=conf,
             nms_threshold=iou,

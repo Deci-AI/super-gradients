@@ -196,11 +196,7 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             self.anchor_points = anchor_points
             self.stride_tensor = stride_tensor
 
-    @property
-    def out_channels(self):
-        return None
-
-    def forward(self, feats: Tuple[Tensor]):
+    def forward(self, feats: Tuple[Tensor, ...]) -> Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]:
         feats = feats[: self.num_heads]
         cls_score_list, reg_distri_list, reg_dist_reduced_list = [], [], []
 
@@ -242,6 +238,10 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
         raw_predictions = cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor
         return decoded_predictions, raw_predictions
+
+    @property
+    def out_channels(self):
+        return None
 
     def _generate_anchors(self, feats=None, dtype=None, device=None):
         # just use in eval time
