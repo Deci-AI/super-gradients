@@ -237,7 +237,7 @@ class LRCallbackBase(PhaseCallback):
 
     def __init__(self, phase, initial_lr, update_param_groups, train_loader_len, net, training_params, **kwargs):
         super(LRCallbackBase, self).__init__(phase)
-        if not isinstance(initial_lr, dict):
+        if not isinstance(initial_lr, Mapping):
             initial_lr = {"default": float(initial_lr)}
         self.initial_lr = initial_lr
         self.lr = initial_lr.copy()
@@ -729,6 +729,66 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
             context.sg_logger.add_images(tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch, data_format="NHWC")
+
+
+@register_callback("SelectionVisualizationCallback")
+class SelectionVisualizationCallback(PhaseCallback):
+    def __call__(self, *args, **kwargs):
+        pass
+
+    def __init__(self, freq: int = 2, images_per_branch: int = 20, num_branches: int = 5):
+        self.freq = freq
+        self.images_per_branch = images_per_branch
+        self.num_branches = num_branches
+
+        self.images = None
+        self.full = False
+        self._reset()
+
+        super(SelectionVisualizationCallback, self).__init__(phase=None)
+
+    def _enabled(self, context: PhaseContext) -> bool:
+        return not context.ddp_silent_mode and context.sg_logger is not None and context.epoch % self.freq == 0
+
+    def on_validation_batch_end(self, context: PhaseContext) -> None:
+        if not self._enabled(context) or self.full:
+            return
+
+        selections = context.preds[1]
+        inputs = context.inputs
+
+        for s, inp in zip(selections, inputs):
+            if len(self.images[s]) < self.images_per_branch:
+                self.images[s].append(inp)
+
+        # check if all full
+        for i in range(self.num_branches):
+            if len(self.images[i]) < self.images_per_branch:
+                return
+
+        self.full = True
+
+    def _reset(self):
+        self.images = []
+        for i in range(self.num_branches):
+            self.images.append([])
+
+        self.full = False
+
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
+
+        if not self._enabled(context):
+            return
+
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
+        if not self._enabled(context):
+            return
+
+        for i in range(self.num_branches):
+            if len(self.images[i]) > 0:
+                branch_images = torch.stack(self.images[i]).detach().cpu().numpy()
+                context.sg_logger.add_images(tag=f"branch_{i}", images=branch_images, global_step=context.epoch + 1, data_format="NCHW")
+        self._reset()
 
 
 class TrainingStageSwitchCallbackBase(PhaseCallback):

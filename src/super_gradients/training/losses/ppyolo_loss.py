@@ -648,7 +648,7 @@ class PPYoloELoss(nn.Module):
         classification_loss_weight: float = 1.0,
         iou_loss_weight: float = 2.5,
         dfl_loss_weight: float = 0.5,
-        selection_loss_weight: float = 1.0,
+        selection_loss_weight: float = 1000.0,
         use_batched_assignment: bool = False,
     ):
         """
