@@ -8,8 +8,10 @@ warmup_initial_lr:  1e-6
 lr_warmup_steps: 1000
 lr_warmup_epochs: 0
 
-initial_lr: 2e-4
-
+initial_lr:
+  default: 2e-4
+#  backbone: 0.0
+#  selector: 1e-4
 
 lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0.1
@@ -42,8 +44,9 @@ sync_bn: False
 # Visualization images will be logged using configured logger
 phase_callbacks:
    - HydraTrainingStageSwitchCallback:
-       next_stage_start_epoch: 15
+       next_stage_start_epoch: ${next_stage_start_epoch}
    - HydraDistributionVisualizationCallback
+   - SelectionVisualizationCallback
 
 #  - ExtremeBatchDetectionVisualizationCallback:
 #      loss_to_monitor: "PPYoloELoss/loss"

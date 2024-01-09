@@ -27,6 +27,8 @@ dataset_params:
   train_dataloader_params:
     batch_size: 12
 
+next_stage_start_epoch: ???
+
 arch_params:
   num_classes: 365
   num_branches: 5
