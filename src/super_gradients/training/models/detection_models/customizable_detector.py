@@ -288,7 +288,16 @@ class CustomizableDetector(HasPredict, SgModule):
         :param class_agnostic_nms:  (Optional) If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
                                     If False NMS is performed separately for each class.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
+        pipeline = self._get_pipeline(
+            iou=iou,
+            conf=conf,
+            fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
+            nms_top_k=nms_top_k,
+            max_predictions=max_predictions,
+            multi_label_per_box=multi_label_per_box,
+            class_agnostic_nms=class_agnostic_nms,
+        )
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
     def predict_webcam(
