@@ -225,9 +225,9 @@ def convert_recipe_to_code(config_name: Union[str, pathlib.Path], config_dir: Un
 
     cfg.checkpoint_params = hydra.utils.instantiate(cfg.checkpoint_params)
 
-    # strict_load = cfg.checkpoint_params.strict_load
-    # if isinstance(strict_load, Mapping) and "_target_" in strict_load:
-    #     strict_load = hydra.utils.instantiate(strict_load)
+    strict_load = cfg.checkpoint_params.strict_load
+    if isinstance(strict_load, Mapping) and "_target_" in strict_load:
+        strict_load = hydra.utils.instantiate(strict_load)
 
     training_hyperparams, hydra_instantiated_objects, additional_imports = recursively_walk_and_extract_hydra_targets(cfg.training_hyperparams)
 
@@ -257,7 +257,7 @@ def main():
         model_name="{cfg.architecture}",
         num_classes=num_classes,
         arch_params=arch_params,
-        strict_load={_wrap_in_quotes_if_string(cfg.checkpoint_params.strict_load)},
+        strict_load={_wrap_in_quotes_if_string(strict_load)},
         pretrained_weights={_wrap_in_quotes_if_string(cfg.checkpoint_params.pretrained_weights)},
         checkpoint_path={_wrap_in_quotes_if_string(cfg.checkpoint_params.checkpoint_path)},
         load_backbone={cfg.checkpoint_params.load_backbone},
