@@ -57,6 +57,19 @@ def try_import_black():
             return None
 
 
+def recursively_wrap_strings_with_quotes(cfg):
+    if isinstance(cfg, DictConfig):
+        for key, value in cfg.items():
+            if key != "_target_":
+                cfg[key] = recursively_wrap_strings_with_quotes(value)
+    elif isinstance(cfg, ListConfig):
+        for index, item in enumerate(cfg):
+            cfg[index] = recursively_wrap_strings_with_quotes(item)
+    elif isinstance(cfg, str):
+        cfg = _wrap_in_quotes_if_string(cfg)
+    return cfg
+
+
 def recursively_walk_and_extract_hydra_targets(
     cfg: DictConfig, objects: Optional[Mapping] = None, prefix: Optional[str] = None
 ) -> Tuple[DictConfig, Dict[str, Mapping], List[str]]:
@@ -87,11 +100,11 @@ def recursively_walk_and_extract_hydra_targets(
 
         if "_target_" in cfg:
             target_class = cfg["_target_"]
-            target_params = dict([(k, v) for k, v in cfg.items() if k != "_target_"])
+            target_params = dict([(k, _wrap_in_quotes_if_string(v)) for k, v in cfg.items() if k != "_target_"])
             object_name = f"{prefix}".replace(".", "_").lower()
             objects[object_name] = (target_class, target_params)
             import_statement = extract_import_statement_from_hydra_target(target_class)
-            cfg = object_name
+            cfg = _wrap_variable_reference(object_name)
             additional_imports.append(import_statement)
 
     elif isinstance(cfg, ListConfig):
@@ -101,7 +114,36 @@ def recursively_walk_and_extract_hydra_targets(
             cfg[index] = item
     else:
         pass
-    return cfg, objects, list(set(additional_imports))
+
+    return _unwrap_variable_references(cfg), objects, list(set(additional_imports))
+
+
+def _wrap_variable_reference(variable_name: str) -> Tuple[str, str]:
+    """
+    Wrap a variable name with a tuple to indicate that it is a reference to a variable.
+    It is used to discriminate between "normal" strings and references to instantiated objects.
+    We need to be able to distinguish between them because for strings we need to wrap them in quotes in the generated script.
+    :param variable_name: Name of the variable
+    :return:              A tuple that indicates that this is a reference to a variable
+    """
+    return "__reference__", variable_name
+
+
+def _unwrap_variable_references(cfg: DictConfig) -> DictConfig:
+    """
+    Unwrap variable references from the config. This function modify the configuration in-place.
+    This method replace variable reference entries: ("__reference__", object_name) -> object_name
+    """
+    if isinstance(cfg, DictConfig):
+        for key, value in cfg.items():
+            cfg[key] = _unwrap_variable_references(value)
+    elif isinstance(cfg, (ListConfig, tuple)) and len(cfg) == 2 and cfg[0] == "__reference__":
+        return cfg[1]
+    elif isinstance(cfg, ListConfig):
+        for index, item in enumerate(cfg):
+            cfg[index] = _unwrap_variable_references(item)
+
+    return cfg
 
 
 def extract_import_statement_from_hydra_target(path: str) -> str:
@@ -116,7 +158,7 @@ def extract_import_statement_from_hydra_target(path: str) -> str:
         raise ImportError("Empty path")
     from importlib import import_module
 
-    parts = [part for part in path.split(".")]
+    parts = path.split(".")
     for part in parts:
         if not len(part):
             raise ValueError(f"Error loading '{path}': invalid dotstring. Relative imports are not supported.")
@@ -130,7 +172,10 @@ def extract_import_statement_from_hydra_target(path: str) -> str:
     return part0
 
 
-def wrap_in_quotes_if_string(input: Any) -> Any:
+def _wrap_in_quotes_if_string(input: Any) -> Any:
+    """
+    Append quotes if the input is a string.
+    """
     if input is not None and isinstance(input, str):
         return f'"{input}"'
     return input
@@ -178,9 +223,11 @@ def convert_recipe_to_code(config_name: Union[str, pathlib.Path], config_dir: Un
     num_classes = cfg.arch_params.num_classes
     arch_params = OmegaConf.to_container(cfg.arch_params, resolve=True)
 
-    strict_load = cfg.checkpoint_params.strict_load
-    if isinstance(strict_load, Mapping) and "_target_" in strict_load:
-        strict_load = hydra.utils.instantiate(strict_load)
+    cfg.checkpoint_params = hydra.utils.instantiate(cfg.checkpoint_params)
+
+    # strict_load = cfg.checkpoint_params.strict_load
+    # if isinstance(strict_load, Mapping) and "_target_" in strict_load:
+    #     strict_load = hydra.utils.instantiate(strict_load)
 
     training_hyperparams, hydra_instantiated_objects, additional_imports = recursively_walk_and_extract_hydra_targets(cfg.training_hyperparams)
 
@@ -210,21 +257,21 @@ def main():
         model_name="{cfg.architecture}",
         num_classes=num_classes,
         arch_params=arch_params,
-        strict_load={strict_load},
-        pretrained_weights={wrap_in_quotes_if_string(cfg.checkpoint_params.pretrained_weights)},
-        checkpoint_path={wrap_in_quotes_if_string(cfg.checkpoint_params.checkpoint_path)},
+        strict_load={_wrap_in_quotes_if_string(cfg.checkpoint_params.strict_load)},
+        pretrained_weights={_wrap_in_quotes_if_string(cfg.checkpoint_params.pretrained_weights)},
+        checkpoint_path={_wrap_in_quotes_if_string(cfg.checkpoint_params.checkpoint_path)},
         load_backbone={cfg.checkpoint_params.load_backbone},
         checkpoint_num_classes={checkpoint_num_classes},
     )
 
     train_dataloader = dataloaders.get(
-        name={wrap_in_quotes_if_string(train_dataloader)},
+        name={_wrap_in_quotes_if_string(train_dataloader)},
         dataset_params={train_dataset_params},
         dataloader_params={train_dataloader_params},
     )
 
     val_dataloader = dataloaders.get(
-        name={wrap_in_quotes_if_string(val_dataloader)},
+        name={_wrap_in_quotes_if_string(val_dataloader)},
         dataset_params={val_dataset_params},
         dataloader_params={val_dataloader_params},
     )
