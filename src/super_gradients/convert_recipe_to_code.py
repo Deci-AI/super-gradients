@@ -15,7 +15,7 @@ import argparse
 import collections
 import os.path
 import pathlib
-from typing import Tuple, Mapping, Dict, Union, Optional, Any
+from typing import Tuple, Mapping, Dict, Union, Optional, Any, List
 
 import hydra
 import pkg_resources
@@ -59,7 +59,7 @@ def try_import_black():
 
 def recursively_walk_and_extract_hydra_targets(
     cfg: DictConfig, objects: Optional[Mapping] = None, prefix: Optional[str] = None
-) -> Tuple[DictConfig, Dict[str, Mapping]]:
+) -> Tuple[DictConfig, Dict[str, Mapping], List[str]]:
     """
     Iterates over the input config, extracts all hydra targets present in it and replace them with variable references.
     Extracted hydra targets are stored in the objects dictionary (Used to generated instantiations of the objects in the generated script).
@@ -67,32 +67,67 @@ def recursively_walk_and_extract_hydra_targets(
     :param cfg:     Input config
     :param objects: Dictionary of extracted hydra targets
     :param prefix:  A prefix variable to track the path to the current config (Used to give variables meaningful name)
-    :return:        A new config and the dictionary of objects that must be created in the generated script
+    :return:        A tuple of three items (config, hydra targets, additional imports):
+                    config - A new config and the dictionary of objects that must be created in the generated script
+                    hydra targets - List of hydra targets that should be instantiated from the code
+                    additional imports - list of additional imports that should be included in the script
     """
     if objects is None:
         objects = collections.OrderedDict()
     if prefix is None:
         prefix = ""
 
+    additional_imports = []
+
     if isinstance(cfg, DictConfig):
         for key, value in cfg.items():
-            value, objects = recursively_walk_and_extract_hydra_targets(value, objects, prefix=f"{prefix}_{key}")
+            value, objects, imports = recursively_walk_and_extract_hydra_targets(value, objects, prefix=f"{prefix}_{key}")
             cfg[key] = value
+            additional_imports.extend(imports)
 
         if "_target_" in cfg:
             target_class = cfg["_target_"]
             target_params = dict([(k, v) for k, v in cfg.items() if k != "_target_"])
             object_name = f"{prefix}".replace(".", "_").lower()
             objects[object_name] = (target_class, target_params)
+            import_statement = extract_import_statement_from_hydra_target(target_class)
             cfg = object_name
+            additional_imports.append(import_statement)
 
     elif isinstance(cfg, ListConfig):
         for index, item in enumerate(cfg):
-            item, objects = recursively_walk_and_extract_hydra_targets(item, objects, prefix=f"{prefix}_{index}")
+            item, objects, imports = recursively_walk_and_extract_hydra_targets(item, objects, prefix=f"{prefix}_{index}")
+            additional_imports.extend(imports)
             cfg[index] = item
     else:
         pass
-    return cfg, objects
+    return cfg, objects, list(set(additional_imports))
+
+
+def extract_import_statement_from_hydra_target(path: str) -> str:
+    """
+    Locate an object by name or dotted path and return the import statement for it.
+    If a hydra target is "numpy.arange" then in order to instantiate it via code we should
+    import "numpy" (top-level path) and this method extracts root path and returns it.
+
+    Most of the logic borrowed from hydra._internal.utils._locate
+    """
+    if path == "":
+        raise ImportError("Empty path")
+    from importlib import import_module
+
+    parts = [part for part in path.split(".")]
+    for part in parts:
+        if not len(part):
+            raise ValueError(f"Error loading '{path}': invalid dotstring. Relative imports are not supported.")
+    assert len(parts) > 0
+    part0 = parts[0]
+    try:
+        import_module(part0)
+    except Exception as exc_import:
+        raise ImportError(f"Error loading '{path}':\n{repr(exc_import)}. Are you sure that module '{part0}' is installed?") from exc_import
+
+    return part0
 
 
 def wrap_in_quotes_if_string(input: Any) -> Any:
@@ -147,17 +182,21 @@ def convert_recipe_to_code(config_name: Union[str, pathlib.Path], config_dir: Un
     if isinstance(strict_load, Mapping) and "_target_" in strict_load:
         strict_load = hydra.utils.instantiate(strict_load)
 
-    training_hyperparams, hydra_instantiated_objects = recursively_walk_and_extract_hydra_targets(cfg.training_hyperparams)
+    training_hyperparams, hydra_instantiated_objects, additional_imports = recursively_walk_and_extract_hydra_targets(cfg.training_hyperparams)
 
     checkpoint_num_classes = get_param(cfg.checkpoint_params, "checkpoint_num_classes")
-    content = f"""
+    content = """
 import super_gradients
 from super_gradients import init_trainer, Trainer
 from super_gradients.training.utils.distributed_training_utils import setup_device
 from super_gradients.training import models, dataloaders
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad
-import numpy as np
+"""
 
+    for import_statement in additional_imports:
+        content += f"import {import_statement}\n"
+
+    content += f"""
 def main():
     init_trainer()
     setup_device(device={device}, multi_gpu="{multi_gpu}", num_gpus={num_gpus})
