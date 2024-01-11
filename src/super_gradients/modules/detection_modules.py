@@ -43,7 +43,7 @@ class NStageBackbone(BaseDetectionModule, SupportsReplaceInputChannels):
         out_layers: List[str],
         stem: Union[str, HpmStruct, DictConfig],
         stages: Union[str, HpmStruct, DictConfig],
-        context_module: Union[str, HpmStruct, DictConfig],
+        context_module: Union[str, HpmStruct, DictConfig, None],
     ):
         import super_gradients.common.factories.detection_modules_factory as det_factory
 
@@ -60,10 +60,15 @@ class NStageBackbone(BaseDetectionModule, SupportsReplaceInputChannels):
             new_stage = factory.get(factory.insert_module_param(stages[i], "in_channels", prev_channels))
             setattr(self, f"stage{i + 1}", new_stage)
             prev_channels = new_stage.out_channels
-        self.context_module = factory.get(factory.get(factory.insert_module_param(context_module, "in_channels", prev_channels)))
+
+        if context_module is not None:
+            self.context_module = factory.get(factory.get(factory.insert_module_param(context_module, "in_channels", prev_channels)))
+        else:
+            self.context_module = None
 
         self.out_layers = out_layers
         self._out_channels = self._define_out_channels()
+        self._all_layers = ["stem"] + [f"stage{i}" for i in range(1, self.num_stages + 1)] + (["context_module"] if self.context_module is not None else [])
 
     def _define_out_channels(self):
         out_channels = []
@@ -76,10 +81,8 @@ class NStageBackbone(BaseDetectionModule, SupportsReplaceInputChannels):
         return self._out_channels
 
     def forward(self, x):
-
         outputs = []
-        all_layers = ["stem"] + [f"stage{i}" for i in range(1, self.num_stages + 1)] + ["context_module"]
-        for layer in all_layers:
+        for layer in self._all_layers:
             x = getattr(self, layer)(x)
             if layer in self.out_layers:
                 outputs.append(x)

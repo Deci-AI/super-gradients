@@ -5,7 +5,7 @@
 **Build, train, and fine-tune production-ready deep learning  SOTA vision models**
 [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Easily%20train%20or%20fine-tune%20SOTA%20computer%20vision%20models%20from%20one%20training%20repository&url=https://github.com/Deci-AI/super-gradients&via=deci_ai&hashtags=AI,deeplearning,computervision,training,opensource)
 
-#### Version 3 is out! Notebooks have been updated!
+#### Version 3.5 is out! Notebooks have been updated!
 ______________________________________________________________________
 </div>  
 <div align="center">
@@ -231,6 +231,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 ### How to Predict Using Pre-trained Model
 
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/how_to_use_knowledge_distillation_for_classification.ipynb) [Knowledge Distillation Training](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/how_to_run_model_predict.ipynb) [How to Predict Using Pre-trained Model](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/how_to_run_model_predict.ipynb)
+
+### Albumentations Integration
+
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/albumentations_tutorial.ipynb) [Using Albumentations with SG](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/albumentations_tutorial.ipynb) [How to Predict Using Pre-trained Model](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/albumentations_tutorial.ipynb)
 
 
 
