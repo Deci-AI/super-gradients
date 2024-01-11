@@ -137,10 +137,14 @@ class DetectionMetrics(Metric):
         self.greater_component_is_better = collections.OrderedDict(greater_component_is_better)
         self.component_names = list(self.greater_component_is_better.keys())
         self.calc_best_score_thresholds = calc_best_score_thresholds
+        self.best_threshold_per_class_names = [f"Best_score_threshold_{class_name}" for class_name in class_names]
+
         if self.calc_best_score_thresholds:
             self.component_names.append("Best_score_threshold")
-            self.best_threshold_per_class_names = [f"Best_score_threshold_{class_name}" for class_name in class_names]
+
+        if self.calc_best_score_thresholds and self.include_classwise_ap:
             self.component_names += self.best_threshold_per_class_names
+
         self.components = len(self.component_names)
 
         self.post_prediction_callback = post_prediction_callback
