@@ -129,7 +129,7 @@ class ConvBaseStage(BackboneStage, ABC):
         blocks = []
         # Init down-sample module
         if anti_alias is not None:  # captures `False` and `True`
-            logger.warning("`anti_alias` argument is deprecated and will be removed in future versions.")
+            logger.warning("`anti_alias` argument is deprecated and will be removed in future versions. Please set `downsample_mode='anti_alias'` instead.")
         if anti_alias:
             if downsample_mode is not None:
                 raise ValueError(f"Only one argument should set as downsample_mode found: anti_alias: `True`," f" and downsample_mode: {downsample_mode}.")
