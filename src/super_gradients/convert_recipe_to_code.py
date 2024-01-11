@@ -161,7 +161,11 @@ def extract_import_statement_from_hydra_target(path: str) -> str:
     parts = path.split(".")
     for part in parts:
         if not len(part):
-            raise ValueError(f"Error loading '{path}': invalid dotstring. Relative imports are not supported.")
+            raise ValueError(
+                f"A recipe you are trying to export contains relative imports in hydra target instantiation.\n"
+                f"Relative imports are not supported. Problematic import: {path}.\n"
+                f"Please change that to absolute import."
+            )
     assert len(parts) > 0
     part0 = parts[0]
     try:
