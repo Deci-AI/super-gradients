@@ -399,8 +399,8 @@ class StepLRScheduler(LRCallbackBase):
 
     def __init__(self, lr_updates, lr_decay_factor, step_lr_update_freq=None, **kwargs):
         super().__init__(Phase.TRAIN_EPOCH_END, **kwargs)
-        if step_lr_update_freq and len(lr_updates):
-            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRScheduler constructor")
+        if not ((step_lr_update_freq is None) ^ (len(lr_updates) == 0)):
+            raise ValueError(f"Exactly one of [lr_updates, step_lr_update_freq] should be passed to {StepLRScheduler.__name__} constructor")
 
         if step_lr_update_freq:
             max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
