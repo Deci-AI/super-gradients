@@ -367,9 +367,9 @@ class_names: [
 ]
 
 train_dataset_params:
-  data_dir: /data/objects365 # root path to coco data
-  subdir: "" # sub directory path of data_dir containing the train data.
-  json_file: zhiyuan_objv2_train.json # path to coco train json file, data_dir/annotations/train_json_file.
+  data_dir: /data/coco # root path to coco data
+  subdir: images/train2017 # sub directory path of data_dir containing the train data.
+  json_file: annotations/instances_train2017.json # path to coco train json file, data_dir/annotations/train_json_file.
   input_dim: [640, 640]
   cache_dir:
   cache: False
@@ -396,11 +396,11 @@ train_dataset_params:
         vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
     - DetectionHorizontalFlip:
         prob: 0.5                       # probability to apply horizontal flip
-    - DetectionMixup:
-        input_dim:
-        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
-        prob: 0.5                       # probability to apply per-sample mixup
-        flip_prob: 0.5                  # probability to apply horizontal flip
+#    - DetectionMixup:
+#        input_dim:
+#        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
+#        prob: 0.5                       # probability to apply per-sample mixup
+#        flip_prob: 0.5                  # probability to apply horizontal flip
     - DetectionPaddedRescale:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
         pad_value: 114
@@ -423,9 +423,9 @@ train_dataloader_params:
   collate_fn: DetectionCollateFN
 
 val_dataset_params:
-  data_dir: /data/objects365 # root path to coco data
-  subdir: "" # sub directory path of data_dir containing the train data.
-  json_file: zhiyuan_objv2_val.json # path to coco train json file, data_dir/annotations/train_json_file.
+  data_dir: /data/coco # root path to coco data
+  subdir: images/val2017/ # sub directory path of data_dir containing the train data.
+  json_file: annotations/instances_val2017.json # path to coco train json file, data_dir/annotations/train_json_file.
   input_dim: [636, 636]
   cache_dir:
   cache: False
