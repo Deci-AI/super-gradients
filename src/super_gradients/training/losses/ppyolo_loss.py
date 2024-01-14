@@ -650,6 +650,7 @@ class PPYoloELoss(nn.Module):
         dfl_loss_weight: float = 0.5,
         selection_loss_weight: float = 1000.0,
         use_batched_assignment: bool = False,
+        num_branches: int = 5,
     ):
         """
         :param num_classes:                Number of classes
@@ -680,6 +681,7 @@ class PPYoloELoss(nn.Module):
         self.num_classes = num_classes
         self.reg_max = reg_max
         self.use_batched_assignment = use_batched_assignment
+        self.num_branches = num_branches
 
         # Same as in PPYoloE head
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
@@ -997,8 +999,18 @@ class PPYoloELoss(nn.Module):
 
             lowest_loss = torch.argmin(non_reduced_loss, dim=0, keepdim=False)
             selection_loss = torch.nn.functional.binary_cross_entropy_with_logits(
-                selection, torch.nn.functional.one_hot(lowest_loss, num_classes=5).type(selection.type())
+                selection, torch.nn.functional.one_hot(lowest_loss, num_classes=self.num_branches).type(selection.type())
             )
+
+            # for each branch wight the images so that higher wight is given to images where this branch is the best
+            per_image_weights = torch.nn.functional.softmax(
+                torch.nn.functional.one_hot(lowest_loss, num_classes=self.num_branches).type(torch.float32), dim=0
+            ).permute([1, 0]) * len(lowest_loss)
+
+            cls_loss_sum_l = cls_loss_sum_l * per_image_weights
+            iou_loss_sum_l = iou_loss_sum_l * per_image_weights
+            dfl_loss_sum_l = dfl_loss_sum_l * per_image_weights
+            assigned_scores_sum_l = assigned_scores_sum_l * per_image_weights
 
             cls_loss_sum = torch.mean(cls_loss_sum_l.sum(dim=1))
             iou_loss_sum = torch.mean(iou_loss_sum_l.sum(dim=1))

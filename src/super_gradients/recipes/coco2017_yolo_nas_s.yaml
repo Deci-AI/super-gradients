@@ -29,13 +29,17 @@ dataset_params:
 
 next_stage_start_epoch: ???
 
+num_branches: 2
 arch_params:
-  num_classes: 365
-  num_branches: 5
+  num_classes: 80
+  num_branches: ${num_branches}
 
 training_hyperparams:
   resume: ${resume}
   mixed_precision: True
+  criterion_params:
+    num_branches: ${num_branches}
+    num_classes: ${arch_params.num_classes}
 
 architecture: yolo_nas_s
 

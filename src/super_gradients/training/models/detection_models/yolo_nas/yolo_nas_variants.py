@@ -96,9 +96,18 @@ class YoloNAS(ExportableObjectDetectionModel, CustomizableDetector):
         bn_momentum: Optional[float] = None,
         inplace_act: Optional[bool] = True,
         in_channels: int = 3,
+        num_branches: int = 5,
     ):
         super().__init__(
-            backbone, heads, neck, num_classes=num_classes, bn_eps=bn_eps, bn_momentum=bn_momentum, inplace_act=inplace_act, in_channels=in_channels
+            backbone,
+            heads,
+            neck,
+            num_classes=num_classes,
+            bn_eps=bn_eps,
+            bn_momentum=bn_momentum,
+            inplace_act=inplace_act,
+            in_channels=in_channels,
+            num_branches=num_branches,
         )
 
     @classmethod
@@ -131,6 +140,7 @@ class YoloNAS_S(YoloNAS):
             bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
             bn_eps=get_param(merged_arch_params, "bn_eps", None),
             inplace_act=get_param(merged_arch_params, "inplace_act", None),
+            num_branches=get_param(merged_arch_params, "num_branches", None),
         )
 
     @staticmethod
