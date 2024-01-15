@@ -37,6 +37,7 @@ for those specific groups. This approach offers granular control over the learni
   
 * Freezing parameters can be done by assigning a learning rate of 0 to a specific prefix. By doing so, you will be preventing them from being updated during training.
 
+
 For example, in the below snippet conv1 and conv2 will be frozen, and fc1 and fc2 will be trained with an initial learning rate of 0.001:
 
 ```python
@@ -81,6 +82,7 @@ trainer.train(model, training_params, train_dataloader, test_dataloader)
 
 The `finetune` parameter in SG adds another layer of control for model training. When set to `True`, it enables selective freezing of parts of the model, a technique often used in fine-tuning pre-trained models.
 This feature is supported for all models in the SG model zoo that implement the `get_finetune_lr_dict` method. It is useful when one is not familiar with the different parts of the network.
+
 For example, in the below the detection heads of YoloNAS will be trained with an initial learning rate of 0.01 while the rest of the network is frozen:
 
 ```python
