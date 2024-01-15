@@ -406,7 +406,7 @@ class StepLRScheduler(LRCallbackBase):
             )
 
         if step_lr_update_freq is None and len(lr_updates) == 0:
-            raise ValueError("At least one of [lr_updates, step_lr_update_freq] parameters should be passed" f" to {StepLRScheduler.__name__} constructor")
+            raise ValueError(f"At least one of [lr_updates, step_lr_update_freq] parameters should be passed to {StepLRScheduler.__name__} constructor")
 
         if step_lr_update_freq:
             max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
