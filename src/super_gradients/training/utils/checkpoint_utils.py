@@ -16,6 +16,8 @@ from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
 from super_gradients.common.environment.ddp_utils import get_local_rank
 from super_gradients.training.utils.utils import unwrap_model
+from super_gradients.common.factories.type_factory import TypeFactory
+from super_gradients.common.decorators.factory_decorator import resolve_param
 
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
@@ -206,7 +208,6 @@ class DefaultCheckpointSolver:
         """
         new_ckpt_dict = {}
         for (ckpt_key, ckpt_val), (model_key, model_val) in zip(checkpoint_state_dict.items(), model_state_dict.items()):
-
             if ckpt_val.shape != model_val.shape:
                 raise ValueError(f"ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}" f" with shape {model_val.shape} in the model")
             new_ckpt_dict[model_key] = ckpt_val
@@ -1477,6 +1478,7 @@ def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
         raise RuntimeError(exception_msg)
 
 
+@resolve_param("strict", TypeFactory.from_enum_cls(StrictLoad))
 def load_checkpoint_to_model(
     net: torch.nn.Module,
     ckpt_local_path: str,
@@ -1489,20 +1491,17 @@ def load_checkpoint_to_model(
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
 
-
-    :param load_ema_as_net: Will load the EMA inside the checkpoint file to the network when set
-    :param ckpt_local_path: local path to the checkpoint file
-    :param load_backbone: whether to load the checkpoint as a backbone
-    :param net: network to load the checkpoint to
-    :param strict:
-    :param load_weights_only: Whether to ignore all other entries other then "net".
+    :param net:                    Network to load the checkpoint to
+    :param ckpt_local_path:        Local path to the checkpoint file
+    :param load_ema_as_net:        Will load the EMA inside the checkpoint file to the network when set
+    :param load_backbone:          Whether to load the checkpoint as a backbone
+    :param strict:                 See super_gradients.common.data_types.enum.strict_load.StrictLoad class documentation for details
+                                   (default=NO_KEY_MATCHING to suport SG trained checkpoints)
+    :param load_weights_only:      Whether to ignore all other entries other then "net".
     :param load_processing_params: Whether to call set_dataset_processing_params on "processing_params" entry inside the
-     checkpoint file (default=False).
+                                   checkpoint file (default=False).
     :return:
     """
-    if isinstance(strict, str):
-        strict = StrictLoad(strict)
-
     net = unwrap_model(net)
 
     if load_backbone and not hasattr(net, "backbone"):
@@ -1594,7 +1593,6 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
 
 
 def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pretrained_weights: str):
-
     """
     Loads pretrained weights from the MODEL_URLS dictionary to model
     :param architecture: name of the model's architecture

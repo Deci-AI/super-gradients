@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Any
+from typing import List, Any, Union
 
 from typing import Optional
 import torch
@@ -24,6 +24,13 @@ class Phase(Enum):
     AVERAGE_BEST_MODELS_VALIDATION_START = "AVERAGE_BEST_MODELS_VALIDATION_START"  # This event corresponds to Callback.on_average_best_models_validation_start
     AVERAGE_BEST_MODELS_VALIDATION_END = "AVERAGE_MODEL_VALIDATION_END"  # This event corresponds to Callback.on_average_best_models_validation_end
     POST_TRAINING = "POST_TRAINING"  # This event corresponds to Callback.on_training_end
+
+    @staticmethod
+    def from_string(phase_str):
+        try:
+            return Phase[phase_str]
+        except KeyError:
+            raise ValueError(f"Invalid phase string: '{phase_str}'. Must be one of: {[p.name for p in Phase]}")
 
 
 class PhaseContext:
@@ -896,7 +903,12 @@ class PhaseCallback(Callback):
     POST_TRAINING = "POST_TRAINING"
     """
 
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
+        if isinstance(phase, str):
+            phase = Phase.from_string(phase)
+        elif not isinstance(phase, Phase):
+            raise TypeError("phase must be a string or a Phase enum member")
+
         self.phase = phase
 
     def __call__(self, *args, **kwargs):
