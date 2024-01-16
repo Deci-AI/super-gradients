@@ -15,7 +15,6 @@ class TypeFactory(AbstractFactory):
     def __init__(self, type_dict: Dict[str, type]):
         """
         :param type_dict: a dictionary mapping a name to a type
-        :param case_sensitive: whether to use case-sensitive matching
         """
         self.type_dict = type_dict
 
