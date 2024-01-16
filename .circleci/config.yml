@@ -906,7 +906,7 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
-   sanity_tests:
+  sanity_tests:
      when:  << pipeline.parameters.run_sanity_tests_flow >>
      jobs:
        - hydra_sweeper_test:
@@ -933,12 +933,12 @@ workflows:
        - run_and_convert_notebooks_to_docs:
            context:
              - slack
-#  run_and_convert_notebooks_to_docs:
-#    when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
-#    jobs:
-#      - run_and_convert_notebooks_to_docs:
-#          context:
-#            - slack
+  run_and_convert_notebooks_to_docs:
+    when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
+    jobs:
+      - run_and_convert_notebooks_to_docs:
+          context:
+            - slack
 
   release:
     when: 
