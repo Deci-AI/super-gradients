@@ -22,7 +22,7 @@ parameters:
   run_sanity_tests_flow:
     type: boolean
     description: If true will run sanity_test flow
-    default: false
+    default: true
   run_and_convert_notebooks_to_docs:
     type: boolean
     description: If true will run run_and_convert_notebooks_to_docs flow
@@ -906,33 +906,33 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
-  # sanity_tests:
-  #   when:  << pipeline.parameters.run_sanity_tests_flow >>
-  #   jobs:
-  #     - hydra_sweeper_test:
-  #         context:
-  #           - slack
-  #     - recipe_sanity_tests_classification_pt1:
-  #         context:
-  #           - slack
-  #     - recipe_sanity_tests_classification_pt2:
-  #         context:
-  #           - slack
-  #     - recipe_sanity_tests_segmentation:
-  #         context:
-  #           - slack
-  #     - recipe_sanity_tests_detection:
-  #         context:
-  #           - slack
-  #     - recipe_sanity_tests_pose_estimation:
-  #         context:
-  #           - slack
-  #     - recipe_accuracy_tests:
-  #         context:
-  #           - slack
-  #     - run_and_convert_notebooks_to_docs:
-  #         context:
-  #           - slack
+   sanity_tests:
+     when:  << pipeline.parameters.run_sanity_tests_flow >>
+     jobs:
+       - hydra_sweeper_test:
+           context:
+             - slack
+       - recipe_sanity_tests_classification_pt1:
+           context:
+             - slack
+       - recipe_sanity_tests_classification_pt2:
+           context:
+             - slack
+       - recipe_sanity_tests_segmentation:
+           context:
+             - slack
+       - recipe_sanity_tests_detection:
+           context:
+             - slack
+       - recipe_sanity_tests_pose_estimation:
+           context:
+             - slack
+       - recipe_accuracy_tests:
+           context:
+             - slack
+       - run_and_convert_notebooks_to_docs:
+           context:
+             - slack
   run_and_convert_notebooks_to_docs:
     when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
     jobs:

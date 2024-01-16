@@ -23,4 +23,5 @@ class TorchDtypeFactory(TypeFactory):
             "int32": torch.int32,
             "int64": torch.int64,
             "uint8": torch.uint8,
+            "long": torch.long,
         }
