@@ -50,7 +50,7 @@ class PPYoloECollateFN(DetectionCollateFN):
         super().__init__()
         if random_resize_sizes is not None:
             # All possible combinations
-            random_resize_sizes = np.array(itertools.product(random_resize_sizes, random_resize_sizes))  # [N, 2]
+            random_resize_sizes = np.array(list(itertools.product(random_resize_sizes, random_resize_sizes)))  # [N, 2]
             if random_aspect_ratio is False:
                 # Leave only square sizes
                 random_resize_sizes = random_resize_sizes[random_resize_sizes[:, 0] == random_resize_sizes[:, 1]]

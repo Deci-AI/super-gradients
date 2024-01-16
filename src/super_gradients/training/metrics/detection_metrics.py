@@ -83,7 +83,7 @@ class DetectionMetrics(Metric):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
-        calc_best_score_thresholds: bool = False,
+        calc_best_score_thresholds: bool = True,
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
         state_dict_prefix: str = "",
@@ -137,9 +137,14 @@ class DetectionMetrics(Metric):
         self.greater_component_is_better = collections.OrderedDict(greater_component_is_better)
         self.component_names = list(self.greater_component_is_better.keys())
         self.calc_best_score_thresholds = calc_best_score_thresholds
+        self.best_threshold_per_class_names = [f"Best_score_threshold_{class_name}" for class_name in class_names]
+
         if self.calc_best_score_thresholds:
             self.component_names.append("Best_score_threshold")
-            self.component_names += [f"Best_score_threshold_cls_{i}" for i in range(self.num_cls)]
+
+        if self.calc_best_score_thresholds and self.include_classwise_ap:
+            self.component_names += self.best_threshold_per_class_names
+
         self.components = len(self.component_names)
 
         self.post_prediction_callback = post_prediction_callback
@@ -197,39 +202,48 @@ class DetectionMetrics(Metric):
         """Compute the metrics for all the accumulated results.
         :return: Metrics of interest
         """
-        mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold, best_score_threshold_per_cls = -1.0, -1.0, -1.0, -1.0, -1.0, None
+        mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold = -1.0, -1.0, -1.0, -1.0, -1.0
         accumulated_matching_info = getattr(self, self.state_key)
+        best_score_threshold_per_cls = np.zeros(self.num_cls)
         mean_ap_per_class = np.zeros(self.num_cls)
 
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
 
             # shape (n_class, nb_iou_thresh)
-            ap, precision, recall, f1, unique_classes, best_score_threshold, best_score_threshold_per_cls = compute_detection_metrics(
+            (
+                ap_per_present_classes,
+                precision_per_present_classes,
+                recall_per_present_classes,
+                f1_per_present_classes,
+                present_classes,
+                best_score_threshold,
+                best_score_thresholds_per_present_classes,
+            ) = compute_detection_metrics(
                 *matching_info_tensors,
                 recall_thresholds=self.recall_thresholds,
                 score_threshold=self.score_threshold,
                 device="cpu" if self.accumulate_on_cpu else self.device,
-                calc_best_score_thresholds=self.calc_best_score_thresholds,
             )
 
             # Precision, recall and f1 are computed for IoU threshold range, averaged over classes
             # results before version 3.0.4 (Dec 11 2022) were computed only for smallest value (i.e IoU 0.5 if metric is @0.5:0.95)
-            mean_precision, mean_recall, mean_f1 = precision.mean(), recall.mean(), f1.mean()
+            mean_precision, mean_recall, mean_f1 = precision_per_present_classes.mean(), recall_per_present_classes.mean(), f1_per_present_classes.mean()
 
             # MaP is averaged over IoU thresholds and over classes
-            mean_ap = ap.mean()
+            mean_ap = ap_per_present_classes.mean()
 
             # Fill array of per-class AP scores with values for classes that were present in the dataset
-            ap_per_class = ap.mean(1)
-            for i, class_index in enumerate(unique_classes):
+            ap_per_class = ap_per_present_classes.mean(1)
+            for i, class_index in enumerate(present_classes):
                 mean_ap_per_class[class_index] = float(ap_per_class[i])
+                best_score_threshold_per_cls[class_index] = float(best_score_thresholds_per_present_classes[i])
 
         output_dict = {
-            self.precision_metric_key: mean_precision,
-            self.recall_metric_key: mean_recall,
-            self.map_metric_key: mean_ap,
-            self.f1_metric_key: mean_f1,
+            self.precision_metric_key: float(mean_precision),
+            self.recall_metric_key: float(mean_recall),
+            self.map_metric_key: float(mean_ap),
+            self.f1_metric_key: float(mean_f1),
         }
 
         if self.include_classwise_ap:
@@ -237,8 +251,12 @@ class DetectionMetrics(Metric):
                 output_dict[self.per_class_ap_names[i]] = float(ap_i)
 
         if self.calc_best_score_thresholds:
-            output_dict["Best_score_threshold"] = best_score_threshold
-            output_dict.update(best_score_threshold_per_cls)
+            output_dict["Best_score_threshold"] = float(best_score_threshold)
+
+        if self.include_classwise_ap and self.calc_best_score_thresholds:
+            for threshold_per_class_names, threshold_value in zip(self.best_threshold_per_class_names, best_score_threshold_per_cls):
+                output_dict[threshold_per_class_names] = float(threshold_value)
+
         return output_dict
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
@@ -284,7 +302,7 @@ class DetectionMetricsDistanceBased(DetectionMetrics):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
-        calc_best_score_thresholds: bool = False,
+        calc_best_score_thresholds: bool = True,
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
@@ -363,7 +381,7 @@ class DetectionMetrics_050(DetectionMetrics):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
-        calc_best_score_thresholds: bool = False,
+        calc_best_score_thresholds: bool = True,
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
@@ -395,7 +413,7 @@ class DetectionMetrics_075(DetectionMetrics):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
-        calc_best_score_thresholds: bool = False,
+        calc_best_score_thresholds: bool = True,
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
@@ -427,7 +445,7 @@ class DetectionMetrics_050_095(DetectionMetrics):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
-        calc_best_score_thresholds: bool = False,
+        calc_best_score_thresholds: bool = True,
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):

@@ -20,7 +20,7 @@ class TypeFactory(AbstractFactory):
 
     @classmethod
     def from_enum_cls(cls, enum_cls: Type[Enum]):
-        return cls({entity.name: entity.value for entity in enum_cls})
+        return cls({entity.value: entity for entity in enum_cls})
 
     def get(self, conf: Union[str, type]):
         """
@@ -37,9 +37,11 @@ class TypeFactory(AbstractFactory):
 
             if conf in self.type_dict:
                 return self.type_dict[conf]
+            elif isinstance(conf, bool) and conf in self.type_dict.values():
+                pass
             elif isinstance(conf, str) and get_param(self.type_dict, conf) is not None:
                 return get_param(self.type_dict, conf)
-            elif "." in conf:
+            elif isinstance(conf, str) and "." in conf:
                 *lib_path, module = conf.split(".")
                 lib = ".".join(lib_path)
                 try:

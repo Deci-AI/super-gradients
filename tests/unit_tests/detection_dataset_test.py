@@ -2,6 +2,8 @@ import unittest
 from unittest.mock import patch, mock_open
 from pathlib import Path
 from typing import Dict
+
+import cv2
 import numpy as np
 
 from torch.utils.data import DataLoader
@@ -16,7 +18,7 @@ from super_gradients.common.exceptions.dataset_exceptions import DatasetValidati
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.models import YoloXPostPredictionCallback
 from super_gradients.training.transforms import DetectionMosaic, DetectionTargetsFormatTransform, DetectionPaddedRescale
-from super_gradients.training.utils.collate_fn import DetectionCollateFN, CrowdDetectionCollateFN
+from super_gradients.training.utils.collate_fn import DetectionCollateFN, CrowdDetectionCollateFN, PPYoloECollateFN
 
 
 class DummyCOCODetectionDatasetInheritor(COCODetectionDataset):
@@ -195,6 +197,24 @@ class DetectionDatasetTest(unittest.TestCase):
         }
 
         trainer.train(model=model, training_params=detection_train_params_yolox, train_loader=train_loader, valid_loader=valid_loader)
+
+    def test_random_resize_collate_fn(self):
+        collate_fn = PPYoloECollateFN(
+            random_resize_sizes=[384, 512, 640],
+            random_resize_modes=[cv2.INTER_LINEAR, cv2.INTER_CUBIC],
+            random_aspect_ratio=False,
+        )
+        np.testing.assert_array_equal(collate_fn.random_resize_sizes, np.array([[384, 384], [512, 512], [640, 640]], dtype=int))
+
+        collate_fn = PPYoloECollateFN(
+            random_resize_sizes=[384, 512, 640],
+            random_resize_modes=[cv2.INTER_LINEAR, cv2.INTER_CUBIC],
+            random_aspect_ratio=(1, 1),  # Same as random_aspect_ratio=False
+        )
+        np.testing.assert_array_equal(collate_fn.random_resize_sizes, np.array([[384, 384], [512, 512], [640, 640]], dtype=int))
+
+        collate_fn = PPYoloECollateFN(random_resize_sizes=[384, 512, 640], random_resize_modes=[cv2.INTER_LINEAR, cv2.INTER_CUBIC], random_aspect_ratio=True)
+        self.assertEqual(len(collate_fn.random_resize_sizes), 3 * 3)
 
 
 class TestParseYoloLabelFile(unittest.TestCase):
