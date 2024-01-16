@@ -51,7 +51,7 @@ defaults:
 train_dataloader: cityscapes_train
 val_dataloader: cityscapes_val
 
-architecture: ddrnet_23_slim
+architecture: ddrnet_23
 
 training_hyperparams:
   max_epochs: 500
