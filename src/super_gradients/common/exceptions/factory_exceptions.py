@@ -12,6 +12,7 @@ class UnknownTypeException(Exception):
     """
 
     def __init__(self, unknown_type: str, choices: List, message: str = None):
+        choices = [str(choice) for choice in choices]  # Ensure all choices are strings
         message = message or f"Unknown object type: {unknown_type} in configuration. valid types are: {choices}"
         err_msg_tip = ""
         if isinstance(unknown_type, str):
