@@ -933,12 +933,12 @@ workflows:
        - run_and_convert_notebooks_to_docs:
            context:
              - slack
-  run_and_convert_notebooks_to_docs:
-    when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
-    jobs:
-      - run_and_convert_notebooks_to_docs:
-          context:
-            - slack
+#  run_and_convert_notebooks_to_docs:
+#    when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
+#    jobs:
+#      - run_and_convert_notebooks_to_docs:
+#          context:
+#            - slack
 
   release:
     when: 
