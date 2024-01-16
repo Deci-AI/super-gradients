@@ -20,7 +20,6 @@ checkpoint_params:
   checkpoint_path:
   load_backbone: True
   load_weights_only: True
-  strict_load: no_key_matching
 
 architecture: stdc1_seg
 experiment_name: ${architecture}_cityscapes

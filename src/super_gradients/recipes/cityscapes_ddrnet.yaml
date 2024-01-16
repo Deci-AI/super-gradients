@@ -51,7 +51,7 @@ defaults:
 train_dataloader: cityscapes_train
 val_dataloader: cityscapes_val
 
-architecture: ddrnet_23
+architecture: ddrnet_23_slim
 
 training_hyperparams:
   max_epochs: 500
@@ -90,9 +90,8 @@ checkpoint_params:
   load_checkpoint: ${load_checkpoint}
   checkpoint_path:
   load_backbone: True
-  strict_load: no_key_matching
 
 experiment_name: ${architecture}_cityscapes
 
-multi_gpu: DDP
-num_gpus: 4
+multi_gpu: Off
+num_gpus: 1

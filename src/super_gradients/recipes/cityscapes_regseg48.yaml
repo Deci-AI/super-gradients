@@ -41,7 +41,6 @@ architecture: regseg48
 
 arch_params:
   num_classes: 19
-  strict_load: no_key_matching
 
 load_checkpoint: False
 

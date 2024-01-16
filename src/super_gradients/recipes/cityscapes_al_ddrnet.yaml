@@ -93,7 +93,6 @@ checkpoint_params:
   load_checkpoint: ${load_checkpoint}
   checkpoint_path: ???
   load_backbone: True
-  strict_load: no_key_matching
 
 experiment_name: ${architecture}_cityscapes_al
 
