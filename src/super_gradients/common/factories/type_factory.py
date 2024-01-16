@@ -15,12 +15,13 @@ class TypeFactory(AbstractFactory):
     def __init__(self, type_dict: Dict[str, type]):
         """
         :param type_dict: a dictionary mapping a name to a type
+        :param case_sensitive: whether to use case-sensitive matching
         """
         self.type_dict = type_dict
 
     @classmethod
     def from_enum_cls(cls, enum_cls: Type[Enum]):
-        return cls({entity.name: entity.value for entity in enum_cls})
+        return cls({entity.value: entity for entity in enum_cls})
 
     def get(self, conf: Union[str, type]):
         """

@@ -249,7 +249,7 @@ def fuzzy_keys(params: Mapping) -> List[str]:
     :param params: Mapping, the mapping containing the keys to be returned.
     :return: List[str], list of keys as discussed above.
     """
-    return [fuzzy_str(s) for s in params.keys()]
+    return [fuzzy_str(str(s)) for s in params.keys()]
 
 
 def fuzzy_str(s: str):
@@ -276,7 +276,7 @@ def get_fuzzy_mapping_param(name: str, params: Mapping):
     :param params: Mapping, the mapping containing param.
     :return:
     """
-    fuzzy_params = {fuzzy_str(key): params[key] for key in params.keys()}
+    fuzzy_params = {fuzzy_str(str(key)): params[key] for key in params.keys()}
     return fuzzy_params[fuzzy_str(name)]
 
 
