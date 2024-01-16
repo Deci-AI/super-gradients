@@ -20,7 +20,7 @@ class TypeFactory(AbstractFactory):
 
     @classmethod
     def from_enum_cls(cls, enum_cls: Type[Enum]):
-        return cls({entity.name: entity.value for entity in enum_cls})
+        return cls({entity.value: entity for entity in enum_cls})
 
     def get(self, conf: Union[str, type]):
         """
