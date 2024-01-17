@@ -87,10 +87,10 @@ def iterate_over_detection_predictions_in_batched_format(
     num_detections, detected_bboxes, detected_scores, detected_labels = predictions
     num_detections = num_detections.reshape(-1)
     batch_size = len(num_detections)
-    num_predictions_per_image = len(detected_scores) // batch_size
-    detected_bboxes = detected_bboxes.reshape(batch_size, num_predictions_per_image, 4)
-    detected_scores = detected_scores.reshape(batch_size, num_predictions_per_image)
-    detected_labels = detected_labels.reshape(batch_size, num_predictions_per_image)
+
+    detected_bboxes = detected_bboxes.reshape(batch_size, -1, 4)
+    detected_scores = detected_scores.reshape(batch_size, -1)
+    detected_labels = detected_labels.reshape(batch_size, -1)
 
     if torch.is_tensor(detected_labels):
         detected_labels = detected_labels.long()
