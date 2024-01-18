@@ -103,6 +103,9 @@ def get_train_loop_description_dict(metrics_tuple, metrics_collection, loss_logg
     log_items.update(get_metrics_dict(metrics_tuple, metrics_collection, loss_logging_item_names))
     for key, value in log_items.items():
         if isinstance(value, torch.Tensor):
-            log_items[key] = value.detach().item()
+            if len(value) == 0:
+                log_items[key] = value.detach().item()
+            else:
+                log_items[key] = list(value.detach().numpy())
 
     return log_items

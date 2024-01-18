@@ -144,6 +144,7 @@ class DetectionMetrics(Metric):
 
         if self.calc_best_score_thresholds and self.include_classwise_ap:
             self.component_names += self.best_threshold_per_class_names
+        self.component_names += ["precision", "recall"]
 
         self.components = len(self.component_names)
 
@@ -207,6 +208,8 @@ class DetectionMetrics(Metric):
         best_score_threshold_per_cls = np.zeros(self.num_cls)
         mean_ap_per_class = np.zeros(self.num_cls)
 
+        precision, recall = [], []
+
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
 
@@ -215,6 +218,7 @@ class DetectionMetrics(Metric):
                 ap_per_present_classes,
                 precision_per_present_classes,
                 recall_per_present_classes,
+                false_positive_rate_per_present_classes,
                 f1_per_present_classes,
                 present_classes,
                 best_score_threshold,
@@ -230,6 +234,7 @@ class DetectionMetrics(Metric):
             # results before version 3.0.4 (Dec 11 2022) were computed only for smallest value (i.e IoU 0.5 if metric is @0.5:0.95)
             mean_precision, mean_recall, mean_f1 = precision_per_present_classes.mean(), recall_per_present_classes.mean(), f1_per_present_classes.mean()
 
+            precision, recall = precision_per_present_classes.mean(0), recall_per_present_classes.mean(0)
             # MaP is averaged over IoU thresholds and over classes
             mean_ap = ap_per_present_classes.mean()
 
@@ -256,6 +261,60 @@ class DetectionMetrics(Metric):
         if self.include_classwise_ap and self.calc_best_score_thresholds:
             for threshold_per_class_names, threshold_value in zip(self.best_threshold_per_class_names, best_score_threshold_per_cls):
                 output_dict[threshold_per_class_names] = float(threshold_value)
+
+        output_dict["precision"] = precision
+        output_dict["recall"] = recall
+
+        import matplotlib.pyplot as plt
+
+        # Plotting the PR curve for a specific IoU threshold (e.g., threshold index 0)
+        iou_index = 0
+        plt.figure(figsize=(10, 5))
+        plt.plot(recall, precision)
+        plt.xlabel("Recall")
+        plt.ylabel("Precision")
+        plt.title(f"Precision-Recall Curve for IoU Threshold {iou_index}")
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.legend()
+        plt.show()
+
+        import matplotlib.pyplot as plt
+
+        preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls = matching_info_tensors
+
+        dtype = torch.float32 if preds_scores.dtype is torch.float32 else torch.float64
+        preds_scores = preds_scores.to(dtype)
+        preds_matched = preds_matched.to(bool)
+        preds_to_ignore = preds_to_ignore.to(bool)
+
+        # Sort predictions by scores in descending order
+        sorted_indices = torch.argsort(preds_scores, descending=True)
+        sorted_preds_matched = preds_matched[sorted_indices]
+        sorted_preds_to_ignore = preds_to_ignore[sorted_indices]
+
+        # Calculate cumulative TP and FP
+        cumulative_tp = torch.cumsum(sorted_preds_matched, dim=0)
+        cumulative_fp = torch.cumsum(torch.logical_and(~sorted_preds_matched, ~sorted_preds_to_ignore), dim=0)
+
+        # Total number of ground truth positives
+        total_gt_positives = len(targets_cls)
+
+        # Calculate precision and recall for each threshold
+        precision = cumulative_tp / (cumulative_tp + cumulative_fp)
+        recall = cumulative_tp / total_gt_positives
+
+        # Plotting the PR curve for a specific IoU threshold (e.g., threshold index 0)
+        iou_index = 0
+        plt.figure(figsize=(10, 5))
+        plt.plot(recall[:, iou_index], precision[:, iou_index])
+        plt.xlabel("Recall")
+        plt.ylabel("Precision")
+        plt.title(f"Precision-Recall Curve for IoU Threshold {iou_index}")
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.legend()
+        plt.show()
 
         return output_dict
 

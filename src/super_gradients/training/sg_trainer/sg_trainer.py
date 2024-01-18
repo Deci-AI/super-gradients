@@ -381,13 +381,12 @@ class Trainer:
         model = models.get(
             model_name=cfg.architecture,
             num_classes=cfg.arch_params.num_classes,
-            arch_params=cfg.arch_params,
-            strict_load=cfg.checkpoint_params.strict_load,
-            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-            load_backbone=cfg.checkpoint_params.load_backbone,
-            checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
-            num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
+            # arch_params=cfg.arch_params,
+            # strict_load=cfg.checkpoint_params.strict_load,
+            pretrained_weights="coco",
+            # load_backbone=cfg.checkpoint_params.load_backbone,
+            # checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
+            # num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
         )
 
         # TEST

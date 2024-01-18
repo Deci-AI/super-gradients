@@ -1387,6 +1387,7 @@ def compute_detection_metrics(
     ap = torch.zeros((n_class, nb_iou_thrs), device=device)
     precision = torch.zeros((n_class, nb_iou_thrs), device=device)
     recall = torch.zeros((n_class, nb_iou_thrs), device=device)
+    false_positive_rate = torch.zeros((n_class, nb_iou_thrs), device=device)
 
     nb_score_thrs = len(recall_thresholds)
     all_score_thresholds = torch.linspace(0, 1, nb_score_thrs, device=device)
@@ -1395,7 +1396,7 @@ def compute_detection_metrics(
 
     for cls_i, class_value in enumerate(unique_classes):
         cls_preds_idx, cls_targets_idx = (preds_cls == class_value), (targets_cls == class_value)
-        cls_ap, cls_precision, cls_recall, cls_f1_per_threshold, cls_best_score_threshold = compute_detection_metrics_per_cls(
+        cls_ap, cls_precision, cls_recall, cls_false_positive_rate, cls_f1_per_threshold, cls_best_score_threshold = compute_detection_metrics_per_cls(
             preds_matched=preds_matched[cls_preds_idx],
             preds_to_ignore=preds_to_ignore[cls_preds_idx],
             preds_scores=preds_scores[cls_preds_idx],
@@ -1406,6 +1407,7 @@ def compute_detection_metrics(
         )
         ap[cls_i, :] = cls_ap
         precision[cls_i, :] = cls_precision
+        false_positive_rate[cls_i, :] = cls_false_positive_rate
         recall[cls_i, :] = cls_recall
 
         f1_per_class_per_threshold[cls_i, :] = cls_f1_per_threshold
@@ -1416,7 +1418,7 @@ def compute_detection_metrics(
     mean_f1_across_classes = torch.mean(f1_per_class_per_threshold, dim=0)
     best_score_threshold = all_score_thresholds[torch.argmax(mean_f1_across_classes)]
 
-    return ap, precision, recall, f1, unique_classes, best_score_threshold, best_score_threshold_per_cls
+    return ap, precision, recall, false_positive_rate, f1, unique_classes, best_score_threshold, best_score_threshold_per_cls
 
 
 def compute_detection_metrics_per_cls(
@@ -1490,6 +1492,7 @@ def compute_detection_metrics_per_cls(
 
     rolling_recalls = rolling_tps / n_targets
     rolling_precisions = rolling_tps / (rolling_tps + rolling_fps + torch.finfo(torch.float64).eps)
+    rolling_false_positive_rate = rolling_fps / len(preds_scores)
 
     # Reversed cummax to only have decreasing values
     rolling_precisions = rolling_precisions.flip(0).cummax(0).values.flip(0)
@@ -1550,4 +1553,4 @@ def compute_detection_metrics_per_cls(
     # Average over the recall_thresholds
     ap = sampled_precision_points.mean(0)
 
-    return ap, precision, recall, mean_f1_per_threshold, best_score_threshold
+    return ap, precision, recall, rolling_false_positive_rate, mean_f1_per_threshold, best_score_threshold
