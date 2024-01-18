@@ -52,6 +52,7 @@ from tests.unit_tests.random_erase_test import RandomEraseTest
 from tests.unit_tests.replace_head_test import ReplaceHeadUnitTest
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.test_deprecations import DeprecationsUnitTest
+from tests.unit_tests.test_depth_estimation_metrics import TestDepthEstimationMetrics
 from tests.unit_tests.test_finetune import TestFineTune
 from tests.unit_tests.test_min_samples_single_node import TestMinSamplesSingleNode
 from tests.unit_tests.test_model_weight_averaging import TestModelWeightAveraging
@@ -184,6 +185,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationAdapter))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionMetricsDistanceBased))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestFineTune))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDepthEstimationMetrics))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DepthEstimationDatasetTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSupportsInputShapeCheck))
 

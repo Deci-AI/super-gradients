@@ -689,8 +689,8 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
         self.enable_mixup = False
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        (cp_sample,) = sample.additional_samples
         if self.enable_mixup and random.random() < self.prob:
+            (cp_sample,) = sample.additional_samples
             target_dim = self.input_dim if self.input_dim is not None else sample.image.shape[:2]
 
             cp_sample = self.maybe_flip.apply_to_sample(cp_sample)

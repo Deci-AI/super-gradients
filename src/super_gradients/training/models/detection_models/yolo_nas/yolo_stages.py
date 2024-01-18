@@ -2,6 +2,9 @@ from functools import partial
 from typing import Type, List, Iterable, Union, Optional, Callable
 
 import torch
+from super_gradients.common import UpsampleMode
+from super_gradients.common.factories.type_factory import TypeFactory
+from super_gradients.modules.sampling import make_upsample_module_with_explicit_channels
 from super_gradients.training.utils.regularization_utils import DropPath
 from torch import nn, Tensor
 
@@ -153,7 +156,7 @@ class YoloNASStem(BaseDetectionModule, SupportsReplaceInputChannels):
     Stem module for YoloNAS. Consists of a single QARepVGGBlock with stride of two.
     """
 
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(self, in_channels: int, out_channels: int, stride: int = 2):
         """
         Initialize the YoloNASStem module
         :param in_channels: Number of input channels
@@ -161,7 +164,7 @@ class YoloNASStem(BaseDetectionModule, SupportsReplaceInputChannels):
         """
         super().__init__(in_channels)
         self._out_channels = out_channels
-        self.conv = QARepVGGBlock(in_channels, out_channels, stride=2, use_residual_connection=False)
+        self.conv = QARepVGGBlock(in_channels, out_channels, stride=stride, use_residual_connection=False)
 
     @property
     def out_channels(self):
@@ -194,6 +197,7 @@ class YoloNASStage(BaseDetectionModule):
         concat_intermediates: bool = False,
         drop_path_rates: Union[Iterable[float], None] = None,
         dropout_rate: float = 0.0,
+        stride: int = 2,
     ):
         """
         Initialize the YoloNASStage module
@@ -209,7 +213,7 @@ class YoloNASStage(BaseDetectionModule):
         """
         super().__init__(in_channels)
         self._out_channels = out_channels
-        self.downsample = QARepVGGBlock(in_channels, out_channels, stride=2, activation_type=activation_type, use_residual_connection=False)
+        self.downsample = QARepVGGBlock(in_channels, out_channels, stride=stride, activation_type=activation_type, use_residual_connection=False)
         self.blocks = YoloNASCSPLayer(
             out_channels,
             out_channels,
@@ -238,6 +242,7 @@ class YoloNASUpStage(BaseDetectionModule):
     """
 
     @resolve_param("activation_type", ActivationsTypeFactory())
+    @resolve_param("upsample_mode", TypeFactory.from_enum_cls(UpsampleMode))
     def __init__(
         self,
         in_channels: List[int],
@@ -251,6 +256,7 @@ class YoloNASUpStage(BaseDetectionModule):
         reduce_channels: bool = False,
         drop_path_rates: Union[Iterable[float], None] = None,
         dropout_rate: float = 0.0,
+        upsample_mode: UpsampleMode = UpsampleMode.CONV_TRANSPOSE,
     ):
         """
         Initialize the YoloNASUpStage module
@@ -282,7 +288,10 @@ class YoloNASUpStage(BaseDetectionModule):
             self.reduce_skip2 = Conv(skip_in_channels2, out_channels, 1, 1, activation_type) if reduce_channels else nn.Identity()
 
         self.conv = Conv(in_channels, out_channels, 1, 1, activation_type)
-        self.upsample = nn.ConvTranspose2d(in_channels=out_channels, out_channels=out_channels, kernel_size=2, stride=2)
+
+        self.upsample = make_upsample_module_with_explicit_channels(
+            in_channels=out_channels, out_channels=out_channels, scale_factor=2, upsample_mode=upsample_mode, align_corners=True
+        )
         if num_inputs == 3:
             self.downsample = Conv(out_channels if reduce_channels else skip_in_channels2, out_channels, kernel=3, stride=2, activation_type=activation_type)
 

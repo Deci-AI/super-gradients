@@ -16,7 +16,6 @@ import onnxruntime
 import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.deprecate import deprecated
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.device_utils import device_config
@@ -315,21 +314,6 @@ class LinearEpochLRWarmup(LRCallbackBase):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
-class EpochStepWarmupLRCallback(LinearEpochLRWarmup):
-    ...
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
-class LinearLRWarmup(LinearEpochLRWarmup):
-    ...
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearEpochLRWarmup)
-class LinearStepWarmupLRCallback(LinearEpochLRWarmup):
-    ...
-
-
 @register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP, deprecated_name="linear_batch_step")
 class LinearBatchLRWarmup(Callback):
     """
@@ -407,11 +391,6 @@ class LinearBatchLRWarmup(Callback):
             param_group["lr"] = self.lr[param_group["name"]]
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=LinearBatchLRWarmup)
-class BatchStepLinearWarmupLRCallback(LinearBatchLRWarmup):
-    ...
-
-
 @register_lr_scheduler(LRSchedulers.STEP, deprecated_name="step")
 class StepLRScheduler(LRCallbackBase):
     """
@@ -421,7 +400,13 @@ class StepLRScheduler(LRCallbackBase):
     def __init__(self, lr_updates, lr_decay_factor, step_lr_update_freq=None, **kwargs):
         super().__init__(Phase.TRAIN_EPOCH_END, **kwargs)
         if step_lr_update_freq and len(lr_updates):
-            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRScheduler constructor")
+            raise ValueError(
+                "Parameters lr_updates and step_lr_update_freq are mutually exclusive"
+                f" and cannot be passed to {StepLRScheduler.__name__} constructor simultaneously"
+            )
+
+        if step_lr_update_freq is None and len(lr_updates) == 0:
+            raise ValueError(f"At least one of [lr_updates, step_lr_update_freq] parameters should be passed to {StepLRScheduler.__name__} constructor")
 
         if step_lr_update_freq:
             max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
@@ -442,11 +427,6 @@ class StepLRScheduler(LRCallbackBase):
 
     def is_lr_scheduling_enabled(self, context):
         return self.training_params.lr_warmup_epochs <= context.epoch
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=StepLRScheduler)
-class StepLRCallback(StepLRScheduler):
-    ...
 
 
 @register_lr_scheduler(LRSchedulers.EXP, deprecated_name="exp")
@@ -471,11 +451,6 @@ class ExponentialLRScheduler(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=ExponentialLRScheduler)
-class ExponentialLRCallback(ExponentialLRScheduler):
-    ...
-
-
 @register_lr_scheduler(LRSchedulers.POLY, deprecated_name="poly")
 class PolyLRScheduler(LRCallbackBase):
     """
@@ -498,11 +473,6 @@ class PolyLRScheduler(LRCallbackBase):
     def is_lr_scheduling_enabled(self, context):
         post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=PolyLRScheduler)
-class PolyLRCallback(PolyLRScheduler):
-    ...
 
 
 @register_lr_scheduler(LRSchedulers.COSINE, deprecated_name="cosine")
@@ -543,47 +513,6 @@ class CosineLRScheduler(LRCallbackBase):
         return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=CosineLRScheduler)
-class CosineLRCallback(CosineLRScheduler):
-    ...
-
-
-@register_lr_scheduler(LRSchedulers.FUNCTION, deprecated_name="function")
-class FunctionLRScheduler(LRCallbackBase):
-    """
-    Hard coded rate scheduling for user defined lr scheduling function.
-    """
-
-    @deprecated(deprecated_since="3.2.0", removed_from="3.6.0", reason="This callback is deprecated and will be removed in future versions.")
-    def __init__(self, max_epochs, lr_schedule_function, **kwargs):
-        super().__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
-        assert callable(lr_schedule_function), "self.lr_function must be callable"
-        self.lr_schedule_function = lr_schedule_function
-        self.max_epochs = max_epochs
-
-    def is_lr_scheduling_enabled(self, context):
-        post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-        return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
-
-    def perform_scheduling(self, context):
-        effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        for group_name in self.lr.keys():
-            self.lr[group_name] = self.lr_schedule_function(
-                initial_lr=self.initial_lr[group_name],
-                epoch=effective_epoch,
-                iter=context.batch_idx,
-                max_epoch=effective_max_epochs,
-                iters_per_epoch=self.train_loader_len,
-            )
-        self.update_lr(context.optimizer, context.epoch, context.batch_idx)
-
-
-@deprecated(deprecated_since="3.2.1", removed_from="3.6.0", target=FunctionLRScheduler)
-class FunctionLRCallback(FunctionLRScheduler):
-    ...
-
-
 class IllegalLRSchedulerMetric(Exception):
     """Exception raised illegal combination of training parameters.
 
@@ -609,7 +538,7 @@ class LRSchedulerCallback(PhaseCallback):
     :param phase:           Phase of when to trigger it.
     """
 
-    def __init__(self, scheduler: torch.optim.lr_scheduler._LRScheduler, phase: Phase, metric_name: str = None):
+    def __init__(self, scheduler: torch.optim.lr_scheduler._LRScheduler, phase: Union[Phase, str], metric_name: str = None):
         super(LRSchedulerCallback, self).__init__(phase)
         self.scheduler = scheduler
         self.metric_name = metric_name
@@ -629,7 +558,7 @@ class LRSchedulerCallback(PhaseCallback):
 
 @register_callback(Callbacks.METRICS_UPDATE)
 class MetricsUpdateCallback(PhaseCallback):
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
         super(MetricsUpdateCallback, self).__init__(phase)
 
     def __call__(self, context: PhaseContext):
@@ -639,7 +568,7 @@ class MetricsUpdateCallback(PhaseCallback):
 
 
 class KDModelMetricsUpdateCallback(MetricsUpdateCallback):
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
         super().__init__(phase=phase)
 
     def __call__(self, context: PhaseContext):
@@ -654,7 +583,7 @@ class PhaseContextTestCallback(PhaseCallback):
     A callback that saves the phase context the for testing.
     """
 
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
         super(PhaseContextTestCallback, self).__init__(phase)
         self.context = None
 
@@ -676,7 +605,7 @@ class DetectionVisualizationCallback(PhaseCallback):
 
     def __init__(
         self,
-        phase: Phase,
+        phase: Union[Phase, str],
         freq: int,
         post_prediction_callback: DetectionPostPredictionCallback,
         classes: list,
@@ -712,7 +641,7 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
     :param last_img_idx_in_batch:   Last image index to add to log. (default=-1, will take entire batch).
     """
 
-    def __init__(self, phase: Phase, freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
+    def __init__(self, phase: Union[Phase, str], freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
         super(BinarySegmentationVisualizationCallback, self).__init__(phase)
         self.freq = freq
         self.batch_idx = batch_idx

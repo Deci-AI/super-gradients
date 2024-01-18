@@ -9,7 +9,7 @@ lr_warmup_epochs: 1
 warmup_initial_lr: 0
 warmup_mode: LinearEpochLRWarmup
 ema: False
-loss: LabelSmoothingCrossEntropyLoss
+loss: CrossEntropyLoss
 clip_grad_norm: 1
 optimizer: SGD
 optimizer_params:
