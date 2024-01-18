@@ -1,10 +1,17 @@
 # Assigning Learning Rates in SG
 The `initial_lr` training hyperparameter allows you to specify different learning rates for different layers or groups of parameters in your neural network. This can be particularly useful for fine-tuning pre-trained models or when different parts of your model require different learning rate settings for optimal training.
 
-## Using initial_lr as a Scalar:
-When initial_lr is a single floating-point number, it sets a uniform learning rate for all model parameters. For example, initial_lr = 0.01:
+## Using `initial_lr` as a Scalar:
+When `initial_lr` is a single floating-point number, it sets a uniform learning rate for all model parameters. For example, `initial_lr` = 0.01:
 
 ```python
+# Define training parameters
+training_params = {
+    "initial_lr": 0.01,
+    "loss": "cross_entropy",
+    # ... other training parameters
+}
+
 # Initialize the Trainer
 trainer = Trainer("simple_net_training")
 
@@ -15,30 +22,23 @@ model =
 train_dataloader = ...
 test_dataloader = ...
 
-# Define training parameters
-training_params = {
-    "initial_lr": 0.01,
-    "loss": "cross_entropy",
-    # ... other training parameters
-}
-
 # Train the model
 trainer.train(model, training_params, train_dataloader, test_dataloader)
 ```
 
 
-## Using initial_lr as a Mapping:
-initial_lr can also be a mapping where keys are the prefixes of the named parameters of the model, and values are the learning rates
+## Using `initial_lr` as a Mapping:
+`initial_lr` can also be a mapping where keys are the prefixes of the named parameters of the model, and values are the learning rates
 for those specific groups. This approach offers granular control over the learning rates for different parts of the model.
 
-* Each key in the initial_lr dictionary acts as a prefix to match the named parameters in the model. The learning rate associated with a key is applied to all parameters whose names start with that prefix.
+* Each key in the `initial_lr` dictionary acts as a prefix to match the named parameters in the model. The learning rate associated with a key is applied to all parameters whose names start with that prefix.
 
 * The "default" key is essential, as it provides a fallback learning rate for any parameter that does not match other specified prefixes.
   
 * Freezing parameters can be done by assigning a learning rate of 0 to a specific prefix. By doing so, you will be preventing them from being updated during training.
 
 
-For example, in the below snippet conv1 and conv2 will be frozen, and fc1 and fc2 will be trained with an initial learning rate of 0.001:
+For example, in the below snippet `conv1` and `conv2` will be frozen, and `fc1` and `fc2` will be trained with an initial learning rate of 0.001:
 
 ```python
 class SimpleNet(nn.Module):
@@ -112,5 +112,11 @@ trainer.train(model, training_params, train_dataloader, test_dataloader)
 ### How `finetune` Works
 
 - When `finetune` is set to `True`, the model automatically freezes a part of itself based on the definitions in the `get_finetune_lr_dict` method.
-- The `get_finetune_lr_dict` method returns a dictionary mapping learning rates to the unfrozen part of the network, similar to using `initial_lr` as a mapping.
+- The `get_finetune_lr_dict` method returns a dictionary mapping learning rates to the unfrozen part of the network, in the same fashion as when `initial_lr` is used as a mapping.
+  For example, the implementation for YoloNAS:
+  ```python
+
+        def get_finetune_lr_dict(self, lr: float):
+        return {"heads": lr, "default": 0}
+    ```
 - If `initial_lr` is already a mapping, using `finetune` will raise an error. It's designed to work when `initial_lr` is unset or a float.
