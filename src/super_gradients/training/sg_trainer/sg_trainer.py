@@ -1233,6 +1233,8 @@ class Trainer:
                     "If it doesnt, please use one of the following sampler: DistributedSampler, RepeatAugSampler"
                 )
         self.training_params = TrainingParams()
+        if isinstance(training_params, DictConfig):
+            training_params = OmegaConf.to_container(training_params, resolve=True)
         self.training_params.override(**training_params)
 
         self.net = model
