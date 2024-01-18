@@ -499,7 +499,6 @@ class ImagesDetectionPrediction(ImagesPredictions):
             target_bboxes = [target_bboxes]
         if isinstance(target_class_ids, np.ndarray):
             target_class_ids = [target_class_ids]
-        target_class_ids = [ids.astype(int) for ids in target_class_ids]
 
         if target_bboxes is not None and target_class_ids is not None and len(target_bboxes) != len(target_class_ids):
             raise ValueError(f"target_bboxes and target_class_ids lengths should be equal, got: {len(target_bboxes)} and {len(target_class_ids)}.")
@@ -508,7 +507,6 @@ class ImagesDetectionPrediction(ImagesPredictions):
                 f"target_bboxes and target_class_ids lengths should be equal, to the "
                 f"amount of images passed to predict(), got: {len(target_bboxes)} and {len(self._images_prediction_lst)}."
             )
-
         if target_bboxes is None:
             target_bboxes = [None for _ in range(len(self._images_prediction_lst))]
             target_class_ids = [None for _ in range(len(self._images_prediction_lst))]
