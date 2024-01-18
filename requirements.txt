@@ -3,7 +3,6 @@ tqdm>=4.57.0
 boto3>=1.17.15
 jsonschema>=3.2.0
 Deprecated>=1.2.11
-opencv-python>=4.5.1
 scipy>=1.6.1
 matplotlib>=3.3.4
 psutil>=5.8.0
@@ -37,3 +36,4 @@ rapidfuzz
 json-tricks==3.16.1
 onnxsim>=0.4.3,<1.0
 data-gradients~=0.3.1
+albumentations~=1.3

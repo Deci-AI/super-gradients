@@ -47,57 +47,12 @@ class DeprecationsUnitTest(unittest.TestCase):
         model = models.get("DummyModelV2", arch_params=arch_params, num_classes=80)
         assert isinstance(model, DummyModelV2)
 
-    def test_deprecated_make_divisible(self):
-        try:
-            with self.assertWarns(DeprecationWarning):
-                from super_gradients.training.models import make_divisible  # noqa
-
-                assert make_divisible(1, 1) == 1
-        except ImportError:
-            self.fail("ImportError raised unexpectedly for make_divisible")
-
-    def test_deprecated_BasicBlock(self):
-        try:
-            with self.assertWarns(DeprecationWarning):
-                from super_gradients.training.models import BasicBlock, BasicResNetBlock  # noqa
-
-                assert isinstance(BasicBlock(1, 1, 1), BasicResNetBlock)
-        except ImportError:
-            self.fail("ImportError raised unexpectedly for BasicBlock")
-
     def test_deprecated_max_targets(self):
         with self.assertWarns(DeprecationWarning):
             DetectionTargetsFormatTransform(max_targets=1)
 
         with self.assertWarns(DeprecationWarning):
             DetectionPaddedRescale(input_dim=(2, 2), max_targets=1)
-
-    def test_moved_Bottleneck_import(self):
-        try:
-            with self.assertWarns(DeprecationWarning):
-                from super_gradients.training.models import Bottleneck as OldBottleneck  # noqa
-                from super_gradients.training.models.classification_models.resnet import Bottleneck
-
-                assert isinstance(OldBottleneck(1, 1, 1), Bottleneck)
-        except ImportError:
-            self.fail("ImportError raised unexpectedly for Bottleneck")
-
-    def test_deprecated_optimizers_dict(self):
-        try:
-            with self.assertWarns(DeprecationWarning):
-                from super_gradients.training.utils.optimizers.all_optimizers import OPTIMIZERS  # noqa
-        except ImportError:
-            self.fail("ImportError raised unexpectedly for OPTIMIZERS")
-
-    def test_deprecated_HpmStruct_import(self):
-        try:
-            with self.assertWarns(DeprecationWarning):
-                from super_gradients.training.models import HpmStruct as OldHpmStruct
-                from super_gradients.training.utils import HpmStruct
-
-                assert isinstance(OldHpmStruct(a=1), HpmStruct)
-        except ImportError:
-            self.fail("ImportError raised unexpectedly for HpmStruct")
 
 
 if __name__ == "__main__":

@@ -318,7 +318,7 @@ Output (Training parameters):
     'launch_tensorboard': False,
     'load_opt_params': True,
     'log_installed_packages': True,
-    'loss': "LabelSmoothingCrossEntropyLoss",
+    'loss': "CrossEntropyLoss",
     'lr_cooldown_epochs': 0,
     'lr_decay_factor': 0.1,
     'lr_mode': 'StepLRScheduler',
@@ -400,17 +400,17 @@ The training progress will be printed to the screen:
 
 [2023-02-01 20:57:27] INFO - sg_trainer.py - Started training for 15 epochs (0/14)
 
-Train epoch 0: 100%|██████████| 196/196 [00:18<00:00, 10.51it/s, Accuracy=0.262, LabelSmoothingCrossEntropyLoss=2.37, Top5=0.787, gpu_mem=0.371]
+Train epoch 0: 100%|██████████| 196/196 [00:18<00:00, 10.51it/s, Accuracy=0.262, CrossEntropyLoss=2.37, Top5=0.787, gpu_mem=0.371]
 Validation epoch 0: 100%|██████████| 20/20 [00:03<00:00,  6.12it/s]
 ===========================================================
 SUMMARY OF EPOCH 0
 ├── Training
 │   ├── Accuracy = 0.262
-│   ├── Labelsmoothingcrossentropyloss = 2.3702
+│   ├── CrossEntropyLoss = 2.3702
 │   └── Top5 = 0.787
 └── Validation
     ├── Accuracy = 0.3459
-    ├── Labelsmoothingcrossentropyloss = 1.8811
+    ├── CrossEntropyLoss = 1.8811
     └── Top5 = 0.871
 
 ===========================================================
@@ -430,7 +430,7 @@ SUMMARY OF EPOCH 15
 │   ├── Accuracy = 0.7594
 │   │   ├── Best until now = 0.7458 (↗ 0.0136)
 │   │   └── Epoch N-1      = 0.7458 (↗ 0.0136)
-│   ├── Labelsmoothingcrossentropyloss = 0.686
+│   ├── CrossEntropyLoss = 0.686
 │   │   ├── Best until now = 0.7187 (↘ -0.0327)
 │   │   └── Epoch N-1      = 0.7187 (↘ -0.0327)
 │   └── Top5 = 0.9867
@@ -440,7 +440,7 @@ SUMMARY OF EPOCH 15
     ├── Accuracy = 0.7425
     │   ├── Best until now = 0.746  (↘ -0.0035)
     │   └── Epoch N-1      = 0.7306 (↗ 0.0119)
-    ├── Labelsmoothingcrossentropyloss = 0.7331
+    ├── CrossEntropyLoss = 0.7331
     │   ├── Best until now = 0.7315 (↗ 0.0016)
     │   └── Epoch N-1      = 0.8048 (↘ -0.0717)
     └── Top5 = 0.9831
@@ -520,17 +520,17 @@ We can see that the training continues for 10 epochs, resuming from epoch 15:
 
 [2023-02-01 21:21:16] INFO - sg_trainer.py - Started training for 10 epochs (15/24)
 
-Train epoch 15: 100%|██████████| 196/196 [00:18<00:00, 10.52it/s, Accuracy=0.764, LabelSmoothingCrossEntropyLoss=0.668, Top5=0.987, gpu_mem=0.422]
+Train epoch 15: 100%|██████████| 196/196 [00:18<00:00, 10.52it/s, Accuracy=0.764, CrossEntropyLoss=0.668, Top5=0.987, gpu_mem=0.422]
 Validation epoch 15: 100%|██████████| 20/20 [00:03<00:00,  6.10it/s]
 ===========================================================
 SUMMARY OF EPOCH 15
 ├── Training
 │   ├── Accuracy = 0.7644
-│   ├── Labelsmoothingcrossentropyloss = 0.6684
+│   ├── CrossEntropyLoss = 0.6684
 │   └── Top5 = 0.9865
 └── Validation
     ├── Accuracy = 0.7539
-    ├── Labelsmoothingcrossentropyloss = 0.7271
+    ├── CrossEntropyLoss = 0.7271
     └── Top5 = 0.9841
 
 ===========================================================
@@ -545,7 +545,7 @@ SUMMARY OF EPOCH 25
 │   ├── Accuracy = 0.8177
 │   │   ├── Best until now = 0.8147 (↗ 0.003)
 │   │   └── Epoch N-1      = 0.8147 (↗ 0.003)
-│   ├── Labelsmoothingcrossentropyloss = 0.5211
+│   ├── CrossEntropyLoss = 0.5211
 │   │   ├── Best until now = 0.5281 (↘ -0.007)
 │   │   └── Epoch N-1      = 0.5281 (↘ -0.007)
 │   └── Top5 = 0.9921
@@ -555,7 +555,7 @@ SUMMARY OF EPOCH 25
     ├── Accuracy = 0.8201
     │   ├── Best until now = 0.7873 (↗ 0.0328)
     │   └── Epoch N-1      = 0.7534 (↗ 0.0667)
-    ├── Labelsmoothingcrossentropyloss = 0.525
+    ├── CrossEntropyLoss = 0.525
     │   ├── Best until now = 0.6145 (↘ -0.0895)
     │   └── Epoch N-1      = 0.7517 (↘ -0.2266)
     └── Top5 = 0.9907
@@ -598,7 +598,7 @@ SUMMARY OF EPOCH 25
 │   ├── Accuracy = 0.8242
 │   │   ├── Best until now = 0.8267 (↘ -0.0025)
 │   │   └── Epoch N-1      = 0.8267 (↘ -0.0025)
-│   ├── Labelsmoothingcrossentropyloss = 0.5035
+│   ├── CrossEntropyLoss = 0.5035
 │   │   ├── Best until now = 0.4998 (↗ 0.0037)
 │   │   └── Epoch N-1      = 0.4998 (↗ 0.0037)
 │   └── Top5 = 0.9924
@@ -608,7 +608,7 @@ SUMMARY OF EPOCH 25
     ├── Accuracy = 0.8377
     │   ├── Best until now = 0.8062 (↗ 0.0315)
     │   └── Epoch N-1      = 0.806  (↗ 0.0317)
-    ├── Labelsmoothingcrossentropyloss = 0.4834
+    ├── CrossEntropyLoss = 0.4834
     │   ├── Best until now = 0.5731 (↘ -0.0897)
     │   └── Epoch N-1      = 0.5785 (↘ -0.0952)
     └── Top5 = 0.9924

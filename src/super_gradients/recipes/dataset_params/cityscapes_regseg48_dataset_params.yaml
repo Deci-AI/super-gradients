@@ -10,12 +10,6 @@ train_dataset_params:
         contrast: 0.1
         saturation: 0.1
 
-    - Albumentations:
-        Compose:
-          transforms:
-            - HorizontalFlip:
-                p: 1.
-
     - SegRandomFlip:
         prob: 0.5
 
