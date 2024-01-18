@@ -17,6 +17,7 @@ from super_gradients.training.utils.detection_utils import (
     EuclideanDistance,
     IoUMatching,
     DistanceMatching,
+    compute_rolling_values,
 )
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -211,20 +212,25 @@ class DetectionMetrics(Metric):
         precision, recall = [], []
 
         if len(accumulated_matching_info):
-            matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
+            import torch
+
+            preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
 
             # shape (n_class, nb_iou_thresh)
             (
                 ap_per_present_classes,
                 precision_per_present_classes,
                 recall_per_present_classes,
-                false_positive_rate_per_present_classes,
                 f1_per_present_classes,
                 present_classes,
                 best_score_threshold,
                 best_score_thresholds_per_present_classes,
             ) = compute_detection_metrics(
-                *matching_info_tensors,
+                preds_matched=preds_matched,
+                preds_to_ignore=preds_to_ignore,
+                preds_scores=preds_scores,
+                preds_cls=preds_cls,
+                targets_cls=targets_cls,
                 recall_thresholds=self.recall_thresholds,
                 score_threshold=self.score_threshold,
                 device="cpu" if self.accumulate_on_cpu else self.device,
@@ -262,60 +268,43 @@ class DetectionMetrics(Metric):
             for threshold_per_class_names, threshold_value in zip(self.best_threshold_per_class_names, best_score_threshold_per_cls):
                 output_dict[threshold_per_class_names] = float(threshold_value)
 
+        import torch
+        import matplotlib.pyplot as plt
+
+        # Compute rolling values
+        rolling_tps, rolling_fps = compute_rolling_values(preds_matched, preds_scores, preds_to_ignore)
+
+        # Calculate precision and recall for PR curve
+        precision = rolling_tps / (rolling_tps + rolling_fps + torch.finfo(torch.float64).eps)
+        recall = rolling_tps / len(targets_cls)
+
+        # Calculate TPR and FPR for ROC curve
+        total_predictions = preds_scores.size(0)
+        tpr = recall  # TPR is the same as recall
+        fpr = rolling_fps / total_predictions
+
+        # Plotting PR curve
+        plt.figure(figsize=(10, 5))
+        plt.plot(recall[:, 0], precision[:, 0])  # Example for the first IoU threshold
+        plt.xlabel("Recall")
+        plt.ylabel("Precision")
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.title("Precision-Recall Curve")
+        plt.show()
+
+        # Plotting ROC curve
+        plt.figure(figsize=(10, 5))
+        plt.plot(fpr[:, 0], tpr[:, 0])  # Example for the first IoU threshold
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.title("ROC Curve")
+        plt.show()
+
         output_dict["precision"] = precision
         output_dict["recall"] = recall
-
-        import matplotlib.pyplot as plt
-
-        # Plotting the PR curve for a specific IoU threshold (e.g., threshold index 0)
-        iou_index = 0
-        plt.figure(figsize=(10, 5))
-        plt.plot(recall, precision)
-        plt.xlabel("Recall")
-        plt.ylabel("Precision")
-        plt.title(f"Precision-Recall Curve for IoU Threshold {iou_index}")
-        plt.xlim([0, 1])
-        plt.ylim([0, 1])
-        plt.legend()
-        plt.show()
-
-        import matplotlib.pyplot as plt
-
-        preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls = matching_info_tensors
-
-        dtype = torch.float32 if preds_scores.dtype is torch.float32 else torch.float64
-        preds_scores = preds_scores.to(dtype)
-        preds_matched = preds_matched.to(bool)
-        preds_to_ignore = preds_to_ignore.to(bool)
-
-        # Sort predictions by scores in descending order
-        sorted_indices = torch.argsort(preds_scores, descending=True)
-        sorted_preds_matched = preds_matched[sorted_indices]
-        sorted_preds_to_ignore = preds_to_ignore[sorted_indices]
-
-        # Calculate cumulative TP and FP
-        cumulative_tp = torch.cumsum(sorted_preds_matched, dim=0)
-        cumulative_fp = torch.cumsum(torch.logical_and(~sorted_preds_matched, ~sorted_preds_to_ignore), dim=0)
-
-        # Total number of ground truth positives
-        total_gt_positives = len(targets_cls)
-
-        # Calculate precision and recall for each threshold
-        precision = cumulative_tp / (cumulative_tp + cumulative_fp)
-        recall = cumulative_tp / total_gt_positives
-
-        # Plotting the PR curve for a specific IoU threshold (e.g., threshold index 0)
-        iou_index = 0
-        plt.figure(figsize=(10, 5))
-        plt.plot(recall[:, iou_index], precision[:, iou_index])
-        plt.xlabel("Recall")
-        plt.ylabel("Precision")
-        plt.title(f"Precision-Recall Curve for IoU Threshold {iou_index}")
-        plt.xlim([0, 1])
-        plt.ylim([0, 1])
-        plt.legend()
-        plt.show()
-
         return output_dict
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
