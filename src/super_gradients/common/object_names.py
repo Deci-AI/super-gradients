@@ -423,6 +423,7 @@ class Datasets:
     CIFAR_100 = "Cifar100"
     IMAGENET_DATASET = "ImageNetDataset"
     COCO_DETECTION_DATASET = "COCODetectionDataset"
+    DOCLAYNET_DETECTION_DATASET = "DocLayNetDetectionDataset"
     DETECTION_DATASET = "DetectionDataset"
     PASCAL_VOC_DETECTION_DATASET = "PascalVOCDetectionDataset"
     SEGMENTATION_DATASET = "SegmentationDataSet"

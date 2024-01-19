@@ -36,7 +36,7 @@ dataset_params:
   train_dataset_params:
     data_dir: /mnt/ml-team/homes/marianna.parzych/Unstructured/DocLayNet # Where the data is stored.
     images_dir: PNG # Local path to directory that includes all the images. Path relative to `data_dir`. Can be the same as `labels_dir`.
-    json_file: COCO/val.json # Local path to json annotation file todo train.json
+    json_file: COCO/train.json # Local path to json annotation file todo train.json
     all_classes_list: [ Caption, Footnote, Formula, List-item, Page-footer, Page-header, Picture, Section-header, Table, Text, Title,] # List of classes used in your dataset.
     input_dim: [1025, 1025]
     transforms:
