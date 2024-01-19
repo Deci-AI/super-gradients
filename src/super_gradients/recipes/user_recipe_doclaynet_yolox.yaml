@@ -1,16 +1,4 @@
-# The purpose of the example below is to demonstrate the use of registry for external objects for training.
-# - We train mobilenet_v2 on a user dataset which is not defined in ALL_DATASETS using the dataloader registry.
-# - We leverage predefined configs from cifar_10 training recipe in our repo.
-#
-# In order for the registry to work, we must trigger the registry of the user's objects by importing their module at
-#   the top of the training script. Hence, we created a similar script to our classic train_from_recipe but with the imports
-#   on top. Once imported, all the registry decorated objects will be resolved (i.e user_mnist_train will be resolved
-#   to the dataloader of our user's)
-#
-# Differently from user_recipe_mnist_example, here we demonstrate how to use train_from_recipe, without the need to implement a DataLoader class for registry.
-# Instead- we work straight with the user defined datasets, which is the simpler option when one does not need their own DataLoader implementation.
-# We do so by Dropping the train_datalaoder, valid_dataloader fields from the recipe's config, while specifying the dataset arg in
-#   train_dataloader_params, valid_dataloader_params.
+# Custom recipe to train YoloX on DocLayNet dataset
 
 defaults:
   - training_hyperparams: coco2017_yolox_train_params
@@ -41,9 +29,9 @@ dataset_params:
     input_dim: [1025, 1025]
     transforms:
       - DetectionPaddedRescale:
-          input_dim: [1024, 1024] # Change for different training resolutions (multiplications of 32)
+          input_dim: [640, 640] # Change for different training resolutions (multiplications of 32)
       - DetectionTargetsFormatTransform:
-          input_dim: [1024, 1024] 
+          input_dim: [640, 640] 
           output_format: LABEL_CXCYWH
 
   train_dataloader_params:
@@ -57,9 +45,9 @@ dataset_params:
     json_file: COCO/val.json
     transforms:
       - DetectionPaddedRescale:
-          input_dim: [1024, 1024] 
+          input_dim: [640, 640] 
       - DetectionTargetsFormatTransform:
-          input_dim: [1024, 1024] 
+          input_dim: [640, 640] 
           output_format: LABEL_CXCYWH
 
   val_dataloader_params:
@@ -70,10 +58,10 @@ dataset_params:
 resume: False
 training_hyperparams:
   resume: ${resume}
-  max_epochs: 3
+  max_epochs: 100
   criterion_params:
     num_classes: ${arch_params.num_classes}
 
 architecture: yolox_l
 
-experiment_name: test_user_recipe_doclaynet_yolox
+experiment_name: test_training
