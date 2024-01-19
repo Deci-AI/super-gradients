@@ -9,6 +9,7 @@ import super_gradients
 import super_gradients.common.environment.ddp_utils
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
+from super_gradients.common.sg_loggers.utils import PlottableMetricOutput
 from super_gradients.training.utils import tensor_container_to_device
 from super_gradients.training.utils.detection_utils import (
     compute_detection_matching,
@@ -145,7 +146,7 @@ class DetectionMetrics(Metric):
 
         if self.calc_best_score_thresholds and self.include_classwise_ap:
             self.component_names += self.best_threshold_per_class_names
-        self.component_names += ["precision", "recall"]
+        self.component_names += ["roc_area", "precision_recall_area"]
 
         self.components = len(self.component_names)
 
@@ -269,7 +270,6 @@ class DetectionMetrics(Metric):
                 output_dict[threshold_per_class_names] = float(threshold_value)
 
         import torch
-        import matplotlib.pyplot as plt
 
         # Compute rolling values
         rolling_tps, rolling_fps = compute_rolling_values(preds_matched, preds_scores, preds_to_ignore)
@@ -283,28 +283,47 @@ class DetectionMetrics(Metric):
         tpr = recall  # TPR is the same as recall
         fpr = rolling_fps / total_predictions
 
-        # Plotting PR curve
-        plt.figure(figsize=(10, 5))
-        plt.plot(recall[:, 0], precision[:, 0])  # Example for the first IoU threshold
-        plt.xlabel("Recall")
-        plt.ylabel("Precision")
-        plt.xlim([0, 1])
-        plt.ylim([0, 1])
-        plt.title("Precision-Recall Curve")
-        plt.show()
+        # plt.figure(figsize=(10, 5))
+        # plt.plot(recall[:, 0], precision[:, 0])  # Example for the first IoU threshold
+        # plt.xlabel("Recall")
+        # plt.ylabel("Precision")
+        # plt.xlim([0, 1])
+        # plt.ylim([0, 1])
+        # plt.title("Precision-Recall Curve")
+        # plt.show()
 
         # Plotting ROC curve
-        plt.figure(figsize=(10, 5))
-        plt.plot(fpr[:, 0], tpr[:, 0])  # Example for the first IoU threshold
-        plt.xlabel("False Positive Rate")
-        plt.ylabel("True Positive Rate")
-        plt.xlim([0, 1])
-        plt.ylim([0, 1])
-        plt.title("ROC Curve")
-        plt.show()
+        # plt.figure(figsize=(10, 5))
+        # plt.plot(fpr[:, 0], tpr[:, 0])  # Example for the first IoU threshold
+        # plt.xlabel("False Positive Rate")
+        # plt.ylabel("True Positive Rate")
+        # plt.xlim([0, 1])
+        # plt.ylim([0, 1])
+        # plt.title("ROC Curve")
+        # plt.show()
 
-        output_dict["precision"] = precision
-        output_dict["recall"] = recall
+        # Plotting PR curve
+        output_dict["precision_recall_area"] = PlottableMetricOutput(
+            scalar=np.trapz(x=recall[:, 0], y=precision[:, 0]),
+            title="Precision-Recall Curve",
+            x=recall[:, 0],
+            y=precision[:, 0],
+            xlabel="Recall",
+            ylabel="Precision",
+            xlim=[0, 1],
+            ylim=[0, 1],
+        )
+        output_dict["roc_area"] = PlottableMetricOutput(
+            scalar=np.trapz(x=fpr[:, 0], y=tpr[:, 0]),
+            title="ROC",
+            x=fpr[:, 0],
+            y=tpr[:, 0],
+            xlabel="False Positive Rate",
+            ylabel="True Positive Rate",
+            xlim=[0, 1],
+            ylim=[0, 1],
+        )
+
         return output_dict
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):

@@ -4,7 +4,7 @@ import os
 import typing
 import warnings
 from copy import deepcopy
-from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
+from typing import Union, Tuple, Mapping, Dict, Any, List, Optional, Sequence
 
 import hydra
 import numpy as np
@@ -55,6 +55,7 @@ from super_gradients.training.metrics.metric_utils import (
     get_metrics_dict,
     get_train_loop_description_dict,
 )
+from super_gradients.common.sg_loggers.utils import PlottableMetricOutput
 from super_gradients.training.models import SgModule, get_model_name
 from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
@@ -381,12 +382,13 @@ class Trainer:
         model = models.get(
             model_name=cfg.architecture,
             num_classes=cfg.arch_params.num_classes,
-            # arch_params=cfg.arch_params,
-            # strict_load=cfg.checkpoint_params.strict_load,
-            pretrained_weights="coco",
-            # load_backbone=cfg.checkpoint_params.load_backbone,
-            # checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
-            # num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
+            arch_params=cfg.arch_params,
+            strict_load=cfg.checkpoint_params.strict_load,
+            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+            load_backbone=cfg.checkpoint_params.load_backbone,
+            checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
         )
 
         # TEST
@@ -511,7 +513,7 @@ class Trainer:
                 self._backward_step(loss, context.epoch, batch_idx, context)
 
                 # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                logging_values = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
+                logging_values: Sequence[Union[float, PlottableMetricOutput]] = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
                 gpu_memory_utilization = get_gpu_mem_utilization() / 1e9 if torch.cuda.is_available() else 0
 
                 # RENDER METRICS PROGRESS
@@ -2020,9 +2022,8 @@ class Trainer:
         """
 
         if not self.ddp_silent_mode:
-            info_dict = {f"{tag} Inference Time": inference_time, **{f"{tag}_{k}": v for k, v in metrics.items()}}
-
-            self.sg_logger.add_scalars(tag_scalar_dict=info_dict, global_step=epoch)
+            info_dict: Dict[str, Any] = {"Inference Time": inference_time, **{k: v for k, v in metrics.items()}}
+            self.sg_logger.add_metrics(metrics=info_dict, global_step=epoch, tag=tag)
 
     def _get_epoch_start_logging_values(self) -> dict:
         """Get all the values that should be logged at the start of each epoch.
@@ -2242,12 +2243,12 @@ class Trainer:
                     # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
                     if metrics_progress_verbose and not silent_mode:
                         # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                        logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                        logging_values: Sequence[Union[float, PlottableMetricOutput]] = get_logging_values(loss_avg_meter, metrics, self.criterion)
                         pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
                         progress_bar_data_loader.set_postfix(**pbar_message_dict)
 
-            logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+            logging_values: Sequence[Union[float, PlottableMetricOutput]] = get_logging_values(loss_avg_meter, metrics, self.criterion)
             # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
             if not metrics_progress_verbose:
                 # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
@@ -2261,7 +2262,7 @@ class Trainer:
             #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
 
             if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-                logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
+                logging_values: Sequence[Union[float, PlottableMetricOutput]] = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
 
         return get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
