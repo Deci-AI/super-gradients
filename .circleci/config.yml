@@ -659,9 +659,13 @@ jobs:
             SLICE=$(expr $TOTAL / $CIRCLE_NODE_TOTAL)
             OFFSET=$(expr $SLICE \* $CIRCLE_NODE_INDEX)
             PART=$(echo "$NOTEBOOKS" | tail -n +$OFFSET | head -n $SLICE)
+            echo "total: $TOTAL"
+            echo "total: $SLICE"
+            echo "OFFSET: $OFFSET"
             for NOTEBOOK in $PART; do
-              chmod +x scripts/run_and_convert_notebook.sh
-              ./scripts/run_and_convert_notebook.sh "$NOTEBOOK" "<< parameters.sg_new_env_name >>"
+              echo "$NOTEBOOK"
+              #chmod +x scripts/run_and_convert_notebook.sh
+              #./scripts/run_and_convert_notebook.sh "$NOTEBOOK" "<< parameters.sg_new_env_name >>"
             done
           no_output_timeout: 60m  # Adjust based on the expected maximum runtime of your notebooks
 
