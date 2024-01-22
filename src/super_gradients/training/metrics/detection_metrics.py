@@ -9,7 +9,7 @@ import super_gradients
 import super_gradients.common.environment.ddp_utils
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
-from super_gradients.common.sg_loggers.utils import PlottableMetricOutput
+from super_gradients.common.sg_loggers.metric_outputs import PlottableMetricOutput
 from super_gradients.training.utils import tensor_container_to_device
 from super_gradients.training.utils.detection_utils import (
     compute_detection_matching,
@@ -19,6 +19,7 @@ from super_gradients.training.utils.detection_utils import (
     IoUMatching,
     DistanceMatching,
     compute_rolling_values,
+    plot_2d_graph,
 )
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -40,16 +41,16 @@ class DetectionMetrics(Metric):
                                             Could be either instance of IouThreshold, a tuple (lower bound, upper_bound) or single scalar.
     :param recall_thres:                    Recall threshold to compute the mAP.
     :param score_thres:                     Score threshold to compute Recall, Precision and F1.
-    :param top_k_predictions:               Number of predictions per class used to compute metrics, ordered by confidence score
+    :param top_k_predictions:               Number of predictions per class used to compute metric_outputs, ordered by confidence score
     :param dist_sync_on_step:               Synchronize metric state across processes at each ``forward()`` before returning the value at the step.
     :param accumulate_on_cpu:               Run on CPU regardless of device used in other parts.
                                             This is to avoid "CUDA out of memory" that might happen on GPU.
     :param calc_best_score_thresholds       Whether to calculate the best score threshold overall and per class
-                                            If True, the compute() function will return a metrics dictionary that not
-                                            only includes the average metrics calculated across all classes,
+                                            If True, the compute() function will return a metric_outputs dictionary that not
+                                            only includes the average metric_outputs calculated across all classes,
                                             but also the optimal score threshold overall and for each individual class.
-    :param include_classwise_ap:            Whether to include the class-wise average precision in the returned metrics dictionary.
-                                            If enabled, output metrics dictionary will look similar to this:
+    :param include_classwise_ap:            Whether to include the class-wise average precision in the returned metric_outputs dictionary.
+                                            If enabled, output metric_outputs dictionary will look similar to this:
                                             {
                                                 'Precision0.5:0.95': 0.5,
                                                 'Recall0.5:0.95': 0.5,
@@ -63,7 +64,7 @@ class DetectionMetrics(Metric):
                                             }
                                             Class names are either provided via the class_names parameter or are generated automatically.
     :param class_names:                     Array of class names. When include_classwise_ap=True, will use these names to make
-                                            per-class APs keys in the output metrics dictionary.
+                                            per-class APs keys in the output metric_outputs dictionary.
                                             If None, will use dummy names `class_{idx}` instead.
     :param state_dict_prefix:               A prefix to append to the state dict of the metric. A state dict used to synchronize metric in DDP mode.
                                             It was empirically found that if you have two metric classes A and B(A) that has same state key, for
@@ -95,7 +96,7 @@ class DetectionMetrics(Metric):
                 logger.warning(
                     "Parameter 'include_classwise_ap' is set to True, but no class names are provided. "
                     "We will generate dummy class names, but we recommend to provide class names explicitly to"
-                    "have meaningful names in reported metrics."
+                    "have meaningful names in reported metric_outputs."
                 )
             class_names = ["class_" + str(i) for i in range(num_cls)]
         else:
@@ -202,7 +203,7 @@ class DetectionMetrics(Metric):
         setattr(self, self.state_key, accumulated_matching_info + new_matching_info)
 
     def compute(self) -> Dict[str, Union[float, torch.Tensor]]:
-        """Compute the metrics for all the accumulated results.
+        """Compute the metric_outputs for all the accumulated results.
         :return: Metrics of interest
         """
         mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold = -1.0, -1.0, -1.0, -1.0, -1.0
@@ -283,26 +284,30 @@ class DetectionMetrics(Metric):
         tpr = recall  # TPR is the same as recall
         fpr = rolling_fps / total_predictions
 
-        # Plotting PR curve
-        output_dict["precision_recall_area"] = PlottableMetricOutput(
+        output_dict["precision_recall_auc"] = PlottableMetricOutput(
             scalar=np.trapz(x=recall[:, 0], y=precision[:, 0]),
-            title="Precision-Recall Curve",
-            x=recall[:, 0],
-            y=precision[:, 0],
-            xlabel="Recall",
-            ylabel="Precision",
-            xlim=(0, 1),
-            ylim=(0, 1),
+            image=plot_2d_graph(
+                title="Precision-Recall Curve",
+                x=recall[:, 0],
+                y=precision[:, 0],
+                xlabel="Recall",
+                ylabel="Precision",
+                xlim=(0, 1),
+                ylim=(0, 1),
+            ),
         )
-        output_dict["roc_area"] = PlottableMetricOutput(
+
+        output_dict["roc_auc"] = PlottableMetricOutput(
             scalar=np.trapz(x=fpr[:, 0], y=tpr[:, 0]),
-            title="ROC",
-            x=fpr[:, 0],
-            y=tpr[:, 0],
-            xlabel="False Positive Rate",
-            ylabel="True Positive Rate",
-            xlim=(0, 1),
-            ylim=(0, 1),
+            image=plot_2d_graph(
+                title="ROC",
+                x=fpr[:, 0],
+                y=tpr[:, 0],
+                xlabel="False Positive Rate",
+                ylabel="True Positive Rate",
+                xlim=(0, 1),
+                ylim=(0, 1),
+            ),
         )
 
         return output_dict

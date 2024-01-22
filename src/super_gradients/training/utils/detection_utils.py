@@ -1557,3 +1557,29 @@ def compute_rolling_values(preds_matched, preds_scores, preds_to_ignore):
     rolling_fps = torch.cumsum(fps, axis=0, dtype=torch.float)
 
     return rolling_tps, rolling_fps
+
+
+def plot_2d_graph(
+    title: str,
+    x: List[float],
+    y: List[float],
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    xlim: Optional[Tuple[float, float]] = None,
+    ylim: Optional[Tuple[float, float]] = None,
+):
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(x, y)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.set_title(title)
+
+    # Create a numpy array to store the image data
+    fig.canvas.draw()
+    image_data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    image_data = image_data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    return image_data
