@@ -22,11 +22,11 @@ parameters:
   run_sanity_tests_flow:
     type: boolean
     description: If true will run sanity_test flow
-    default: true
+    default: false
   run_and_convert_notebooks_to_docs:
     type: boolean
     description: If true will run run_and_convert_notebooks_to_docs flow
-    default: false
+    default: true
   skip_md_files:
     type: boolean
     default: true
@@ -656,12 +656,13 @@ jobs:
               | grep -v 'notebooks/yolo_nas_pose_eval_with_pycocotools.ipynb' \
               | grep -v 'notebooks/dataloader_adapter.ipynb')
             TOTAL=$(echo "$NOTEBOOKS" | wc -l)
-            SLICE=$(expr $TOTAL / $CIRCLE_NODE_TOTAL)
-            OFFSET=$(expr $SLICE \* $CIRCLE_NODE_INDEX)
-            PART=$(echo "$NOTEBOOKS" | tail -n +$OFFSET | head -n $SLICE)
             echo "total: $TOTAL"
+            SLICE=$(expr $TOTAL / $CIRCLE_NODE_TOTAL)
             echo "total: $SLICE"
+            OFFSET=$(expr $SLICE \* $CIRCLE_NODE_INDEX)
             echo "OFFSET: $OFFSET"
+            PART=$(echo "$NOTEBOOKS" | tail -n +$OFFSET | head -n $SLICE)
+            echo "PART: PART"
             for NOTEBOOK in $PART; do
               echo "$NOTEBOOK"
               #chmod +x scripts/run_and_convert_notebook.sh
