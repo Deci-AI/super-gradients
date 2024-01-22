@@ -5,6 +5,8 @@ NOTEBOOK_PATH="$1"
 ENV_NAME="$2"  # Second argument is the environment name
 OUTPUT_DIR="documentation/source/"
 
+echo "processing $NOTEBOOK_PATH"
+
 # Check if the notebook path is empty
 if [ -z "$NOTEBOOK_PATH" ]; then
     echo "No notebook path provided."
