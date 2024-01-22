@@ -631,7 +631,7 @@ jobs:
             python3.8 -m ipykernel install --name << parameters.sg_new_env_name >> --user
             make check_notebooks_version_match
             make run_and_convert_notebooks_to_docs
-
+          no_output_timeout: 60m
       - run:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
