@@ -44,7 +44,7 @@ class PhaseContext:
         epoch: Optional[int] = None,
         batch_idx: Optional[int] = None,
         optimizer: Optional[torch.optim.Optimizer] = None,
-        metrics_dict=None,
+        metrics_dict: Optional["MetricOutput"] = None,  # noqa: ignore
         inputs: Optional[torch.Tensor] = None,
         preds: Optional[torch.Tensor] = None,
         target: Optional[torch.Tensor] = None,

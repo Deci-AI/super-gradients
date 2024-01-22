@@ -20,6 +20,7 @@ from torch.utils.tensorboard import SummaryWriter
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
 from super_gradients.common.data_types.enum import MultiGPUMode
+from super_gradients.common.sg_loggers.metric_outputs import MetricOutput, get_scalar_metric_outputs
 from enum import Enum
 
 
@@ -181,18 +182,19 @@ def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: 
     )
 
 
-def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue], new_values_dict: Dict[str, float]) -> Dict[str, MonitoredValue]:
+def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue], new_values_dict: Dict[str, MetricOutput]) -> Dict[str, MonitoredValue]:
     """Update the given ValueToMonitor object (could be a loss or a metric) with the new value
 
     :param monitored_values_dict: Dict mapping value names to their stats throughout epochs.
     :param new_values_dict: Dict mapping value names to their new (i.e. current epoch) value.
     :return: Updated monitored_values_dict
     """
-    relevant_keys = set(new_values_dict.keys()).intersection(monitored_values_dict.keys())
+    new_scalars_dict = get_scalar_metric_outputs(new_values_dict)
+    relevant_keys = set(new_scalars_dict.keys()).intersection(monitored_values_dict.keys())
     for monitored_value_name in relevant_keys:
         previous_value = monitored_values_dict[monitored_value_name]
         monitored_values_dict[monitored_value_name] = update_monitored_value(
-            new_value=new_values_dict[monitored_value_name],
+            new_value=new_scalars_dict[monitored_value_name],
             previous_monitored_value=previous_value,
         )
     return monitored_values_dict

@@ -147,7 +147,7 @@ class DetectionMetrics(Metric):
 
         if self.calc_best_score_thresholds and self.include_classwise_ap:
             self.component_names += self.best_threshold_per_class_names
-        self.component_names += ["roc_area", "precision_recall_area"]
+        self.component_names += ["precision_recall_auc", "roc_auc"]
 
         self.components = len(self.component_names)
 

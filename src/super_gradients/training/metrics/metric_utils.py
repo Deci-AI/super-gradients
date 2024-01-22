@@ -1,6 +1,10 @@
+from typing import Dict, List
+
 import torch
 from torchmetrics import MetricCollection
+
 from super_gradients.training.utils.utils import AverageMeter
+from super_gradients.common.sg_loggers.metric_outputs import MetricOutput
 
 
 def get_logging_values(loss_loggings: AverageMeter, metrics: MetricCollection, criterion=None):
@@ -23,7 +27,7 @@ def get_logging_values(loss_loggings: AverageMeter, metrics: MetricCollection, c
     return logging_vals
 
 
-def get_metrics_titles(metrics_collection: MetricCollection):
+def get_metrics_titles(metrics_collection: MetricCollection) -> List[str]:
     """
 
     :param metrics_collection: MetricCollection object for running user specified metrics
@@ -76,7 +80,7 @@ def flatten_metrics_dict(metrics_dict: dict):
     return flattened
 
 
-def get_metrics_dict(metrics_tuple, metrics_collection, loss_logging_item_names):
+def get_metrics_dict(metrics_tuple, metrics_collection, loss_logging_item_names) -> Dict[str, MetricOutput]:
     """
     Returns a dictionary with the epoch results as values and their names as keys.
     :param metrics_tuple: the result tuple
@@ -89,7 +93,7 @@ def get_metrics_dict(metrics_tuple, metrics_collection, loss_logging_item_names)
     return metrics_dict
 
 
-def get_train_loop_description_dict(metrics_tuple, metrics_collection, loss_logging_item_names, **log_items):
+def get_train_loop_description_dict(metrics_tuple, metrics_collection, loss_logging_item_names, **log_items) -> Dict[str, MetricOutput]:
     """
     Returns a dictionary with the epoch's logging items as values and their names as keys, with the purpose of
      passing it as a description to tqdm's progress bar.
@@ -103,9 +107,5 @@ def get_train_loop_description_dict(metrics_tuple, metrics_collection, loss_logg
     log_items.update(get_metrics_dict(metrics_tuple, metrics_collection, loss_logging_item_names))
     for key, value in log_items.items():
         if isinstance(value, torch.Tensor):
-            if len(value) == 0:
-                log_items[key] = value.detach().item()
-            else:
-                log_items[key] = list(value.detach().numpy())
-
+            log_items[key] = value.detach().item()
     return log_items

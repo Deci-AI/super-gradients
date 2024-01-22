@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Union, Dict
 
 import numpy as np
+import torch
 
 
 @dataclass
@@ -15,12 +16,22 @@ class PlottableMetricOutput:
     image: np.ndarray
     scalar: float
 
+    def __str__(self):
+        return str(self.scalar)
 
-MetricOutput = Union[PlottableMetricOutput, float, int]
+    def __repr__(self):
+        return str(self)
 
 
-def get_scalar_metric_outputs(metric_outputs: Dict[str, MetricOutput]) -> Dict[str, Union[float, str]]:
-    return {k: v.scalar if isinstance(v, PlottableMetricOutput) else v for k, v in metric_outputs.items()}
+MetricOutput = Union[PlottableMetricOutput, float, int, torch.Tensor]
+
+
+def get_scalar_metric_output(metric_output: MetricOutput) -> Union[float, int]:
+    return metric_output.scalar if isinstance(metric_output, PlottableMetricOutput) else metric_output
+
+
+def get_scalar_metric_outputs(metric_outputs: Dict[str, MetricOutput]) -> Dict[str, Union[float, int]]:
+    return {name: get_scalar_metric_output(metric_output=value) for name, value in metric_outputs.items()}
 
 
 def get_plottable_metric_outputs(metric_outputs: Dict[str, MetricOutput]) -> Dict[str, PlottableMetricOutput]:

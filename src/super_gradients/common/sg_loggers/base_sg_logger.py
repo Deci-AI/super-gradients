@@ -176,7 +176,7 @@ class BaseSGLogger(AbstractSGLogger):
         tagged_metric_outputs = {f"{tag}_{k}": v for k, v in metric_outputs.items()}
         self.add_scalars(tag_scalar_dict=get_scalar_metric_outputs(metric_outputs=tagged_metric_outputs), global_step=global_step)
 
-        for metric_name, metric_output in get_plottable_metric_outputs(metric_outputs=metric_outputs):
+        for metric_name, metric_output in get_plottable_metric_outputs(metric_outputs=metric_outputs).items():
             self.add_image(tag=f"{tag}_{metric_name}", image=metric_output.image, global_step=global_step, data_format="HWC")
 
     @multi_process_safe
