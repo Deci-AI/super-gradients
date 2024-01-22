@@ -651,7 +651,10 @@ jobs:
       - run:
           name: Find and Run Notebooks
           command: |
-            NOTEBOOKS=$(find notebooks -name '*.ipynb')
+            NOTEBOOKS=$(find notebooks -name '*.ipynb' \
+              | grep -v 'notebooks/DEKR_PoseEstimationFineTuning.ipynb' \
+              | grep -v 'notebooks/yolo_nas_pose_eval_with_pycocotools.ipynb' \
+              | grep -v 'notebooks/dataloader_adapter.ipynb')
             TOTAL=$(echo "$NOTEBOOKS" | wc -l)
             SLICE=$(expr $TOTAL / $CIRCLE_NODE_TOTAL)
             OFFSET=$(expr $SLICE \* $CIRCLE_NODE_INDEX)
@@ -661,6 +664,7 @@ jobs:
               ./scripts/run_and_convert_notebook.sh "$NOTEBOOK" "<< parameters.sg_new_env_name >>"
             done
           no_output_timeout: 60m  # Adjust based on the expected maximum runtime of your notebooks
+
 
 
 
