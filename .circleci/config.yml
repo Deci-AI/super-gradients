@@ -674,7 +674,6 @@ jobs:
             echo "$PART"
             for NOTEBOOK in $PART; do
               echo "Processing $NOTEBOOK"
-               Ensure your script is executable and then uncomment the following line
                chmod +x scripts/run_and_convert_notebook.sh
                ./scripts/run_and_convert_notebook.sh "$NOTEBOOK" "<< parameters.sg_new_env_name >>"
             done
