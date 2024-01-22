@@ -658,23 +658,28 @@ jobs:
             TOTAL=$(echo "$NOTEBOOKS" | wc -l)
             echo "Total notebooks: $TOTAL"
             SLICE=$((TOTAL / CIRCLE_NODE_TOTAL))
-            echo "Notebooks per node (slice): $SLICE"
+            EXTRA=$((TOTAL % CIRCLE_NODE_TOTAL))
             OFFSET=$((SLICE * CIRCLE_NODE_INDEX))
-            echo "Offset for this node: $OFFSET"
-            PART=$(echo "$NOTEBOOKS" | tail -n +$((OFFSET + 1)) | head -n $SLICE)
+            OFFSET=$((OFFSET + (CIRCLE_NODE_INDEX < EXTRA ? CIRCLE_NODE_INDEX : EXTRA)))
+            COUNT=$((SLICE + (CIRCLE_NODE_INDEX < EXTRA ? 1 : 0)))
+            echo "Offset for this node: $OFFSET, Count: $COUNT"
+
+            if [ "$COUNT" -eq "0" ]; then
+              echo "No notebooks to process on this node."
+              exit 0
+            fi
+
+            PART=$(echo "$NOTEBOOKS" | tail -n +$((OFFSET + 1)) | head -n $COUNT)
             echo "Notebooks to process by this node:"
             echo "$PART"
             for NOTEBOOK in $PART; do
               echo "Processing $NOTEBOOK"
-              # chmod +x scripts/run_and_convert_notebook.sh
-              # ./scripts/run_and_convert_notebook.sh "$NOTEBOOK" "<< parameters.sg_new_env_name >>"
+               Ensure your script is executable and then uncomment the following line
+               chmod +x scripts/run_and_convert_notebook.sh
+               ./scripts/run_and_convert_notebook.sh "$NOTEBOOK" "<< parameters.sg_new_env_name >>"
             done
 
-
-
-
-
-#  run_and_convert_notebooks_to_docs:
+  #  run_and_convert_notebooks_to_docs:
 #    docker:
 #      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
 #    resource_class: deci-ai/sg-gpu-on-premise
