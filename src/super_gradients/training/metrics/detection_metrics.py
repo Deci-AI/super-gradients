@@ -283,25 +283,6 @@ class DetectionMetrics(Metric):
         tpr = recall  # TPR is the same as recall
         fpr = rolling_fps / total_predictions
 
-        # plt.figure(figsize=(10, 5))
-        # plt.plot(recall[:, 0], precision[:, 0])  # Example for the first IoU threshold
-        # plt.xlabel("Recall")
-        # plt.ylabel("Precision")
-        # plt.xlim([0, 1])
-        # plt.ylim([0, 1])
-        # plt.title("Precision-Recall Curve")
-        # plt.show()
-
-        # Plotting ROC curve
-        # plt.figure(figsize=(10, 5))
-        # plt.plot(fpr[:, 0], tpr[:, 0])  # Example for the first IoU threshold
-        # plt.xlabel("False Positive Rate")
-        # plt.ylabel("True Positive Rate")
-        # plt.xlim([0, 1])
-        # plt.ylim([0, 1])
-        # plt.title("ROC Curve")
-        # plt.show()
-
         # Plotting PR curve
         output_dict["precision_recall_area"] = PlottableMetricOutput(
             scalar=np.trapz(x=recall[:, 0], y=precision[:, 0]),
@@ -310,8 +291,8 @@ class DetectionMetrics(Metric):
             y=precision[:, 0],
             xlabel="Recall",
             ylabel="Precision",
-            xlim=[0, 1],
-            ylim=[0, 1],
+            xlim=(0, 1),
+            ylim=(0, 1),
         )
         output_dict["roc_area"] = PlottableMetricOutput(
             scalar=np.trapz(x=fpr[:, 0], y=tpr[:, 0]),
@@ -320,8 +301,8 @@ class DetectionMetrics(Metric):
             y=tpr[:, 0],
             xlabel="False Positive Rate",
             ylabel="True Positive Rate",
-            xlim=[0, 1],
-            ylim=[0, 1],
+            xlim=(0, 1),
+            ylim=(0, 1),
         )
 
         return output_dict
