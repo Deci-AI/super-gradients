@@ -65,7 +65,7 @@ dataset_params:
           std: [0.229, 0.224, 0.225]
 
       - SegConvertToTensor:
-        mask_output_dtype: long
+          mask_output_dtype: long
 
 
 
@@ -93,6 +93,7 @@ checkpoint_params:
   load_checkpoint: ${load_checkpoint}
   checkpoint_path: ???
   load_backbone: True
+  strict_load: no_key_matching
 
 experiment_name: ${architecture}_cityscapes_al
 

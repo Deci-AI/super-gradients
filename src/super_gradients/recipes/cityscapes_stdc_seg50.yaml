@@ -57,6 +57,7 @@ checkpoint_params:
   checkpoint_path:
   load_backbone: True
   load_weights_only: True
+  strict_load: no_key_matching
 
 training_hyperparams:
   initial_lr:
