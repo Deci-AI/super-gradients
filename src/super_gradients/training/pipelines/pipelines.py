@@ -328,7 +328,7 @@ class DetectionPipeline(Pipeline):
                 DetectionPrediction(
                     bboxes=prediction[:, :4],
                     confidence=prediction[:, 4],
-                    labels=prediction[:, 5],
+                    labels=prediction[:, 5].astype(int),
                     bbox_format="xyxy",
                     image_shape=image.shape,
                 )
