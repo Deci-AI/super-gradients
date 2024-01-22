@@ -656,7 +656,7 @@ jobs:
             OFFSET=$(expr $SLICE \* $CIRCLE_NODE_INDEX)
             PART=$(echo "$NOTEBOOKS" | tail -n +$OFFSET | head -n $SLICE)
             for NOTEBOOK in $PART; do
-              chmod +x run_notebook.sh
+              chmod +x scripts/run_and_convert_notebook.sh
               ./scripts/run_and_convert_notebook.sh "$NOTEBOOK"
             done
           no_output_timeout: 60m  # Adjust based on the expected maximum runtime of your notebooks
