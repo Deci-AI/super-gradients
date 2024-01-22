@@ -647,9 +647,9 @@ jobs:
             # Install the IPython kernel
             python -m ipykernel install --name myenv --user
 
-      # In your .circleci/config.yml
       - run:
           name: Find and Run Notebooks
+          no_output_timeout: 120m
           command: |
             NOTEBOOKS=$(find notebooks -name '*.ipynb' \
               | grep -v 'notebooks/DEKR_PoseEstimationFineTuning.ipynb' \
@@ -677,48 +677,6 @@ jobs:
                chmod +x scripts/run_and_convert_notebook.sh
                ./scripts/run_and_convert_notebook.sh "$NOTEBOOK" "<< parameters.sg_new_env_name >>"
             done
-
-  #  run_and_convert_notebooks_to_docs:
-#    docker:
-#      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
-#    resource_class: deci-ai/sg-gpu-on-premise
-#    parameters:
-#      sg_existing_env_path:
-#        type: string
-#        default: "/env/persistent_env"
-#      sg_new_env_name:
-#        type: string
-#        default: "${CIRCLE_BUILD_NUM}"
-#      sg_new_env_python_version:
-#        type: string
-#        default: "python3.8"
-#    steps:
-#      - checkout
-#      - run:
-#          name: install requirements and execute notebooks
-#          command: |
-#            << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
-#            source << parameters.sg_new_env_name >>/bin/activate
-#            python3.8 -m pip install --upgrade setuptools pip wheel
-#            python3.8 -m pip install -r requirements.txt
-#            python3.8 -m pip install -r requirements.dev.txt
-#            python3.8 -m pip install .
-#            python3.8 -m pip install torch torchvision torchaudio
-#            python3.8 -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
-#            python3.8 -m pip install onnx_graphsurgeon==0.3.27   --extra-index-url https://pypi.ngc.nvidia.com
-#            python3.8 -m ipykernel install --name << parameters.sg_new_env_name >> --user
-#            make check_notebooks_version_match
-#            make run_and_convert_notebooks_to_docs
-#          no_output_timeout: 60m
-#      - run:
-#          name: Remove new environment when failed
-#          command: "rm -r << parameters.sg_new_env_name >>"
-#          when: on_fail
-#
-#      - slack/notify:
-#          channel: "sg-integration-tests"
-#          event: fail
-#          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
 
 
