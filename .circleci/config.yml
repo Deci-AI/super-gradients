@@ -657,7 +657,7 @@ jobs:
             PART=$(echo "$NOTEBOOKS" | tail -n +$OFFSET | head -n $SLICE)
             for NOTEBOOK in $PART; do
               chmod +x run_notebook.sh
-              scripts/run_and_convert_notebook.sh "$NOTEBOOK"
+              ./scripts/run_and_convert_notebook.sh "$NOTEBOOK"
             done
           no_output_timeout: 60m  # Adjust based on the expected maximum runtime of your notebooks
 
