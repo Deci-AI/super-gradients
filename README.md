@@ -211,7 +211,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ###  Semantic Segmentation
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb) [Segmentation Quick Start](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb))
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb) [Segmentation Quick Start](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb)
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_semantic_segmentation.ipynb) [Segmentation Transfer Learning](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_semantic_segmentation.ipynb)
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/segmentation_connect_custom_dataset.ipynb) [How to Connect Custom Dataset](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/segmentation_connect_custom_dataset.ipynb)
 
@@ -231,11 +231,11 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ### How to Predict Using Pre-trained Model
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/how_to_use_knowledge_distillation_for_classification.ipynb) [Knowledge Distillation Training](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/how_to_run_model_predict.ipynb) [How to Predict Using Pre-trained Model](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/how_to_run_model_predict.ipynb)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/how_to_run_model_predict.ipynb) [How to Predict Using Pre-trained Model](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/how_to_run_model_predict.ipynb)
 
 ### Albumentations Integration
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/albumentations_tutorial.ipynb) [Using Albumentations with SG](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/albumentations_tutorial.ipynb) [How to Predict Using Pre-trained Model](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/albumentations_tutorial.ipynb)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/albumentations_tutorial.ipynb) [Using Albumentations with SG](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/albumentations_tutorial.ipynb) [How to Predict Using Pre-trained Model](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/albumentations_tutorial.ipynb)
 
 
 
