@@ -61,7 +61,7 @@ class LRWarmupTest(unittest.TestCase):
 
         train_params = {
             "max_epochs": 5,
-            "lr_updates": [],
+            "lr_updates": [10],
             "lr_decay_factor": 0.1,
             "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 3,
@@ -189,7 +189,7 @@ class LRWarmupTest(unittest.TestCase):
 
         train_params = {
             "max_epochs": 5,
-            "lr_updates": [],
+            "lr_updates": [10],
             "lr_decay_factor": 0.1,
             "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 3,
@@ -227,7 +227,7 @@ class LRWarmupTest(unittest.TestCase):
 
         train_params = {
             "max_epochs": 5,
-            "lr_updates": [],
+            "lr_updates": [10],
             "lr_decay_factor": 0.1,
             "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 3,

@@ -78,6 +78,8 @@ class TestModelPredict(unittest.TestCase):
                 predictions = model.predict(self.images)
                 predictions.show()
                 predictions.save(output_folder=tmp_dirname)
+                for prediction in predictions._images_prediction_lst:
+                    self.assertTrue(np.issubdtype(prediction.prediction.labels.dtype, np.integer))
 
     def test_detection_models_with_targets(self):
         for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.PP_YOLOE_S]:

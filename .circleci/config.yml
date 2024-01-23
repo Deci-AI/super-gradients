@@ -257,8 +257,29 @@ jobs:
             python3 -m pip install -e .
             python3 -m pip install -r requirements.dev.txt
             python3 -m pip install gitpython==3.1.0
+
+            # GET THE BRANCH THAT THE CURRENT PR IS BEING MERGED INTO.
+            # THIS IS ONLY RELEVANT FOR CI RUNS, WHICH IS WHY IT'S NOT PART OF THE PYTHON CODE.
+            if [ -n "${CIRCLE_PULL_REQUEST}" ]; then
+              PR_NUMBER=$(basename ${CIRCLE_PULL_REQUEST})
+              echo "Pull Request Number: ${PR_NUMBER}"
+      
+              # Use GitHub API to get the target branch name of the PR using GITHUB_CLI_TOKEN
+              BRANCH_MERGED_INTO=$(curl -s -H "Authorization: token ${GITHUB_CLI_TOKEN}" \
+                "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}" \
+                | jq -r '.base.ref')
+              echo "Branch merged into: ${BRANCH_MERGED_INTO}"
+            
+              # This is required since it's possible this branch would not be available locally
+              git fetch origin ${BRANCH_MERGED_INTO}:${BRANCH_MERGED_INTO}
+            else
+              echo "This job does not appear to be running as part of a pull request."
+              BRANCH_MERGED_INTO="master"
+            fi
+
+            # TESTS
             coverage run --source=super_gradients -m unittest tests/breaking_change_tests/unit_test.py
-            coverage run --source=super_gradients -m unittest tests/breaking_change_tests/test_detect_breaking_change.py
+            BRANCH_MERGED_INTO=${BRANCH_MERGED_INTO} coverage run --source=super_gradients -m unittest tests/breaking_change_tests/test_detect_breaking_change.py
             make check_notebooks_version_match
       - run:
           name: Remove new environment when failed

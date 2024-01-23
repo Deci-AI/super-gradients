@@ -400,7 +400,13 @@ class StepLRScheduler(LRCallbackBase):
     def __init__(self, lr_updates, lr_decay_factor, step_lr_update_freq=None, **kwargs):
         super().__init__(Phase.TRAIN_EPOCH_END, **kwargs)
         if step_lr_update_freq and len(lr_updates):
-            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRScheduler constructor")
+            raise ValueError(
+                "Parameters lr_updates and step_lr_update_freq are mutually exclusive"
+                f" and cannot be passed to {StepLRScheduler.__name__} constructor simultaneously"
+            )
+
+        if step_lr_update_freq is None and len(lr_updates) == 0:
+            raise ValueError(f"At least one of [lr_updates, step_lr_update_freq] parameters should be passed to {StepLRScheduler.__name__} constructor")
 
         if step_lr_update_freq:
             max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
@@ -532,7 +538,7 @@ class LRSchedulerCallback(PhaseCallback):
     :param phase:           Phase of when to trigger it.
     """
 
-    def __init__(self, scheduler: torch.optim.lr_scheduler._LRScheduler, phase: Phase, metric_name: str = None):
+    def __init__(self, scheduler: torch.optim.lr_scheduler._LRScheduler, phase: Union[Phase, str], metric_name: str = None):
         super(LRSchedulerCallback, self).__init__(phase)
         self.scheduler = scheduler
         self.metric_name = metric_name
@@ -552,7 +558,7 @@ class LRSchedulerCallback(PhaseCallback):
 
 @register_callback(Callbacks.METRICS_UPDATE)
 class MetricsUpdateCallback(PhaseCallback):
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
         super(MetricsUpdateCallback, self).__init__(phase)
 
     def __call__(self, context: PhaseContext):
@@ -562,7 +568,7 @@ class MetricsUpdateCallback(PhaseCallback):
 
 
 class KDModelMetricsUpdateCallback(MetricsUpdateCallback):
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
         super().__init__(phase=phase)
 
     def __call__(self, context: PhaseContext):
@@ -577,7 +583,7 @@ class PhaseContextTestCallback(PhaseCallback):
     A callback that saves the phase context the for testing.
     """
 
-    def __init__(self, phase: Phase):
+    def __init__(self, phase: Union[Phase, str]):
         super(PhaseContextTestCallback, self).__init__(phase)
         self.context = None
 
@@ -599,7 +605,7 @@ class DetectionVisualizationCallback(PhaseCallback):
 
     def __init__(
         self,
-        phase: Phase,
+        phase: Union[Phase, str],
         freq: int,
         post_prediction_callback: DetectionPostPredictionCallback,
         classes: list,
@@ -635,7 +641,7 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
     :param last_img_idx_in_batch:   Last image index to add to log. (default=-1, will take entire batch).
     """
 
-    def __init__(self, phase: Phase, freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
+    def __init__(self, phase: Union[Phase, str], freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
         super(BinarySegmentationVisualizationCallback, self).__init__(phase)
         self.freq = freq
         self.batch_idx = batch_idx
