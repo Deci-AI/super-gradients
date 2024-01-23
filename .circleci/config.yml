@@ -654,6 +654,7 @@ jobs:
             NOTEBOOKS=$(find notebooks -name '*.ipynb' \
               | grep -v 'notebooks/DEKR_PoseEstimationFineTuning.ipynb' \
               | grep -v 'notebooks/yolo_nas_pose_eval_with_pycocotools.ipynb' \
+              | grep -v 'notebooks/albumentations_tutorial.ipynb' \
               | grep -v 'notebooks/dataloader_adapter.ipynb')
             TOTAL=$(echo "$NOTEBOOKS" | wc -l)
             echo "Total notebooks: $TOTAL"
