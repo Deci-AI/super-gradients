@@ -35,18 +35,6 @@ parameters:
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
     default: "10.5.1"
 #    default: "dev:alpha"
-  GHA_Event:
-    type: string
-    default: ""
-  GHA_Actor:
-    type: string
-    default: ""
-  GHA_Action:
-    type: string
-    default: ""
-  GHA_Meta:
-    type: string
-    default: ""
 
 orbs:
   deci-common: deci-ai/circleci-common-orb@<< pipeline.parameters.orb_version >>
@@ -906,33 +894,33 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
-  # sanity_tests:
-  #   when:  << pipeline.parameters.run_sanity_tests_flow >>
-  #   jobs:
-  #     - hydra_sweeper_test:
-  #         context:
-  #           - slack
-  #     - recipe_sanity_tests_classification_pt1:
-  #         context:
-  #           - slack
-  #     - recipe_sanity_tests_classification_pt2:
-  #         context:
-  #           - slack
-  #     - recipe_sanity_tests_segmentation:
-  #         context:
-  #           - slack
-  #     - recipe_sanity_tests_detection:
-  #         context:
-  #           - slack
-  #     - recipe_sanity_tests_pose_estimation:
-  #         context:
-  #           - slack
-  #     - recipe_accuracy_tests:
-  #         context:
-  #           - slack
-  #     - run_and_convert_notebooks_to_docs:
-  #         context:
-  #           - slack
+  sanity_tests:
+    when:  << pipeline.parameters.run_sanity_tests_flow >>
+    jobs:
+      - hydra_sweeper_test:
+          context:
+            - slack
+      - recipe_sanity_tests_classification_pt1:
+          context:
+            - slack
+      - recipe_sanity_tests_classification_pt2:
+          context:
+            - slack
+      - recipe_sanity_tests_segmentation:
+          context:
+            - slack
+      - recipe_sanity_tests_detection:
+          context:
+            - slack
+      - recipe_sanity_tests_pose_estimation:
+          context:
+            - slack
+      - recipe_accuracy_tests:
+          context:
+            - slack
+      - run_and_convert_notebooks_to_docs:
+          context:
+            - slack
   run_and_convert_notebooks_to_docs:
     when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
     jobs:
@@ -941,14 +929,10 @@ workflows:
             - slack
 
   release:
-    when: 
+    unless:
       or:
-        - and:
-            - << pipeline.parameters.GHA_Action >>
-            - equal: [ "release", << pipeline.parameters.GHA_Event >> ]
-        - or:
-            - << pipeline.parameters.ad_hoc_container_build >>
-            - << pipeline.parameters.ad_hoc_container_build_code_only >>
+        - << pipeline.parameters.ad_hoc_container_build >>
+        - << pipeline.parameters.ad_hoc_container_build_code_only >>
 
     jobs:
       - deci-common/persist_version_info:
