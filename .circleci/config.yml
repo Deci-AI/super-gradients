@@ -22,7 +22,7 @@ parameters:
   run_sanity_tests_flow:
     type: boolean
     description: If true will run sanity_test flow
-    default: false
+    default: true
   run_and_convert_notebooks_to_docs:
     type: boolean
     description: If true will run run_and_convert_notebooks_to_docs flow
