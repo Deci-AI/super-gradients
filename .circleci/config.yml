@@ -588,7 +588,9 @@ jobs:
           event: fail
           template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
+
   run_and_convert_notebooks_to_docs:
+    parallelism: 11  # Adjust based on your needs and available resources
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
@@ -605,30 +607,65 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install requirements and execute notebooks
+          name: Setup Environment
           command: |
             << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
             source << parameters.sg_new_env_name >>/bin/activate
-            python3.8 -m pip install --upgrade setuptools pip wheel
-            python3.8 -m pip install -r requirements.txt
-            python3.8 -m pip install -r requirements.dev.txt
-            python3.8 -m pip install .
-            python3.8 -m pip install torch torchvision torchaudio
-            python3.8 -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
-            python3.8 -m pip install onnx_graphsurgeon==0.3.27   --extra-index-url https://pypi.ngc.nvidia.com
-            python3.8 -m ipykernel install --name << parameters.sg_new_env_name >> --user
-            make check_notebooks_version_match
-            make run_and_convert_notebooks_to_docs
+
+            # Upgrade pip, setuptools, and wheel
+            pip install --upgrade pip setuptools wheel
+
+            # Install project-specific dependencies from requirements files
+            pip install -r requirements.txt
+            pip install -r requirements.dev.txt
+
+            # Install your project (if it's a package)
+            pip install .
+
+            # Install PyTorch, torchvision, and torchaudio
+            pip install torch torchvision torchaudio
+
+            # Install additional specific dependencies
+            pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
+            pip install onnx_graphsurgeon==0.3.27 --extra-index-url https://pypi.ngc.nvidia.com
+
+            # Install Jupyter and nbconvert for notebook execution
+            pip install jupyter nbconvert
+
+            # Install the IPython kernel
+            python -m ipykernel install --name myenv --user
 
       - run:
-          name: Remove new environment when failed
-          command: "rm -r << parameters.sg_new_env_name >>"
-          when: on_fail
+          name: Find and Run Notebooks
+          no_output_timeout: 180m
+          command: |
+            NOTEBOOKS=$(find notebooks -name '*.ipynb' \
+              | grep -v 'notebooks/DEKR_PoseEstimationFineTuning.ipynb' \
+              | grep -v 'notebooks/yolo_nas_pose_eval_with_pycocotools.ipynb' \
+              | grep -v 'notebooks/albumentations_tutorial.ipynb' \
+              | grep -v 'notebooks/dataloader_adapter.ipynb')
+            TOTAL=$(echo "$NOTEBOOKS" | wc -l)
+            echo "Total notebooks: $TOTAL"
+            SLICE=$((TOTAL / CIRCLE_NODE_TOTAL))
+            EXTRA=$((TOTAL % CIRCLE_NODE_TOTAL))
+            OFFSET=$((SLICE * CIRCLE_NODE_INDEX))
+            OFFSET=$((OFFSET + (CIRCLE_NODE_INDEX < EXTRA ? CIRCLE_NODE_INDEX : EXTRA)))
+            COUNT=$((SLICE + (CIRCLE_NODE_INDEX < EXTRA ? 1 : 0)))
+            echo "Offset for this node: $OFFSET, Count: $COUNT"
 
-      - slack/notify:
-          channel: "sg-integration-tests"
-          event: fail
-          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+            if [ "$COUNT" -eq "0" ]; then
+              echo "No notebooks to process on this node."
+              exit 0
+            fi
+
+            PART=$(echo "$NOTEBOOKS" | tail -n +$((OFFSET + 1)) | head -n $COUNT)
+            echo "Notebooks to process by this node:"
+            echo "$PART"
+            for NOTEBOOK in $PART; do
+              echo "Processing $NOTEBOOK"
+               chmod +x scripts/run_and_convert_notebook.sh
+               ./scripts/run_and_convert_notebook.sh "$NOTEBOOK" "<< parameters.sg_new_env_name >>"
+            done
 
 
 
@@ -895,32 +932,32 @@ jobs:
 
 workflows:
   sanity_tests:
-    when:  << pipeline.parameters.run_sanity_tests_flow >>
-    jobs:
-      - hydra_sweeper_test:
-          context:
-            - slack
-      - recipe_sanity_tests_classification_pt1:
-          context:
-            - slack
-      - recipe_sanity_tests_classification_pt2:
-          context:
-            - slack
-      - recipe_sanity_tests_segmentation:
-          context:
-            - slack
-      - recipe_sanity_tests_detection:
-          context:
-            - slack
-      - recipe_sanity_tests_pose_estimation:
-          context:
-            - slack
-      - recipe_accuracy_tests:
-          context:
-            - slack
-      - run_and_convert_notebooks_to_docs:
-          context:
-            - slack
+     when:  << pipeline.parameters.run_sanity_tests_flow >>
+     jobs:
+       - hydra_sweeper_test:
+           context:
+             - slack
+       - recipe_sanity_tests_classification_pt1:
+           context:
+             - slack
+       - recipe_sanity_tests_classification_pt2:
+           context:
+             - slack
+       - recipe_sanity_tests_segmentation:
+           context:
+             - slack
+       - recipe_sanity_tests_detection:
+           context:
+             - slack
+       - recipe_sanity_tests_pose_estimation:
+           context:
+             - slack
+       - recipe_accuracy_tests:
+           context:
+             - slack
+       - run_and_convert_notebooks_to_docs:
+           context:
+             - slack
   run_and_convert_notebooks_to_docs:
     when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
     jobs:
