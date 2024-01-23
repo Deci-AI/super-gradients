@@ -354,7 +354,9 @@ class Trainer:
 
         # INSTANTIATE DATA LOADERS
         val_dataloader = dataloaders.get(
-            name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
+            name=get_param(cfg, "val_dataloader"),
+            dataset_params=cfg.dataset_params.val_dataset_params,
+            dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
         if cfg.checkpoint_params.checkpoint_path is None:
