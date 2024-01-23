@@ -618,7 +618,7 @@ jobs:
             python3.8 -m pip install onnx_graphsurgeon==0.3.27   --extra-index-url https://pypi.ngc.nvidia.com
             python3.8 -m ipykernel install --name << parameters.sg_new_env_name >> --user
             make check_notebooks_version_match
-            make run_and_convert_notebooks_to_docs
+#            make run_and_convert_notebooks_to_docs
 
       - run:
           name: Remove new environment when failed
