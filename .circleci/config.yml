@@ -26,7 +26,7 @@ parameters:
   run_and_convert_notebooks_to_docs:
     type: boolean
     description: If true will run run_and_convert_notebooks_to_docs flow
-    default: true
+    default: false
   skip_md_files:
     type: boolean
     default: true
@@ -602,7 +602,7 @@ jobs:
 
 
   run_and_convert_notebooks_to_docs:
-    parallelism: 12  # Adjust based on your needs and available resources
+    parallelism: 11  # Adjust based on your needs and available resources
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
