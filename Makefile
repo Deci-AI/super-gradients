@@ -31,30 +31,24 @@ sweeper_test:
 	fi
 
 # Here you define a list of notebooks we want to execute and convert to markdown files
-NOTEBOOKS_TO_RUN := src/super_gradients/examples/model_export/models_export.ipynb
-NOTEBOOKS_TO_RUN += src/super_gradients/examples/model_export/models_export_pose.ipynb
-NOTEBOOKS_TO_RUN += notebooks/what_are_recipes_and_how_to_use.ipynb
-NOTEBOOKS_TO_RUN += notebooks/transfer_learning_classification.ipynb
-NOTEBOOKS_TO_RUN += notebooks/how_to_use_knowledge_distillation_for_classification.ipynb
-NOTEBOOKS_TO_RUN += notebooks/detection_how_to_connect_custom_dataset.ipynb
-NOTEBOOKS_TO_RUN += notebooks/PTQ_and_QAT_for_classification.ipynb
-NOTEBOOKS_TO_RUN += notebooks/quickstart_segmentation.ipynb
-NOTEBOOKS_TO_RUN += notebooks/segmentation_connect_custom_dataset.ipynb
-NOTEBOOKS_TO_RUN += notebooks/transfer_learning_semantic_segmentation.ipynb
-NOTEBOOKS_TO_RUN += notebooks/detection_transfer_learning.ipynb
-NOTEBOOKS_TO_RUN += notebooks/how_to_run_model_predict.ipynb
-NOTEBOOKS_TO_RUN += notebooks/yolo_nas_custom_dataset_fine_tuning_with_qat.ipynb
-NOTEBOOKS_TO_RUN += notebooks/DEKR_PoseEstimationFineTuning.ipynb
-NOTEBOOKS_TO_RUN += notebooks/albumentations_tutorial.ipynb
-
-# If there are additional notebooks that must not be executed, but still should be checked for version match, add them here
-NOTEBOOKS_TO_CHECK := $(NOTEBOOKS_TO_RUN)
+NOTEBOOKS_TO_CHECK := src/super_gradients/examples/model_export/models_export.ipynb
+NOTEBOOKS_TO_CHECK += src/super_gradients/examples/model_export/models_export_pose.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/what_are_recipes_and_how_to_use.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/transfer_learning_classification.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/how_to_use_knowledge_distillation_for_classification.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/detection_how_to_connect_custom_dataset.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/PTQ_and_QAT_for_classification.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/quickstart_segmentation.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/segmentation_connect_custom_dataset.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/transfer_learning_semantic_segmentation.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/detection_transfer_learning.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/how_to_run_model_predict.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/yolo_nas_custom_dataset_fine_tuning_with_qat.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/DEKR_PoseEstimationFineTuning.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/albumentations_tutorial.ipynb
 NOTEBOOKS_TO_CHECK += notebooks/yolo_nas_pose_eval_with_pycocotools.ipynb
 NOTEBOOKS_TO_CHECK += notebooks/dataloader_adapter.ipynb
 
-# This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
-run_and_convert_notebooks_to_docs: $(NOTEBOOKS_TO_RUN)
-	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute $^
 
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
 check_notebooks_version_match: $(NOTEBOOKS_TO_CHECK)
