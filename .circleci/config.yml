@@ -602,7 +602,7 @@ jobs:
 
 
   run_and_convert_notebooks_to_docs:
-    parallelism: 8  # Adjust based on your needs and available resources
+    parallelism: 12  # Adjust based on your needs and available resources
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
@@ -649,7 +649,7 @@ jobs:
 
       - run:
           name: Find and Run Notebooks
-          no_output_timeout: 120m
+          no_output_timeout: 180m
           command: |
             NOTEBOOKS=$(find notebooks -name '*.ipynb' \
               | grep -v 'notebooks/DEKR_PoseEstimationFineTuning.ipynb' \
