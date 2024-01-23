@@ -485,7 +485,7 @@ class ExportablePoseEstimationModel:
                             "`args` key found in onnx_export_kwargs. We explicitly construct dummy input (`args`) inside export() method. "
                             "Overriding args is not supported so please remove it from the `onnx_export_kwargs`."
                         )
-                    torch.onnx.export(model=complete_model, args=onnx_input, f=output, output_names=output_names, **onnx_export_kwargs)
+                    torch.onnx.export(model=complete_model, args=onnx_input, f=output, input_names=["input"], output_names=output_names, **onnx_export_kwargs)
 
                 # Stitch ONNX graph with NMS postprocessing
                 if attach_nms_postprocessing:
