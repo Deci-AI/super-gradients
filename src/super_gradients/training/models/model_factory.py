@@ -5,6 +5,8 @@ import hydra
 import torch
 
 from super_gradients.common.data_types.enum.strict_load import StrictLoad
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.type_factory import TypeFactory
 from super_gradients.common.plugins.deci_client import DeciClient, client_enabled
 from super_gradients.module_interfaces import HasPredict
 from super_gradients.training import utils as core_utils
@@ -186,11 +188,12 @@ def get_model_name(model: torch.nn.Module) -> Optional[str]:
     return getattr(model, "_sg_model_name", None)
 
 
+@resolve_param("strict_load", TypeFactory.from_enum_cls(StrictLoad))
 def get(
     model_name: str,
     arch_params: Optional[dict] = None,
     num_classes: Optional[int] = None,
-    strict_load: StrictLoad = StrictLoad.NO_KEY_MATCHING,
+    strict_load: Union[str, StrictLoad] = StrictLoad.NO_KEY_MATCHING,
     checkpoint_path: Optional[str] = None,
     pretrained_weights: Optional[str] = None,
     load_backbone: bool = False,
@@ -239,7 +242,7 @@ def get(
             ckpt_local_path=checkpoint_path,
             load_backbone=load_backbone,
             net=net,
-            strict=strict_load.value if hasattr(strict_load, "value") else strict_load,
+            strict=strict_load,
             load_weights_only=True,
             load_ema_as_net=load_ema_as_net,
             load_processing_params=load_processing,

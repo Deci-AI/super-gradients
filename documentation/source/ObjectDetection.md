@@ -590,33 +590,19 @@ Values of `cx`, `cy`, `w`, `h` are in absolute pixel coordinates and confidence 
 Same as in Eval mode.
 
 
-### PPYolo-E
-#### Training mode
+### PPYolo-E & Yolo-NAS
+#### Training & Validation mode
 
-In training mode, PPYoloE returns a tuple of 6 tensors that contains the intermediates required for the loss calculation.
+PPYoloE & Yolo-NAS returns a tuple of 2 tensors: `decoded_predictions, raw_intermediates`. 
+
+A `decoded_predictions` itself is a tuple of 2 tensors (`[B,Anchors,4]` and `[B,Anchors,C]`) with decoded bounding boxes and class scores.
+A `raw_intermediates` contains 6 tensors of intermediates required for the loss calculation.
+
 You can access individual components of the model's output using the following snippet:
 
-`cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor = yolo_nas_model(images)`
+`(pred_bboxes, pred_scores), (cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor) = model(images)`
 
-They are as follows:
-  * `cls_score_list` - `[B, num_anchors, num_classes]`
-  * `reg_distri_list` - `[B, num_anchors, num_regression_dims]`
-  * `anchors` - `[num_anchors, 4]`
-  * `anchor_points` - `[num_anchors, 2]`
-  * `num_anchors_list` - `[num_anchors]`
-  * `stride_tensor` - `[num_anchors]`
-
-In this mode, predictions decoding is not performed.
-
-#### Eval mode
-
-In eval mode, Yolo-NAS returns a tuple of 2 tensors: `decoded_predictions, raw_intermediates`. 
-A `decoded_predictions` itself is a tuple of 2 tensors with decoded bounding boxes and class scores.
-And `raw_intermediates` is a tuple of 6 tensors that contains the intermediates required for the loss calculation (Same as in training mode).
-
-`(pred_bboxes, pred_scores), (cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor) = yolo_nas_model(images)`
-
-New outputs `pred_bboxes` and `pred_scores` are decoded predictions of the model. They are as follows:
+Here `pred_bboxes` and `pred_scores` are decoded predictions of the model:
 
   * `pred_bboxes` - `[B, num_anchors, 4]` - decoded bounding boxes in the format `[x1, y1, x2, y2]` in absolute (pixel) coordinates
   * `pred_scores` - `[B, num_anchors, num_classes]` - class scores `(0..1)` for each bounding box
@@ -624,21 +610,8 @@ New outputs `pred_bboxes` and `pred_scores` are decoded predictions of the model
 Please note that box predictions are not clipped and may extend beyond the image boundaries.
 Additionally, the NMS is not performed yet at this stage. This is where the post-prediction callback comes into play.
 
-#### Tracing mode
+Remaining tensors contains the intermediates required for the loss calculation. They are as follows:
 
-In tracing mode, Yolo-NAS returns only decoded predictions:
-
-`pred_bboxes, pred_scores = yolo_nas_model(images)`
-
-### Yolo NAS
-#### Training mode
-
-In training mode, Yolo-NAS returns a tuple of 6 tensors that contains the intermediates required for the loss calculation.
-You can access individual components of the model's output using the following snippet:
-
-`cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor = yolo_nas_model(images)`
-
-They are as follows:
   * `cls_score_list` - `[B, num_anchors, num_classes]`
   * `reg_distri_list` - `[B, num_anchors, num_regression_dims]`
   * `anchors` - `[num_anchors, 4]`
@@ -646,28 +619,15 @@ They are as follows:
   * `num_anchors_list` - `[num_anchors]`
   * `stride_tensor` - `[num_anchors]`
 
-In this mode, predictions decoding is not performed.
-
-
-#### Eval mode
-
-In eval mode, Yolo-NAS returns a tuple of 2 tensors that contains the decoded predictions and the intermediates as in train mode:
-
-`(pred_bboxes, pred_scores), (cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor) = yolo_nas_model(images)`
-
-New outputs `pred_bboxes` and `pred_scores` are decoded predictions of the model. They are as follows:
-
-  * `pred_bboxes` - `[B, num_anchors, 4]` - decoded bounding boxes in the format `[x1, y1, x2, y2]` in absolute (pixel) coordinates
-  * `pred_scores` - `[B, num_anchors, num_classes]` - class scores `(0..1)` for each bounding box
-
-Please note that box predictions are not clipped and may extend beyond the image boundaries.
-Additionally, the NMS is not performed yet at this stage. This is where the post-prediction callback comes into play.
 
 #### Tracing mode
 
-In tracing mode, Yolo-NAS returns only decoded predictions:
+In tracing mode, PPYoloE returns only decoded predictions:
 
 `pred_bboxes, pred_scores = yolo_nas_model(images)`
+
+Please note that box predictions are not clipped and may extend beyond the image boundaries.
+Additionally, the NMS is not performed yet at this stage. This is where the post-prediction callback comes into play.
 
 ## Training
 

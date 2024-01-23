@@ -79,11 +79,11 @@ class TestDetectionMetricsDistanceBased(unittest.TestCase):
 
         results = dict((k.split("@")[0].lower().replace("distance_based_", ""), v) for k, v in results.items())
 
-        self.assertAlmostEqual(results["precision"].item(), precision, places=places)
-        self.assertAlmostEqual(results["recall"].item(), recall, places=places)
+        self.assertAlmostEqual(results["precision"], precision, places=places)
+        self.assertAlmostEqual(results["recall"], recall, places=places)
         if mAP is not None:
-            self.assertAlmostEqual(results["map"].item(), mAP, places=places)
-        self.assertAlmostEqual(results["f1"].item(), F1, places=places)
+            self.assertAlmostEqual(results["map"], mAP, places=places)
+        self.assertAlmostEqual(results["f1"], F1, places=places)
 
     def generate_targets(self, img_width, img_height, num_classes, num_targets):
         targets = []
