@@ -49,7 +49,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--ls_labels_path",
         default=Path(
-            "/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/Annotations/export_45956_project-45956-at-2024-01-19-11-52-9ee83bbe.json"
+            "/mnt/ml-team/unstructured/DATA/dvc-data-registry/holistic-mini-pdf-image-dataset/mini-holistic-all/ls/export_45956_project-45956-at-2024-01-10-23-16-24cfbda6.json"
         ),  # todo remove
         type=Path,
         help="Path to Label Studio json annotation file.",
@@ -150,7 +150,7 @@ def main(
         for element in file_annotation["annotations"]:
             for annotation in element["result"]:
                 if annotation["type"] == "labels":
-                    category = annotation["value"]["labels"]
+                    category = annotation["value"]["labels"][0]
                     if category not in [cat["name"] for cat in COCO_anno["categories"]]:
                         COCO_anno["categories"].append({"id": COCO_category_id, "name": category})
                         COCO_category_id += 1

@@ -12,6 +12,8 @@ DOCLAYNET_CAT = [
     {"supercategory": "Picture", "id": 7, "name": "Picture"},
     {"supercategory": "Section-header", "id": 8, "name": "Section-header"},
     {"supercategory": "Table", "id": 9, "name": "Table"},
+    {"supercategory": "Text", "id": 10, "name": "Text"},
+    {"supercategory": "Title", "id": 11, "name": "Title"},
 ]
 
 MINIHOLISTIC_DOCLAYNET_MAP = {

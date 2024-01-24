@@ -29,9 +29,9 @@ dataset_params:
     input_dim: [1025, 1025]
     transforms:
       - DetectionPaddedRescale:
-          input_dim: [640, 640] # Change for different training resolutions (multiplications of 32)
+          input_dim: [512, 512] # Change for different training resolutions (multiplications of 32)
       - DetectionTargetsFormatTransform:
-          input_dim: [640, 640] 
+          input_dim: [512, 512] 
           output_format: LABEL_CXCYWH
 
   train_dataloader_params:
@@ -45,9 +45,9 @@ dataset_params:
     json_file: COCO/val.json
     transforms:
       - DetectionPaddedRescale:
-          input_dim: [640, 640] 
+          input_dim: [512, 512] 
       - DetectionTargetsFormatTransform:
-          input_dim: [640, 640] 
+          input_dim: [512, 512] 
           output_format: LABEL_CXCYWH
 
   val_dataloader_params:
@@ -64,4 +64,4 @@ training_hyperparams:
 
 architecture: yolox_l
 
-experiment_name: test_training
+experiment_name: training_test

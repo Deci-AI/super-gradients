@@ -1,6 +1,5 @@
 import argparse
 import json
-import os
 from pathlib import Path
 
 import cv2
@@ -10,7 +9,7 @@ from super_gradients.training.transforms.utils import _rescale_and_pad_to_size
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Convert mini-holistic dataset with Label Studio annotations to standard COCO format.")
+    parser = argparse.ArgumentParser(description="Prepare results based on images from directory.")
 
     parser.add_argument(
         "--model_type",
@@ -34,13 +33,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--input_dir",
-        default=Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/ExamplesFromLeah"),  # todo remove
+        default=Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/PNG"),  # todo remove
         type=Path,
         help="Path to directory with input images.",
     )
     parser.add_argument(
         "--output_dir",
-        default=Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/ExampleResults/1664"),  # todo remove
+        default=Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/RESULTS"),  # todo remove
         type=Path,
         help="Path to directory where results should be saved.",
     )
@@ -59,7 +58,7 @@ def main(
     input_dir,
     output_dir,
     split_info_pth,
-    size=(1664, 1664),  # 512x512, 1024x1024, 1664x1664
+    size=(1024, 1024),  # 512x512, 1024x1024, 1664x1664
 ) -> None:
     model = models.get(model_type, num_classes=num_classes, checkpoint_path=checkpoint_path)
 
