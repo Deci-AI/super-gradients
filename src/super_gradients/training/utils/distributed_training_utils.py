@@ -237,6 +237,7 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None)
 
     device_config.device = "cuda"
     device_config.multi_gpu = multi_gpu
+    device_config.num_gpus = num_gpus
 
     if is_distributed():
         initialize_ddp()
@@ -277,7 +278,7 @@ def _resolve_gpu_params(multi_gpu: MultiGPUMode, num_gpus: int) -> Tuple[MultiGP
             multi_gpu = MultiGPUMode.OFF
 
     # Check compatibility between num_gpus and multi_gpu
-    if multi_gpu in (MultiGPUMode.OFF, MultiGPUMode.DATA_PARALLEL):
+    if multi_gpu == MultiGPUMode.OFF:
         if num_gpus != 1:
             raise ValueError(f"You specified num_gpus={num_gpus} but it has not be 1 on when working with multi_gpu={multi_gpu}")
     else:

@@ -1,3 +1,4 @@
+from typing import Optional
 import dataclasses
 
 import torch
@@ -20,7 +21,8 @@ def _get_assigned_rank() -> int:
 @dataclasses.dataclass
 class DeviceConfig:
     _device: str = "cuda" if torch.cuda.is_available() else "cpu"
-    multi_gpu: str = None
+    multi_gpu: Optional[str] = None
+    num_gpus: Optional[str] = None
     assigned_rank: int = dataclasses.field(default=_get_assigned_rank(), init=False)
 
     @property
