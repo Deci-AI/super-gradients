@@ -11,8 +11,6 @@ train_dataset_params:
              keyboard, cell phone, microwave, oven, toaster, sink, refrigerator, book, clock, vase, scissors, teddy bear,
              hair drier, toothbrush] # TO FILL: List of classes used in your dataset.
   input_dim: [640, 640]
-  cache_dir:
-  cache: False
   cache_annotations: True
   ignore_empty_annotations: True
   transforms:
@@ -69,8 +67,6 @@ val_dataset_params:
              keyboard, cell phone, microwave, oven, toaster, sink, refrigerator, book, clock, vase, scissors, teddy bear,
              hair drier, toothbrush] # TO FILL: List of classes used in your dataset.
   input_dim: [640, 640]
-  cache_dir:
-  cache: False
   cache_annotations: True
   ignore_empty_annotations: True
   transforms:
