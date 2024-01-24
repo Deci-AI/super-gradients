@@ -1,9 +1,8 @@
 import collections
-import hashlib
 import os
 import random
+import warnings
 from copy import deepcopy
-from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from typing import List, Dict, Union, Any, Optional, Tuple
 
@@ -50,7 +49,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
     WORKFLOW:
         - On instantiation:
             - All annotations are cached. If class_inclusion_list was specified, there is also subclassing at this step.
-            - If cache is True, the images are also cached
 
         - On call (__getitem__) for a specific image index:
             - The image and annotations are grouped together in a dict called SAMPLE
@@ -75,9 +73,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         data_dir: str,
         original_target_format: Union[ConcatenatedTensorFormat, DetectionTargetsFormat],
         max_num_samples: int = None,
-        cache: bool = False,
         cache_annotations: bool = True,
-        cache_dir: str = None,
         input_dim: Union[int, Tuple[int, int], None] = None,
         transforms: List[AbstractDetectionTransform] = [],
         all_classes_list: Optional[List[str]] = [],
@@ -87,6 +83,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         output_fields: List[str] = None,
         verbose: bool = True,
         show_all_warnings: bool = False,
+        cache=None,
+        cache_dir=None,
     ):
         """Detection dataset.
 
@@ -98,10 +96,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         :param original_target_format:  Format of targets stored on disk. raw data format, the output format might
                                         differ based on transforms.
         :param max_num_samples:         If not None, set the maximum size of the dataset by only indexing the first n annotations/images.
-        :param cache:                   Whether to cache images or not.
         :param cache_annotations:       Whether to cache annotations or not. This reduces training time by pre-loading all the annotations,
                                         but requires more RAM and more time to instantiate the dataset when working on very large datasets.
-        :param cache_dir:              Path to the directory where cached images will be stored in an optimized format.
         :param transforms:              List of transforms to apply sequentially on sample.
         :param all_classes_list:        All the class names.
         :param class_inclusion_list:    If not None, define the subset of classes to be included as targets.
@@ -116,7 +112,22 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
                                                 It has to include at least "image" and "target" but can include other.
         :param verbose:                 Whether to show additional information or not, such as loading progress. (doesnt include warnings)
         :param show_all_warnings:       Whether to show all warnings or not.
+        :param cache:                   Deprecated. This parameter is not used and setting it has no effect. It will be removed in 3.8
+        :param cache_dir:               Deprecated. This parameter is not used and setting it has no effect. It will be removed in 3.8
         """
+        if cache is not None:
+            warnings.warn(
+                "cache parameter has been marked as deprecated and setting it has no effect. "
+                "It will be removed in SuperGradients 3.8. Please remove this parameter when instantiating a dataset instance",
+                DeprecationWarning,
+            )
+        if cache_dir is not None:
+            warnings.warn(
+                "cache_dir parameter has been marked as deprecated and setting it has no effect. "
+                "It will be removed in SuperGradients 3.8. Please remove this parameter when instantiating a dataset instance",
+                DeprecationWarning,
+            )
+
         super().__init__()
         self.verbose = verbose
         self.show_all_warnings = show_all_warnings
@@ -207,11 +218,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
             self._non_empty_sample_ids = list(non_empty_annotations.keys())
 
         self._n_samples = n_samples  # Regardless of any filtering
-
-        # CACHE IMAGE
-        self.cache = cache
-        self.cache_dir = cache_dir
-        self.cached_imgs_padded = self._cache_images() if self.cache else None
 
     @property
     def _all_classes(self):
@@ -327,64 +333,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
 
         return np.array(targets_kept) if len(targets_kept) > 0 else np.zeros((0, 5), dtype=np.float32)
 
-    def _cache_images(self) -> np.ndarray:
-        """Cache the images. The cached image are stored in a file to be loaded faster mext time.
-        :return: Cached images
-        """
-        cache_dir = Path(self.cache_dir)
-        if cache_dir is None:
-            raise ValueError("You must specify a cache_dir if you want to cache your images." "If you did not mean to use cache, please set cache=False ")
-        cache_dir.mkdir(parents=True, exist_ok=True)
-
-        logger.warning(
-            "\n********************************************************************************\n"
-            "You are using cached images in RAM to accelerate training.\n"
-            "This requires large system RAM.\n"
-            "********************************************************************************"
-        )
-
-        if self.input_dim is None:
-            raise RuntimeError("caching is not possible without input_dim is not set")
-        max_h, max_w = self.input_dim[0], self.input_dim[1]
-
-        # The cache should be the same as long as the images and their sizes are the same
-        hash = hashlib.sha256()
-        for index in range(len(self)):
-            annotation = self._get_sample_annotations(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
-            values_to_hash = [annotation["resized_img_shape"][0], annotation["resized_img_shape"][1], Path(annotation["img_path"]).name]
-            for value in values_to_hash:
-                hash.update(str(value).encode("utf-8"))
-        cache_hash = hash.hexdigest()
-
-        img_resized_cache_path = cache_dir / f"img_resized_cache_{cache_hash}.array"
-
-        if not img_resized_cache_path.exists():
-            logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
-            NUM_THREADs = min(8, os.cpu_count())
-
-            # Inline-function because we should not to pollute the rest of the class with this function.
-            # This function is required because of legacy design - ideally we should not have to load annotations in order to get the image path.
-            def _load_image_from_index(index: int) -> np.ndarray:
-                annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
-                return self._load_resized_img(image_path=annotations["img_path"])
-
-            loaded_images = ThreadPool(NUM_THREADs).imap(func=_load_image_from_index, iterable=range(len(self)))
-
-            # Initialize placeholder for images
-            cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="w+")
-
-            # Store images in the placeholder
-            with tqdm(enumerate(loaded_images), total=len(self), disable=not self.verbose) as loaded_images_pbar:
-                for i, image in loaded_images_pbar:
-                    cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
-                cached_imgs.flush()
-        else:
-            logger.warning("You are using cached imgs!")
-
-        logger.info("Loading cached imgs...")
-        cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="r+")
-        return cached_imgs
-
     def _load_resized_img(self, image_path: str) -> np.ndarray:
         """Load an image and resize it to the desired size (If relevant).
         :param image_path:  Full path of the image
@@ -410,11 +358,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         if img is None:
             raise FileNotFoundError(f"{img_file} was no found. Please make sure that the dataset was" f"downloaded and that the path is correct")
         return img
-
-    def __del__(self):
-        """Clear the cached images"""
-        if hasattr(self, "cached_imgs_padded"):
-            del self.cached_imgs_padded
 
     def __len__(self) -> int:
         """Get the length of the dataset. Note that this is the number of samples AFTER filtering (if relevant)."""
@@ -444,22 +387,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         :return:                            Sample, i.e. a dictionary including at least "image" and "target"
         """
         sample_annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=ignore_empty_annotations)
-        if self.cache:
-            image = self._get_cached_image(index=index, cached_image_shape=sample_annotations["resized_img_shape"])
-        else:
-            image = self._load_resized_img(image_path=sample_annotations["img_path"])
+        image = self._load_resized_img(image_path=sample_annotations["img_path"])
         return {"image": image, **deepcopy(sample_annotations)}
-
-    def _get_cached_image(self, index: int, cached_image_shape: Tuple[int, int]) -> np.ndarray:
-        """Load an image from cache.
-        :param index:               Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
-        :param cached_image_shape:  Shape of the cached image (after resizing if input_dim is set)
-        :return:                    Image
-        """
-        padded_image = self.cached_imgs_padded[index]
-        cached_height, cached_width = cached_image_shape
-        resized_image = padded_image[:cached_height, :cached_width, :]
-        return resized_image.copy()
 
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
@@ -543,7 +472,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
             )
 
         for plot_i in range(n_plots):
-
             fig = plt.figure(figsize=(10, 10))
 
             n_subplot = int(np.ceil(max_samples_per_plot**0.5))
