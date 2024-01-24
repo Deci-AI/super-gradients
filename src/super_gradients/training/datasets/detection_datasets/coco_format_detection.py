@@ -1,7 +1,6 @@
 import copy
 import os
 
-import cv2
 import numpy as np
 from pycocotools.coco import COCO
 from typing import List, Optional
@@ -28,9 +27,9 @@ class COCOFormatDetectionDataset(DetectionDataset):
         data_dir: str,
         json_annotation_file: str,
         images_dir: str,
-        tight_box_rotation: bool = False,
         with_crowd: bool = True,
         class_ids_to_ignore: Optional[List[int]] = None,
+        tight_box_rotation=None,
         *args,
         **kwargs,
     ):
@@ -38,14 +37,16 @@ class COCOFormatDetectionDataset(DetectionDataset):
         :param data_dir:                Where the data is stored.
         :param json_annotation_file:    Name of the coco json file. Path relative to data_dir.
         :param images_dir:              Name of the directory that includes all the images. Path relative to data_dir.
-        :param tight_box_rotation:      bool, whether to use of segmentation maps convex hull as target_seg
-                                            (check get_sample docs).
         :param with_crowd:              Add the crowd groundtruths to __getitem__
         :param class_ids_to_ignore:     List of class ids to ignore in the dataset. By default, doesnt ignore any class.
+        :param tight_box_rotation:      This parameter is deprecated and will be removed in a SuperGradients 3.8.
         """
+        if tight_box_rotation is not None:
+            logger.warning(
+                "Parameter `tight_box_rotation` is deprecated and will be removed in a SuperGradients 3.8." "Please remove this parameter from your code."
+            )
         self.images_dir = images_dir
         self.json_annotation_file = json_annotation_file
-        self.tight_box_rotation = tight_box_rotation
         self.with_crowd = with_crowd
         self.class_ids_to_ignore = class_ids_to_ignore or []
 
@@ -95,7 +96,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         else:
             coco = COCO(annotation_file_path)
 
-        remove_useless_info(coco, self.tight_box_rotation)
+        remove_useless_info(coco, False)
         return coco
 
     def _load_annotation(self, sample_id: int) -> dict:
@@ -133,21 +134,11 @@ class COCOFormatDetectionDataset(DetectionDataset):
         non_crowd_annotations = [annotation for annotation in cleaned_annotations if annotation["iscrowd"] == 0]
 
         target = np.zeros((len(non_crowd_annotations), 5))
-        num_seg_values = 98 if self.tight_box_rotation else 0
-        target_segmentation = np.ones((len(non_crowd_annotations), num_seg_values))
-        target_segmentation.fill(np.nan)
+
         for ix, annotation in enumerate(non_crowd_annotations):
             cls = self.class_ids.index(annotation["category_id"])
             target[ix, 0:4] = annotation["clean_bbox"]
             target[ix, 4] = cls
-            if self.tight_box_rotation:
-                seg_points = [j for i in annotation.get("segmentation", []) for j in i]
-                if seg_points:
-                    seg_points_c = np.array(seg_points).reshape((-1, 2)).astype(np.int32)
-                    seg_points_convex = cv2.convexHull(seg_points_c).ravel()
-                else:
-                    seg_points_convex = []
-                target_segmentation[ix, : len(seg_points_convex)] = seg_points_convex
 
         crowd_annotations = [annotation for annotation in cleaned_annotations if annotation["iscrowd"] == 1]
 
@@ -163,7 +154,6 @@ class COCOFormatDetectionDataset(DetectionDataset):
             r = min(self.input_dim[0] / height, self.input_dim[1] / width)
             target[:, :4] *= r
             crowd_target[:, :4] *= r
-            target_segmentation *= r
             resized_img_shape = (int(height * r), int(width * r))
         else:
             resized_img_shape = initial_img_shape
@@ -175,7 +165,6 @@ class COCOFormatDetectionDataset(DetectionDataset):
         annotation = {
             "target": target,
             "crowd_target": crowd_target,
-            "target_segmentation": target_segmentation,
             "initial_img_shape": initial_img_shape,
             "resized_img_shape": resized_img_shape,
             "img_path": img_path,
