@@ -8,6 +8,7 @@ from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSamp
 
 import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.factories.base_factory import _pass_parameters_by_name
 from super_gradients.common.registry.registry import register_dataloader, ALL_DATALOADERS
 from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
 from super_gradients.common.factories.datasets_factory import DatasetsFactory
@@ -34,7 +35,7 @@ from super_gradients.training.datasets.segmentation_datasets import (
     MapillaryDataset,
     SuperviselyPersonsDataset,
 )
-from super_gradients.training.utils import get_param
+from super_gradients.training.utils import get_param, check_if_unused_params
 from super_gradients.training.utils.distributed_training_utils import (
     wait_for_the_master,
 )
@@ -74,9 +75,11 @@ def get_data_loader(config_name: str, dataset_cls: object, train: bool, dataset_
 
     local_rank = get_local_rank()
     with wait_for_the_master(local_rank):
-        dataset = dataset_cls(**dataset_params)
-        if not hasattr(dataset, "dataset_params"):
-            dataset.dataset_params = dataset_params
+        with check_if_unused_params(dataset_params) as _dataset_params:
+
+            dataset = _pass_parameters_by_name(dataset_cls, _dataset_params)
+            if not hasattr(dataset, "dataset_params"):
+                dataset.dataset_params = _dataset_params
 
     dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
 
@@ -84,8 +87,9 @@ def get_data_loader(config_name: str, dataset_cls: object, train: bool, dataset_
     if "dataset" in dataloader_params:
         _ = dataloader_params.pop("dataset")
 
-    dataloader = DataLoader(dataset=dataset, **dataloader_params)
-    dataloader.dataloader_params = dataloader_params
+    with check_if_unused_params(dataloader_params) as dataloader_params:
+        dataloader = DataLoader(dataset=dataset, **dataloader_params)
+        dataloader.dataloader_params = dataloader_params
 
     maybe_setup_dataloader_adapter(dataloader=dataloader)
     return dataloader

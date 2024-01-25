@@ -58,7 +58,7 @@ from super_gradients.training.metrics.metric_utils import (
 from super_gradients.training.models import SgModule, get_model_name
 from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import sg_trainer_utils, get_param, torch_version_is_greater_or_equal
+from super_gradients.training.utils import sg_trainer_utils, get_param, torch_version_is_greater_or_equal, check_if_unused_params
 from super_gradients.training.utils.distributed_training_utils import (
     MultiGPUModeAutocastWrapper,
     reduce_results_tuple_for_ddp,
@@ -596,7 +596,7 @@ class Trainer:
             )
             self.metric_to_watch = metric_to_watch
 
-        if self.training_params.average_best_models:
+        if self.average_best_models:
             self.model_weight_averaging = ModelWeightAveraging(
                 ckpt_dir=self.checkpoints_dir_path,
                 greater_is_better=self.greater_metric_to_watch_is_better,
@@ -704,7 +704,7 @@ class Trainer:
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
 
         # SAVE MODEL AT SPECIFIC EPOCHS DETERMINED BY save_ckpt_epoch_list
-        if epoch in self.training_params.save_ckpt_epoch_list:
+        if epoch in self.save_ckpt_epoch_list:
             self.sg_logger.add_checkpoint(tag=f"ckpt_epoch_{epoch}.pth", state_dict=state, global_step=epoch)
 
         # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
@@ -719,7 +719,7 @@ class Trainer:
             self.phase_callback_handler.on_validation_end_best_epoch(context)
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(curr_tracked_metric))
 
-        if self.training_params.average_best_models:
+        if self.average_best_models:
             net_for_averaging = unwrap_model(self.ema_model.ema if self.ema else self.net)
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_dict=validation_results_dict)
 
@@ -774,7 +774,7 @@ class Trainer:
 
         is_run_val_freq_divisible = ((epoch + 1) % self.run_validation_freq) == 0
         is_last_epoch = (epoch + 1) == self.max_epochs
-        is_in_checkpoint_list = (epoch + 1) in self.training_params.save_ckpt_epoch_list
+        is_in_checkpoint_list = (epoch + 1) in self.save_ckpt_epoch_list
 
         return is_run_val_freq_divisible or is_last_epoch or is_in_checkpoint_list
 
@@ -1236,258 +1236,262 @@ class Trainer:
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
-        self.net = model
+        with check_if_unused_params(self.training_params) as self.training_params:
+            self.net = model
 
-        self._prep_net_for_train()
-        self._load_checkpoint_to_model()
-        if not self.ddp_silent_mode:
-            self._initialize_sg_logger_objects(additional_configs_to_log)
+            self._prep_net_for_train()
+            self._load_checkpoint_to_model()
+            if not self.ddp_silent_mode:
+                self._initialize_sg_logger_objects(additional_configs_to_log)
 
-        # SET RANDOM SEED
-        random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
+            # SET RANDOM SEED
+            random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
 
-        silent_mode = self.training_params.silent_mode or self.ddp_silent_mode
+            silent_mode = self.training_params.silent_mode or self.ddp_silent_mode
 
-        # METRICS
-        self._set_train_metrics(train_metrics_list=self.training_params.train_metrics_list)
-        self._set_valid_metrics(valid_metrics_list=self.training_params.valid_metrics_list)
-        self.test_metrics = self.valid_metrics.clone()
+            # METRICS
+            self._set_train_metrics(train_metrics_list=self.training_params.train_metrics_list)
+            self._set_valid_metrics(valid_metrics_list=self.training_params.valid_metrics_list)
+            self.test_metrics = self.valid_metrics.clone()
 
-        # Store the metric to follow (loss\accuracy) and initialize as the worst value
-        self.metric_to_watch = self.training_params.metric_to_watch
-        self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
+            # Store the metric to follow (loss\accuracy) and initialize as the worst value
+            self.metric_to_watch = self.training_params.metric_to_watch
+            self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
 
-        # Allowing loading instantiated loss or string
-        if isinstance(self.training_params.loss, str):
-            self.criterion = LossesFactory().get({self.training_params.loss: self.training_params.criterion_params})
+            # Allowing loading instantiated loss or string
+            if isinstance(self.training_params.loss, str):
+                self.criterion = LossesFactory().get({self.training_params.loss: self.training_params.criterion_params})
 
-        elif isinstance(self.training_params.loss, Mapping):
-            self.criterion = LossesFactory().get(self.training_params.loss)
+            elif isinstance(self.training_params.loss, Mapping):
+                self.criterion = LossesFactory().get(self.training_params.loss)
 
-        elif isinstance(self.training_params.loss, nn.Module):
-            self.criterion = self.training_params.loss
+            elif isinstance(self.training_params.loss, nn.Module):
+                self.criterion = self.training_params.loss
 
-        self.criterion.to(device_config.device)
+            self.criterion.to(device_config.device)
 
-        if self.training_params.torch_compile_loss:
-            if torch_version_is_greater_or_equal(2, 0):
-                logger.info("Using torch.compile feature. Compiling loss. This may take a few minutes")
-                self.criterion = torch.compile(self.criterion, **self.training_params.torch_compile_options)
-                logger.info("Loss compilation complete. Continuing training")
-                if is_distributed():
-                    torch.distributed.barrier()
-            else:
+            if self.training_params.torch_compile_loss:
+                if torch_version_is_greater_or_equal(2, 0):
+                    logger.info("Using torch.compile feature. Compiling loss. This may take a few minutes")
+                    self.criterion = torch.compile(self.criterion, **self.training_params.torch_compile_options)
+                    logger.info("Loss compilation complete. Continuing training")
+                    if is_distributed():
+                        torch.distributed.barrier()
+                else:
+                    logger.warning(
+                        "Your recipe has requested use of torch.compile. "
+                        f"However torch.compile is not supported in this version of PyTorch ({torch.__version__}). "
+                        "A Pytorch 2.0 or greater version is required. Ignoring torch_compile flag"
+                    )
+
+            self.max_epochs = self.training_params.max_epochs
+
+            self.ema = self.training_params.ema
+
+            self.precise_bn = self.training_params.precise_bn
+            self.precise_bn_batch_size = self.training_params.precise_bn_batch_size
+
+            self.batch_accumulate = self.training_params.batch_accumulate
+            num_batches = len(self.train_loader)
+
+            if self.ema:
+                self.ema_model = self._instantiate_ema_model(self.training_params.ema_params)
+                self.ema_model.updates = self.start_epoch * num_batches // self.batch_accumulate
+                if self.load_checkpoint:
+                    if "ema_net" in self.checkpoint.keys():
+                        self.ema_model.ema.load_state_dict(self.checkpoint["ema_net"])
+                    else:
+                        self.ema = False
+                        logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
+
+            self.run_validation_freq = self.training_params.run_validation_freq
+
+            if self.max_epochs % self.run_validation_freq != 0:
                 logger.warning(
-                    "Your recipe has requested use of torch.compile. "
-                    f"However torch.compile is not supported in this version of PyTorch ({torch.__version__}). "
-                    "A Pytorch 2.0 or greater version is required. Ignoring torch_compile flag"
+                    "max_epochs is not divisible by run_validation_freq. "
+                    "Please check the training parameters and ensure that run_validation_freq has been set correctly."
+                )
+            self.run_test_freq = self.training_params.run_test_freq
+
+            timer = core_utils.Timer(device_config.device)
+
+            # IF THE LR MODE IS NOT DEFAULT TAKE IT FROM THE TRAINING PARAMS
+            self.lr_mode = self.training_params.lr_mode
+            load_opt_params = self.training_params.load_opt_params
+
+            self.phase_callbacks = self.training_params.phase_callbacks or []
+            self.phase_callbacks = ListFactory(CallbacksFactory()).get(self.phase_callbacks)
+
+            warmup_mode = self.training_params.warmup_mode
+            warmup_callback_cls = None
+            if isinstance(warmup_mode, str):
+                from super_gradients.common.registry.registry import warn_if_deprecated
+
+                warn_if_deprecated(warmup_mode, LR_WARMUP_CLS_DICT)
+
+                warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
+            elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
+                warmup_callback_cls = warmup_mode
+            elif warmup_mode is not None:
+                pass
+            else:
+                raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
+
+            if isinstance(self.training_params.optimizer, str) or (
+                inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
+            ):
+                self.optimizer = build_optimizer(net=unwrap_model(self.net), lr=self.training_params.initial_lr, training_params=self.training_params)
+            elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
+                if self.training_params.initial_lr is not None:
+                    raise RuntimeError("An instantiated optimizer cannot be passed along initial_lr != None")
+                self.optimizer = self.training_params.optimizer
+
+                # NEED TO EXTRACT INITAL_LR FROM THE OPTIMIZER PARAM GROUPS
+                self.training_params.initial_lr = get_initial_lr_from_optimizer(self.optimizer)
+            else:
+                raise UnsupportedOptimizerFormat()
+
+            if warmup_callback_cls is not None:
+                self.phase_callbacks.append(
+                    warmup_callback_cls(
+                        train_loader_len=len(self.train_loader),
+                        net=self.net,
+                        training_params=self.training_params,
+                        update_param_groups=self.update_param_groups,
+                        **self.training_params.to_dict(),
+                    )
                 )
 
-        self.max_epochs = self.training_params.max_epochs
+            self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
+            self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
+            self._add_metrics_update_callback(Phase.TEST_BATCH_END)
 
-        self.ema = self.training_params.ema
+            self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
-        self.precise_bn = self.training_params.precise_bn
-        self.precise_bn_batch_size = self.training_params.precise_bn_batch_size
+            if not self.ddp_silent_mode:
+                if self.training_params.dataset_statistics:
+                    dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
+                    dataset_statistics_logger.analyze(
+                        self.train_loader, all_classes=self.classes, title="Train-set", anchors=unwrap_model(self.net).arch_params.anchors
+                    )
+                    dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes, title="val-set")
 
-        self.batch_accumulate = self.training_params.batch_accumulate
-        num_batches = len(self.train_loader)
+            sg_trainer_utils.log_uncaught_exceptions(logger)
 
-        if self.ema:
-            self.ema_model = self._instantiate_ema_model(self.training_params.ema_params)
-            self.ema_model.updates = self.start_epoch * num_batches // self.batch_accumulate
-            if self.load_checkpoint:
-                if "ema_net" in self.checkpoint.keys():
-                    self.ema_model.ema.load_state_dict(self.checkpoint["ema_net"])
-                else:
-                    self.ema = False
-                    logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
+            if not self.load_checkpoint or self.load_weights_only:
+                # WHEN STARTING TRAINING FROM SCRATCH, DO NOT LOAD OPTIMIZER PARAMS (EVEN IF LOADING BACKBONE)
+                self.start_epoch = 0
+                self._reset_best_metric()
+                load_opt_params = False
 
-        self.run_validation_freq = self.training_params.run_validation_freq
-
-        if self.max_epochs % self.run_validation_freq != 0:
-            logger.warning(
-                "max_epochs is not divisible by run_validation_freq. "
-                "Please check the training parameters and ensure that run_validation_freq has been set correctly."
-            )
-        self.run_test_freq = self.training_params.run_test_freq
-
-        timer = core_utils.Timer(device_config.device)
-
-        # IF THE LR MODE IS NOT DEFAULT TAKE IT FROM THE TRAINING PARAMS
-        self.lr_mode = self.training_params.lr_mode
-        load_opt_params = self.training_params.load_opt_params
-
-        self.phase_callbacks = self.training_params.phase_callbacks or []
-        self.phase_callbacks = ListFactory(CallbacksFactory()).get(self.phase_callbacks)
-
-        warmup_mode = self.training_params.warmup_mode
-        warmup_callback_cls = None
-        if isinstance(warmup_mode, str):
-            from super_gradients.common.registry.registry import warn_if_deprecated
-
-            warn_if_deprecated(warmup_mode, LR_WARMUP_CLS_DICT)
-
-            warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
-        elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
-            warmup_callback_cls = warmup_mode
-        elif warmup_mode is not None:
-            pass
-        else:
-            raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
-
-        if isinstance(self.training_params.optimizer, str) or (
-            inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
-        ):
-            self.optimizer = build_optimizer(net=unwrap_model(self.net), lr=self.training_params.initial_lr, training_params=self.training_params)
-        elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
-            if self.training_params.initial_lr is not None:
-                raise RuntimeError("An instantiated optimizer cannot be passed along initial_lr != None")
-            self.optimizer = self.training_params.optimizer
-
-            # NEED TO EXTRACT INITAL_LR FROM THE OPTIMIZER PARAM GROUPS
-            self.training_params.initial_lr = get_initial_lr_from_optimizer(self.optimizer)
-        else:
-            raise UnsupportedOptimizerFormat()
-
-        if warmup_callback_cls is not None:
-            self.phase_callbacks.append(
-                warmup_callback_cls(
-                    train_loader_len=len(self.train_loader),
+            if self.lr_mode is not None:
+                lr_scheduler_callback = create_lr_scheduler_callback(
+                    lr_mode=self.lr_mode,
+                    train_loader=self.train_loader,
                     net=self.net,
                     training_params=self.training_params,
                     update_param_groups=self.update_param_groups,
-                    **self.training_params.to_dict(),
+                    optimizer=self.optimizer,
                 )
-            )
+                self.phase_callbacks.append(lr_scheduler_callback)
 
-        self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
-        self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
-        self._add_metrics_update_callback(Phase.TEST_BATCH_END)
+                # NEED ACCESS TO THE UNDERLYING TORCH SCHEDULER FOR LOADING/SAVING IT'S STATE_DICT
+                if isinstance(lr_scheduler_callback, LRSchedulerCallback):
+                    self._torch_lr_scheduler = lr_scheduler_callback.scheduler
+                    if self.load_checkpoint:
+                        self._torch_lr_scheduler.load_state_dict(self.checkpoint["torch_scheduler_state_dict"])
 
-        self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
+            # VERIFY GRADIENT CLIPPING VALUE
+            if self.training_params.clip_grad_norm is not None and self.training_params.clip_grad_norm <= 0:
+                raise TypeError("Params", "Invalid clip_grad_norm")
 
-        if not self.ddp_silent_mode:
-            if self.training_params.dataset_statistics:
-                dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
-                dataset_statistics_logger.analyze(
-                    self.train_loader, all_classes=self.classes, title="Train-set", anchors=unwrap_model(self.net).arch_params.anchors
-                )
-                dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes, title="val-set")
+            if self.load_checkpoint and load_opt_params:
+                self.optimizer.load_state_dict(self.checkpoint["optimizer_state_dict"])
 
-        sg_trainer_utils.log_uncaught_exceptions(logger)
+            self.pre_prediction_callback = CallbacksFactory().get(self.training_params.pre_prediction_callback)
 
-        if not self.load_checkpoint or self.load_weights_only:
-            # WHEN STARTING TRAINING FROM SCRATCH, DO NOT LOAD OPTIMIZER PARAMS (EVEN IF LOADING BACKBONE)
-            self.start_epoch = 0
-            self._reset_best_metric()
-            load_opt_params = False
+            self.training_params.mixed_precision = self._initialize_mixed_precision(self.training_params.mixed_precision)
+            self.save_model = self.training_params.save_model
+            self.kill_ddp_pgroup_on_end = self.training_params.kill_ddp_pgroup_on_end
+            self.average_best_models = self.training_params.average_best_models
+            self.save_ckpt_epoch_list = self.training_params.save_ckpt_epoch_list
+            self.ckpt_best_name = self.training_params.ckpt_best_name
 
-        if self.lr_mode is not None:
-            lr_scheduler_callback = create_lr_scheduler_callback(
-                lr_mode=self.lr_mode,
-                train_loader=self.train_loader,
-                net=self.net,
-                training_params=self.training_params,
-                update_param_groups=self.update_param_groups,
+            self.max_train_batches = self.training_params.max_train_batches
+            self.max_valid_batches = self.training_params.max_valid_batches
+
+            if self.training_params.max_train_batches is not None:
+                if self.training_params.max_train_batches > len(self.train_loader):
+                    logger.warning("max_train_batches is greater than len(self.train_loader) and will have no effect.")
+                    self.max_train_batches = len(self.train_loader)
+                elif self.training_params.max_train_batches <= 0:
+                    raise ValueError("max_train_batches must be positive.")
+
+            if self.training_params.max_valid_batches is not None:
+                if self.training_params.max_valid_batches > len(self.valid_loader):
+                    logger.warning("max_valid_batches is greater than len(self.valid_loader) and will have no effect.")
+                    self.max_valid_batches = len(self.valid_loader)
+                elif self.training_params.max_valid_batches <= 0:
+                    raise ValueError("max_valid_batches must be positive.")
+
+            # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
+            self._first_backward = True
+
+            context = PhaseContext(
                 optimizer=self.optimizer,
+                net=self.net,
+                experiment_name=self.experiment_name,
+                ckpt_dir=self.checkpoints_dir_path,
+                criterion=self.criterion,
+                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
+                sg_logger=self.sg_logger,
+                train_loader=self.train_loader,
+                valid_loader=self.valid_loader,
+                training_params=self.training_params,
+                ddp_silent_mode=self.ddp_silent_mode,
+                checkpoint_params=self.checkpoint_params,
+                architecture=self.architecture,
+                arch_params=self.arch_params,
+                metric_to_watch=self.metric_to_watch,
+                device=device_config.device,
+                ema_model=self.ema_model,
+                valid_metrics=self.valid_metrics,
             )
-            self.phase_callbacks.append(lr_scheduler_callback)
+            self.phase_callback_handler.on_training_start(context)
 
-            # NEED ACCESS TO THE UNDERLYING TORCH SCHEDULER FOR LOADING/SAVING IT'S STATE_DICT
-            if isinstance(lr_scheduler_callback, LRSchedulerCallback):
-                self._torch_lr_scheduler = lr_scheduler_callback.scheduler
-                if self.load_checkpoint:
-                    self._torch_lr_scheduler.load_state_dict(self.checkpoint["torch_scheduler_state_dict"])
+            # Check if the model supports sliding window inference.
+            model = unwrap_model(context.net)
+            if (
+                context.training_params.phase_callbacks is not None
+                and "SlidingWindowValidationCallback" in context.training_params.phase_callbacks
+                and (not hasattr(model, "enable_sliding_window_validation") or not hasattr(model, "disable_sliding_window_validation"))
+            ):
+                raise ValueError(
+                    "You can use sliding window validation callback, but your model does not support sliding window "
+                    "inference. Please either remove the callback or use the model that supports sliding inference: "
+                    "Segformer"
+                )
 
-        # VERIFY GRADIENT CLIPPING VALUE
-        if self.training_params.clip_grad_norm is not None and self.training_params.clip_grad_norm <= 0:
-            raise TypeError("Params", "Invalid clip_grad_norm")
+            if isinstance(model, SupportsInputShapeCheck):
+                first_train_batch = next(iter(self.train_loader))
+                inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_train_batch)
+                model.validate_input_shape(inputs.size())
 
-        if self.load_checkpoint and load_opt_params:
-            self.optimizer.load_state_dict(self.checkpoint["optimizer_state_dict"])
+                first_valid_batch = next(iter(self.valid_loader))
+                inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_valid_batch)
+                model.validate_input_shape(inputs.size())
 
-        self.pre_prediction_callback = CallbacksFactory().get(self.training_params.pre_prediction_callback)
-
-        self.training_params.mixed_precision = self._initialize_mixed_precision(self.training_params.mixed_precision)
-
-        self.ckpt_best_name = self.training_params.ckpt_best_name
-
-        self.max_train_batches = self.training_params.max_train_batches
-        self.max_valid_batches = self.training_params.max_valid_batches
-
-        if self.training_params.max_train_batches is not None:
-            if self.training_params.max_train_batches > len(self.train_loader):
-                logger.warning("max_train_batches is greater than len(self.train_loader) and will have no effect.")
-                self.max_train_batches = len(self.train_loader)
-            elif self.training_params.max_train_batches <= 0:
-                raise ValueError("max_train_batches must be positive.")
-
-        if self.training_params.max_valid_batches is not None:
-            if self.training_params.max_valid_batches > len(self.valid_loader):
-                logger.warning("max_valid_batches is greater than len(self.valid_loader) and will have no effect.")
-                self.max_valid_batches = len(self.valid_loader)
-            elif self.training_params.max_valid_batches <= 0:
-                raise ValueError("max_valid_batches must be positive.")
-
-        # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
-        self._first_backward = True
-
-        context = PhaseContext(
-            optimizer=self.optimizer,
-            net=self.net,
-            experiment_name=self.experiment_name,
-            ckpt_dir=self.checkpoints_dir_path,
-            criterion=self.criterion,
-            lr_warmup_epochs=self.training_params.lr_warmup_epochs,
-            sg_logger=self.sg_logger,
-            train_loader=self.train_loader,
-            valid_loader=self.valid_loader,
-            training_params=self.training_params,
-            ddp_silent_mode=self.ddp_silent_mode,
-            checkpoint_params=self.checkpoint_params,
-            architecture=self.architecture,
-            arch_params=self.arch_params,
-            metric_to_watch=self.metric_to_watch,
-            device=device_config.device,
-            ema_model=self.ema_model,
-            valid_metrics=self.valid_metrics,
-        )
-        self.phase_callback_handler.on_training_start(context)
-
-        # Check if the model supports sliding window inference.
-        model = unwrap_model(context.net)
-        if (
-            context.training_params.phase_callbacks is not None
-            and "SlidingWindowValidationCallback" in context.training_params.phase_callbacks
-            and (not hasattr(model, "enable_sliding_window_validation") or not hasattr(model, "disable_sliding_window_validation"))
-        ):
-            raise ValueError(
-                "You can use sliding window validation callback, but your model does not support sliding window "
-                "inference. Please either remove the callback or use the model that supports sliding inference: "
-                "Segformer"
+            log_main_training_params(
+                multi_gpu=device_config.multi_gpu,
+                num_gpus=get_world_size(),
+                batch_size=batch_size,
+                batch_accumulate=self.batch_accumulate,
+                train_dataset_length=len(self.train_loader.dataset),
+                train_dataloader_len=len(self.train_loader),
+                max_train_batches=self.max_train_batches,
+                model=unwrap_model(self.net),
+                param_groups=self.optimizer.param_groups,
             )
-
-        if isinstance(model, SupportsInputShapeCheck):
-            first_train_batch = next(iter(self.train_loader))
-            inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_train_batch)
-            model.validate_input_shape(inputs.size())
-
-            first_valid_batch = next(iter(self.valid_loader))
-            inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_valid_batch)
-            model.validate_input_shape(inputs.size())
-
-        log_main_training_params(
-            multi_gpu=device_config.multi_gpu,
-            num_gpus=get_world_size(),
-            batch_size=batch_size,
-            batch_accumulate=self.batch_accumulate,
-            train_dataset_length=len(self.train_loader.dataset),
-            train_dataloader_len=len(self.train_loader),
-            max_train_batches=self.max_train_batches,
-            model=unwrap_model(self.net),
-            param_groups=self.optimizer.param_groups,
-        )
 
         self._maybe_set_preprocessing_params_for_model_from_dataset()
 
@@ -1599,7 +1603,7 @@ class Trainer:
                     self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=epoch)
 
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    if should_run_validation and self.training_params.save_model:
+                    if should_run_validation and self.save_model:
                         self._save_checkpoint(
                             optimizer=self.optimizer,
                             epoch=1 + epoch,
@@ -1624,7 +1628,7 @@ class Trainer:
             self.phase_callback_handler.on_average_best_models_validation_start(context)
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
-            if self.training_params.average_best_models:
+            if self.average_best_models:
                 self._validate_final_average_model(context=context, checkpoint_dir_path=self.checkpoints_dir_path, cleanup_snapshots_pkl_file=True)
 
             # PHASE.AVERAGE_BEST_MODELS_VALIDATION_END
@@ -1641,7 +1645,7 @@ class Trainer:
         finally:
             if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                 # CLEAN UP THE MULTI-GPU PROCESS GROUP WHEN DONE
-                if torch.distributed.is_initialized() and self.training_params.kill_ddp_pgroup_on_end:
+                if torch.distributed.is_initialized() and self.kill_ddp_pgroup_on_end:
                     torch.distributed.destroy_process_group()
 
             # PHASE.TRAIN_END

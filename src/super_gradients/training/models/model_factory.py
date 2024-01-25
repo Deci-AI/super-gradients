@@ -14,7 +14,7 @@ from super_gradients.common.exceptions.factory_exceptions import UnknownTypeExce
 from super_gradients.training.models import SgModule
 from super_gradients.common.registry.registry import ARCHITECTURES
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import HpmStruct, get_param
+from super_gradients.training.utils import HpmStruct, get_param, check_if_unused_params
 from super_gradients.training.utils.checkpoint_utils import (
     load_checkpoint_to_model,
     load_pretrained_weights,
@@ -114,9 +114,6 @@ def instantiate_model(
 
     :return:                    Instantiated model i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
     """
-    if arch_params is None:
-        arch_params = {}
-    arch_params = core_utils.HpmStruct(**arch_params)
     download_platform_weights = isinstance(pretrained_weights, str) and pretrained_weights.startswith("platform/")
     architecture_cls, arch_params, pretrained_weights_path, is_remote = get_architecture(
         model_name, arch_params, download_required_code, download_platform_weights
@@ -226,10 +223,15 @@ def get(
     """
     checkpoint_num_classes = checkpoint_num_classes or num_classes
 
-    if checkpoint_num_classes:
-        net = instantiate_model(model_name, arch_params, checkpoint_num_classes, pretrained_weights, download_required_code)
-    else:
-        net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights, download_required_code)
+    if arch_params is None:
+        arch_params = {}
+    arch_params = core_utils.HpmStruct(**arch_params)
+
+    with check_if_unused_params(arch_params) as arch_params:
+        if checkpoint_num_classes:
+            net = instantiate_model(model_name, arch_params, checkpoint_num_classes, pretrained_weights, download_required_code)
+        else:
+            net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights, download_required_code)
 
     if load_backbone and not checkpoint_path:
         raise ValueError("Please set checkpoint_path when load_backbone=True")

@@ -54,12 +54,6 @@ metric_to_watch: Accuracy # will be the metric which the model checkpoint will b
 greater_metric_to_watch_is_better: True # When choosing a model's checkpoint to be saved, the best achieved model is the one that maximizes the metric_to_watch when this parameter is set to True
 
 
-launch_tensorboard: False # Whether to launch a TensorBoard process.
-tensorboard_port: # port for tensorboard process
-tb_files_user_prompt: False  # Asks User for Tensorboard Deletion Prompt
-save_tensorboard_to_s3: False # whether to save tb to s3
-
-
 precise_bn: False # Whether to use precise_bn calculation during the training.
 precise_bn_batch_size: # the effective batch size we want to calculate the batchnorm on.
 sync_bn: False # Whether to convert bn layers to synched bn (for accurate stats in DDP).
@@ -113,7 +107,6 @@ sg_logger: base_sg_logger
 sg_logger_params:
   tb_files_user_prompt: False # Asks User for Tensorboard Deletion Prompt
   launch_tensorboard: False
-  tensorboard_port:
   save_checkpoints_remote: False  # upload checkpoint files to s3
   save_tensorboard_remote: False  # upload tensorboard files to s3
   save_logs_remote: False  # upload log files to s3

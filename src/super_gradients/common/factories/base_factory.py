@@ -1,7 +1,9 @@
+import inspect
 from typing import Union, Mapping, Dict
 
 from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
 from super_gradients.common.registry.registry import warn_if_deprecated
+from super_gradients.training.utils.config_utils import AccessCounterDict
 from super_gradients.training.utils.utils import fuzzy_str, fuzzy_keys, get_fuzzy_mapping_param
 
 
@@ -60,13 +62,31 @@ class BaseFactory(AbstractFactory):
                 )
 
             _type = list(conf.keys())[0]  # THE TYPE NAME
-            _params = list(conf.values())[0]  # A DICT CONTAINING THE PARAMETERS FOR INIT
+            if hasattr(conf, "get_first_value"):
+                _params = conf.get_first_value()  # A LIST
+            else:
+                _params = list(conf.values())[0]  # A DICT CONTAINING THE PARAMETERS FOR INIT
             if _type in self.type_dict:
                 warn_if_deprecated(name=_type, registry=self.type_dict)
-                return self.type_dict[_type](**_params)
+                return _pass_parameters_by_name(self.type_dict[_type], _params)
             elif fuzzy_str(_type) in fuzzy_keys(self.type_dict):
-                return get_fuzzy_mapping_param(_type, self.type_dict)(**_params)
+                return _pass_parameters_by_name(get_fuzzy_mapping_param(_type, self.type_dict), _params)
             else:
                 raise UnknownTypeException(_type, list(self.type_dict.keys()))
         else:
             return conf
+
+
+def _pass_parameters_by_name(_callable, params: AccessCounterDict):
+    """
+    This function is replacing the ** operator used for unwrapping dictionaries.
+    It allows AccessCounterMixin to count parameter access.
+    """
+
+    # Get the parameters of the function
+    parameters = inspect.signature(_callable).parameters
+
+    # Extract parameter names
+    param_names = list(parameters.keys())
+    params_dict = {k: params.get(k) for k in param_names if k in params}
+    return _callable(**params_dict)

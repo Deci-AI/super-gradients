@@ -19,15 +19,11 @@ DEFAULT_TRAINING_PARAMS = {
     "run_test_freq": 1,
     "save_model": True,
     "metric_to_watch": "Accuracy",
-    "launch_tensorboard": False,
-    "tb_files_user_prompt": False,  # Asks User for Tensorboard Deletion Prompt
     "silent_mode": False,  # Silents the Print outs
     "mixed_precision": False,
-    "tensorboard_port": None,
     "save_ckpt_epoch_list": [],  # indices where the ckpt will save automatically
     "average_best_models": True,
     "dataset_statistics": False,  # add a dataset statistical analysis and sample images to tensorboard
-    "save_tensorboard_to_s3": False,
     "lr_schedule_function": None,
     "train_metrics_list": [],
     "valid_metrics_list": [],
@@ -55,7 +51,6 @@ DEFAULT_TRAINING_PARAMS = {
     "clip_grad_norm": None,
     "pre_prediction_callback": None,
     "ckpt_best_name": "ckpt_best.pth",
-    "enable_qat": False,
     "resume": False,
     "resume_path": None,
     "ckpt_name": "ckpt_latest.pth",
