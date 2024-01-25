@@ -170,9 +170,9 @@ def calc_bbox_iou_matrix(pred: torch.Tensor):
     return ious
 
 
-def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, int]) -> np.ndarray:
+def change_bbox_bounds_for_image_size_inplace(boxes: np.ndarray, img_shape: Tuple[int, int]) -> np.ndarray:
     """
-    Clips bboxes to image boundaries.
+    Clips bboxes to image boundaries. The function operates in-place.
 
     :param bboxes:     (np.ndarray) Input bounding boxes in XYXY format of [..., 4] shape
     :param img_shape:  Tuple[int,int] of image shape (height, width).
@@ -181,6 +181,18 @@ def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, i
     boxes[..., [0, 2]] = boxes[..., [0, 2]].clip(min=0, max=img_shape[1])
     boxes[..., [1, 3]] = boxes[..., [1, 3]].clip(min=0, max=img_shape[0])
     return boxes
+
+
+def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, int]) -> np.ndarray:
+    """
+    Clips bboxes to image boundaries.
+    The function does not modify a caller and return a modified copy.
+
+    :param bboxes:     (np.ndarray) Input bounding boxes in XYXY format of [..., 4] shape
+    :param img_shape:  Tuple[int,int] of image shape (height, width).
+    :return:           (np.ndarray)clipped bboxes in XYXY format of [..., 4] shape
+    """
+    return change_bbox_bounds_for_image_size_inplace(boxes.copy(), img_shape)
 
 
 class DetectionPostPredictionCallback(ABC, nn.Module):
@@ -754,7 +766,7 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     :return: modified bbox (np.array)
     """
     scaled_bboxes = bbox * scale_ratio + np.array([[padw, padh, padw, padh]])
-    return change_bbox_bounds_for_image_size(scaled_bboxes, img_shape=(h_max, w_max))
+    return change_bbox_bounds_for_image_size_inplace(scaled_bboxes, img_shape=(h_max, w_max))
 
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:
@@ -1234,7 +1246,7 @@ def compute_img_detection_matching(
 
     if len(targets) > 0 or len(crowd_targets) > 0:
         # CHANGE bboxes TO FIT THE IMAGE SIZE
-        change_bbox_bounds_for_image_size(preds, (height, width))
+        change_bbox_bounds_for_image_size_inplace(preds, (height, width))
 
         targets_box = cxcywh2xyxy(targets_box)
         crowd_target_box = cxcywh2xyxy(crowd_target_box)
