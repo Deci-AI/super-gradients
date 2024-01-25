@@ -6,7 +6,7 @@ initial_lr: 0.03
 lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0
 lr_warmup_epochs: 1
-warmup_initial_lr: 0
+warmup_initial_lr: 0.
 warmup_mode: LinearEpochLRWarmup
 ema: False
 loss: CrossEntropyLoss
