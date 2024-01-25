@@ -142,7 +142,7 @@ commands:
 
 jobs:
   build:
-    parallelism: 8  # Adjust based on your needs
+    parallelism: 16  # Adjust based on your needs
     environment:
       CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
     parameters:
