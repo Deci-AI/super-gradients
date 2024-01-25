@@ -138,9 +138,7 @@ class TestSeparateLRGroups(unittest.TestCase):
 
         train_params = {
             "max_epochs": 3,
-            "lr_updates": [],
             "lr_decay_factor": 0.1,
-            "lr_mode": "StepLRScheduler",
             "initial_lr": {
                 "default": 0,
                 "fc3": 0.1,
