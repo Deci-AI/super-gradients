@@ -1,4 +1,4 @@
-from typing import Iterable, Tuple, TypeAlias, Union
+from typing import Iterable, Tuple, Union
 
 import numpy as np
 import torch
@@ -6,7 +6,7 @@ import torch
 __all__ = ["iterate_over_detection_predictions_in_batched_format", "iterate_over_detection_predictions_in_flat_format"]
 
 
-NumpyArrayOrTensor: TypeAlias = Union[np.ndarray, torch.Tensor]
+NumpyArrayOrTensor = Union[np.ndarray, torch.Tensor]
 
 
 def iterate_over_detection_predictions_in_flat_format(predictions: NumpyArrayOrTensor, batch_size: int):

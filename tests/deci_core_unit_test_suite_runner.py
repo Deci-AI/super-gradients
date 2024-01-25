@@ -77,7 +77,6 @@ from tests.unit_tests.mask_loss_test import MaskAttentionLossTest
 from tests.unit_tests.detection_sub_sampling_test import TestDetectionDatasetSubsampling
 from tests.unit_tests.detection_sub_classing_test import TestDetectionDatasetSubclassing
 from tests.unit_tests.detection_output_adapter_test import TestDetectionOutputAdapter
-from tests.unit_tests.detection_caching import TestDetectionDatasetCaching
 from tests.unit_tests.multi_scaling_test import MultiScaleTest
 from tests.unit_tests.ppyoloe_unit_test import TestPPYOLOE
 from tests.unit_tests.bbox_formats_test import BBoxFormatsTest
@@ -135,7 +134,6 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetSubsampling))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetSubclassing))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(QuantizationUtilityTest))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetCaching))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MultiScaleTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainingParamsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(CallTrainTwiceTest))

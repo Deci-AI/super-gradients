@@ -1,8 +1,6 @@
 train_dataset_params:
   data_dir: ./data/pascal_voc/
   input_dim: [320, 320]
-  cache: False
-  cache_dir:
   transforms:
     - DetectionPaddedRescale:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
@@ -16,8 +14,6 @@ train_dataset_params:
 val_dataset_params:
   data_dir: ./data/pascal_voc/
   input_dim: [320, 320]
-  cache: False
-  cache_dir:
   transforms:
     - DetectionPaddedRescale:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
