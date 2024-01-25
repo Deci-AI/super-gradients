@@ -1,3 +1,9 @@
+"""
+This is a helper scripts that saves COCO format ground truth visualizations.
+
+>> python src/super_gradients/scripts/visualize_and_save_gt_from_directory.py --data_dir /path/to/dataset/directory/ \
+    --output_dir /path/to/directory/where/results/should/be/saved
+"""
 import argparse
 from pathlib import Path
 from random import randint
@@ -13,7 +19,6 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--data_dir",
-        default=Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic"),  # todo remove
         type=Path,
         help="Path to dataset directory.",
     )
@@ -21,11 +26,10 @@ def parse_args() -> argparse.Namespace:
         "--images_dir",
         default=Path("PNG"),
         type=Path,
-        help="Path to directory with input images.",
+        help="Path to subdirectory with images (related to data_dir).",
     )
     parser.add_argument(
         "--output_dir",
-        default=Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/SANITY_CHECK"),  # todo remove
         type=Path,
         help="Path to directory where results should be saved.",
     )
@@ -33,7 +37,7 @@ def parse_args() -> argparse.Namespace:
         "--split_info_pth",
         default="COCO/test.json",
         type=Path,
-        help="Path to COCO output json annotation file.",
+        help="Path to COCO output json annotation file (related to data_dir).",
     )
     return parser.parse_args()
 

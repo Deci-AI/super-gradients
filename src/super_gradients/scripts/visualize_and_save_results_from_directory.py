@@ -1,11 +1,19 @@
+"""
+This is a helper scripts that performes inference on images from given directory and saves detection visualizations.
+
+>> python src/super_gradients/scripts/visualize_and_save_results_from_directory.py --model_type yolox_l --num_classes 11 --checkpoint_path \
+    /path/to/model/checkpoint.pth --input_dir /path/to/directory/with/input/images/ --output_dir /path/to/directory/where/results/should/be/saved
+"""
 import argparse
 import json
 from pathlib import Path
 
 import cv2
+import numpy as np
+from pdf2image import convert_from_path
 
 from super_gradients.training import models
-from super_gradients.training.transforms.utils import _rescale_and_pad_to_size
+from super_gradients.training.transforms.utils import _rescale_and_pad_to_size, _rescale_xyxy_bboxes
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,61 +33,102 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--checkpoint_path",
-        default=str(
-            "/mnt/ml-team/homes/marianna.parzych/Unstructured/super-gradients-fork/checkpoints/training_512x512/RUN_20240120_141334_742570/ckpt_best.pth"
-        ),  # todo remove
         type=str,
         help="Path to model checkpoint to use.",
     )
     parser.add_argument(
         "--input_dir",
-        default=Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/PNG"),  # todo remove
         type=Path,
         help="Path to directory with input images.",
     )
     parser.add_argument(
         "--output_dir",
-        default=Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/RESULTS"),  # todo remove
         type=Path,
         help="Path to directory where results should be saved.",
     )
     parser.add_argument(
         "--split_info_pth",
         type=Path,
-        help="Path to COCO output json annotation file.",
+        help="Path to COCO output json annotation file. If None, all images in directory will be used.",
+    )
+    parser.add_argument(
+        "--iou",
+        default=0.3,
+        type=float,
+        help="IoU threshold for the non-maximum suppression (NMS) algorithm.",
+    )
+    parser.add_argument(
+        "--conf",
+        default=11,
+        type=int,
+        help="Confidence threshold. Predictions below this threshold are discarded.",
+    )
+    parser.add_argument(
+        "--res",
+        type=int,
+        help="Resize the image to resolution before inference.",
     )
     return parser.parse_args()
 
 
 def main(
-    model_type,
-    num_classes,
-    checkpoint_path,
-    input_dir,
-    output_dir,
-    split_info_pth,
-    size=(1024, 1024),  # 512x512, 1024x1024, 1664x1664
+    model_type: str,
+    num_classes: int,
+    checkpoint_path: Path,
+    input_dir: Path,
+    output_dir: Path,
+    split_info_pth: Path,
+    iou: float,
+    conf: float,
+    res: int | None,
 ) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     model = models.get(model_type, num_classes=num_classes, checkpoint_path=checkpoint_path)
 
     if split_info_pth is not None:
         with open(split_info_pth, "r") as file:
             split_info = json.load(file)
-        images = [image["file_name"] for image in split_info["images"]]
+        files = [image["file_name"] for image in split_info["images"]]
     else:
-        images = [image.name for image in input_dir.iterdir()]
+        files = [file.name for file in input_dir.iterdir()]
 
-    for image_name in images:
-        image_path = str(input_dir / image_name)
+    for file_name in files:
+        file_path = input_dir / file_name
 
-        image_array = cv2.imread(image_path)
-        resized_image, r = _rescale_and_pad_to_size(image_array, size)
+        page_count = 0
+        if file_path.suffix.lower() == ".pdf":
+            images = convert_from_path(file_path)
+            images = [np.array(image) for image in images]
+            if len(images) < 1:
+                print(f"Found 0 images in file: {file_path}")
+                continue
+        else:
+            images = [cv2.imread(str(file_path))]
+            if images[0] is None:
+                print(f"Couldn't load image: {file_path}")
+                continue
 
-        output = model.predict(resized_image)
-        output_image = output.draw()
-        output_path = str(output_dir / image_name)
-        cv2.imwrite(output_path, output_image)
-        print(f"Saved in: {output_path}.")
+        for image_array in images:
+            if res:
+                image_input, r = _rescale_and_pad_to_size(image_array, (res, res))
+            else:
+                image_input = image_array
+                r = None
+
+            output = model.predict(image_input, iou=iou, conf=conf)
+
+            if r:
+                output.image = image_array
+                bboxes = output.prediction.bboxes_xyxy
+                output.prediction.bboxes_xyxy = _rescale_xyxy_bboxes(bboxes, 1 / r)
+
+            image_output = output.draw()
+
+            suffix = Path(file_name).suffix
+            output_path = str(output_dir / f"{file_name.removesuffix(suffix)}_{page_count}.png")
+            cv2.imwrite(output_path, image_output)
+            print(f"Saved in: {output_path}.")
 
     print("Processing done.")
 
@@ -93,4 +142,7 @@ if __name__ == "__main__":
         args.input_dir,
         args.output_dir,
         args.split_info_pth,
+        args.iou,
+        args.conf,
+        args.res,
     )
