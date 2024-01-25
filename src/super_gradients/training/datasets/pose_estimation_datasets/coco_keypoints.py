@@ -4,7 +4,6 @@ from typing import Tuple, List, Mapping, Any, Union
 import cv2
 import numpy as np
 import pycocotools
-from pycocotools.coco import COCO
 from torch import Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -14,6 +13,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.target_generator_factory import TargetGeneratorsFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
+from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import parse_coco_into_keypoints_annotations, CrowdAnnotationActionEnum
 from super_gradients.training.transforms.keypoint_transforms import KeypointTransform
 
 logger = get_logger(__name__)
@@ -58,12 +58,13 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         """
 
         json_file = os.path.join(data_dir, json_file)
-        coco = COCO(json_file)
-        if len(coco.dataset["categories"]) != 1:
-            raise ValueError("Dataset must contain exactly one category")
-        joints = coco.dataset["categories"][0]["keypoints"]
-        num_joints = len(joints)
-
+        self.category_name, self.joints, self.annotations = parse_coco_into_keypoints_annotations(
+            json_file,
+            image_path_prefix=os.path.join(data_dir, images_dir),
+            remove_duplicate_annotations=False,
+            crowd_annotations_action=CrowdAnnotationActionEnum.NO_ACTION,
+        )
+        num_joints = len(self.joints)
         super().__init__(
             transforms=transforms,
             target_generator=target_generator,
@@ -73,18 +74,15 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
             edge_colors=edge_colors,
             keypoint_colors=keypoint_colors,
         )
-        self.root = data_dir
-        self.images_dir = os.path.join(data_dir, images_dir)
-        self.coco = coco
-        self.ids = list(self.coco.imgs.keys())
-        self.joints = joints
 
-        if not include_empty_samples:
-            subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id, iscrowd=None)) > 0]
-            self.ids = subset
+        self.non_empty_annotation_indexes = np.argwhere([len(ann.ann_keypoints) > 0 for ann in self.annotations]).flatten()
+        self.include_empty_samples = include_empty_samples
 
     def __len__(self):
-        return len(self.ids)
+        if self.include_empty_samples:
+            return len(self.annotations)
+        else:
+            return len(self.non_empty_annotation_indexes)
 
     def __getitem__(self, index: int) -> Tuple[Tensor, Any, Mapping[str, Any]]:
         img, mask, gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.load_sample(index)
