@@ -10,7 +10,7 @@ class TestShelfNet(unittest.TestCase):
         test_shelfnet_creation - Tests the creation of the model class itself
             :return:
         """
-        dummy_input = torch.randn(1, 3, 640, 640)
+        dummy_input = torch.randn(1, 3, 512, 512)
 
         shelfnet18_model = ShelfNet18_LW(num_classes=21)
         # VALIDATES INNER CONV LIST WAS INITIALIZED CORRECTLY
