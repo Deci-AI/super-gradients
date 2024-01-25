@@ -73,7 +73,6 @@ from super_gradients.common.environment.ddp_utils import (
     require_ddp_setup,
     is_ddp_subprocess,
     get_world_size,
-    get_device_ids,
     broadcast_from_master,
 )
 from super_gradients.training.utils.ema import ModelEMA
@@ -444,7 +443,7 @@ class Trainer:
         # FOR MULTI-GPU TRAINING (not distributed)
         sync_bn = core_utils.get_param(self.training_params, "sync_bn", default_val=False)
         if device_config.multi_gpu == MultiGPUMode.DATA_PARALLEL:
-            self.net = torch.nn.DataParallel(self.net, device_ids=get_device_ids())
+            self.net = torch.nn.DataParallel(self.net, device_ids=list(range(device_config.num_gpus)))
         elif device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             if sync_bn:
                 if not self.ddp_silent_mode:
@@ -1234,6 +1233,8 @@ class Trainer:
                     "If it doesnt, please use one of the following sampler: DistributedSampler, RepeatAugSampler"
                 )
         self.training_params = TrainingParams()
+        if isinstance(training_params, DictConfig):
+            training_params = OmegaConf.to_container(training_params, resolve=True)
         self.training_params.override(**training_params)
 
         with check_if_unused_params(self.training_params) as self.training_params:
@@ -1811,7 +1812,7 @@ class Trainer:
         if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logger.warning("Warning: distributed training is not supported in re_build_model()")
         if device_config.multi_gpu == MultiGPUMode.DATA_PARALLEL:
-            self.net = torch.nn.DataParallel(self.net, device_ids=get_device_ids())
+            self.net = torch.nn.DataParallel(self.net, device_ids=list(range(device_config.num_gpus)))
 
     @property
     def get_module(self):

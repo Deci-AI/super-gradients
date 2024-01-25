@@ -75,7 +75,14 @@ class RepVGGBlock(nn.Module):
         self.branch_1x1 = self._conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride, padding=0, groups=groups)
 
         if use_alpha:
-            self.alpha = torch.nn.Parameter(torch.tensor([1.0]), requires_grad=True)
+            # If we are using alpha, we need to add some noise to the initial value of 1
+            # When we are benchmarking the model we usually use random weights,
+            # so when ONNX simplifies the model it will remove multiplication of alpha * residual branch and
+            # replace it with simple addition (Since 1 * has no effect)
+            # To prevent this we add some noise to the initial value of alpha which prevents this from happening
+            # but since the noise is very small it should not affect the training process
+            noise = torch.randn((1,)) * 0.01
+            self.alpha = torch.nn.Parameter(torch.tensor([1.0]) + noise, requires_grad=True)
         else:
             self.alpha = 1
 

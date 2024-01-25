@@ -86,8 +86,6 @@ train_dataset_params:
   subdir: images/train2017 # sub directory path of data_dir containing the train data.
   json_file: instances_train2017.json # path to coco train json file, data_dir/annotations/train_json_file.
   input_dim: [640, 640]
-  cache_dir:
-  cache: False
   cache_annotations: True
   ignore_empty_annotations: True
   transforms:
@@ -141,8 +139,6 @@ val_dataset_params:
   subdir: images/val2017 # sub directory path of data_dir containing the train data.
   json_file: instances_val2017.json # path to coco train json file, data_dir/annotations/train_json_file.
   input_dim: [636, 636]
-  cache_dir:
-  cache: False
   cache_annotations: True
   ignore_empty_annotations: True
   transforms:
