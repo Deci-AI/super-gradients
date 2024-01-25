@@ -1,3 +1,14 @@
+"""
+This is a helper scripts that allow to convert mini-hollistic dataset, consisting of:
+    * set of documents stores as images and pdf files,
+    * annotation file exported from LabelStudio
+to standard COCO format. It converts all pdf files to images (each page is a separate image)
+and saves annotations as .json file in COCO format: https://cocodataset.org/#format-data.
+
+>> python helper_scripts/convert_mini_holistic_to_coco_format.py --docs_dir /path/to/directory/where/documents/are/stored/ \
+    --ls_labels_path /path/to/Label/Studio/annotation/file.json --output_img_dir /path/to/directory/where/images/will/be/stored \
+    --coco_labels_path /path/to/COCO/output/json/annotation/file
+"""
 import argparse
 from pathlib import Path
 
@@ -42,34 +53,28 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--docs_dir",
-        default=Path("/mnt/ml-team/unstructured/DATA/dvc-data-registry/holistic-mini-pdf-image-dataset/mini-holistic-all/src"),  # todo remove
         type=Path,
         help="Path to directory where documents are stored.",
     )
     parser.add_argument(
         "--ls_labels_path",
-        default=Path(
-            "/mnt/ml-team/unstructured/DATA/dvc-data-registry/holistic-mini-pdf-image-dataset/mini-holistic-all/ls/export_45956_project-45956-at-2024-01-10-23-16-24cfbda6.json"
-        ),  # todo remove
         type=Path,
         help="Path to Label Studio json annotation file.",
     )
     parser.add_argument(
         "--output_img_dir",
-        default=Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/PNG"),  # todo remove
         type=Path,
-        help="Path to directory where documents are stored.",
+        help="Path to directory where images will be saved.",
     )
     parser.add_argument(
         "--coco_labels_path",
-        default=Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/COCO/test.json"),  # todo remove
         type=Path,
         help="Path to COCO output json annotation file.",
     )
     return parser.parse_args()
 
 
-def get_id_from_dict_list(dict_list, key, value):
+def get_id_from_dict_list(dict_list: list[dict], key: any, value: any) -> any:
     for dict_ in dict_list:
         if dict_[key] == value:
             return dict_["id"]
@@ -112,7 +117,7 @@ def main(
         else:
             page_id = 0
         file_path = docs_dir / f"{file_stem}.pdf"
-        # todo: more mappings and cleanup
+
         if not file_path.exists():
             mapped = FP_MAPPING.get(file_path.name, None)
             if mapped:
