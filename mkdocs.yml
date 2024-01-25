@@ -43,6 +43,7 @@ nav:
   - Automatic Mixed Precision (AMP): ./documentation/source/average_mixed_precision.md
   - Knowledge Distillation (KD): ./documentation/source/KD.md
   - Quantization (PTQ & QAT): ./documentation/source/ptq_qat.md
+  - LR Assignments: ./documentation/source/LRAssignments.md
   - Parameters check: ./documentation/source/unused_parameters.md
   - Model Export (ONNX & TensorRT):
     - Object Detection: ./documentation/source/models_export.md
