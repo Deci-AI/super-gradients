@@ -14,11 +14,6 @@ from pycocotools.cocoeval import COCOeval
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.module_interfaces import PoseEstimationPredictions
-from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
-    remove_duplicate_annotations,
-    make_keypoints_outside_image_invisible,
-    remove_crowd_annotations,
-)
 from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimationMetrics
 
 logger = get_logger(__name__)
@@ -31,13 +26,13 @@ class TestPoseEstimationMetrics(unittest.TestCase):
 
         gt = COCO(gt_annotations_path)
         if not with_duplicates:
-            gt = remove_duplicate_annotations(gt)
+            gt = self.remove_duplicate_annotations(gt)
 
         if not with_invisible_keypoitns:
-            gt = make_keypoints_outside_image_invisible(gt)
+            gt = self.make_keypoints_outside_image_invisible(gt)
 
         if not with_crowd:
-            gt = remove_crowd_annotations(gt)
+            gt = self.remove_crowd_annotations(gt)
 
         return gt
 
