@@ -41,16 +41,16 @@ class DetectionMetrics(Metric):
                                             Could be either instance of IouThreshold, a tuple (lower bound, upper_bound) or single scalar.
     :param recall_thres:                    Recall threshold to compute the mAP.
     :param score_thres:                     Score threshold to compute Recall, Precision and F1.
-    :param top_k_predictions:               Number of predictions per class used to compute metric_outputs, ordered by confidence score
+    :param top_k_predictions:               Number of predictions per class used to compute metrics, ordered by confidence score
     :param dist_sync_on_step:               Synchronize metric state across processes at each ``forward()`` before returning the value at the step.
     :param accumulate_on_cpu:               Run on CPU regardless of device used in other parts.
                                             This is to avoid "CUDA out of memory" that might happen on GPU.
     :param calc_best_score_thresholds       Whether to calculate the best score threshold overall and per class
-                                            If True, the compute() function will return a metric_outputs dictionary that not
-                                            only includes the average metric_outputs calculated across all classes,
+                                            If True, the compute() function will return a metrics dictionary that not
+                                            only includes the average metrics calculated across all classes,
                                             but also the optimal score threshold overall and for each individual class.
-    :param include_classwise_ap:            Whether to include the class-wise average precision in the returned metric_outputs dictionary.
-                                            If enabled, output metric_outputs dictionary will look similar to this:
+    :param include_classwise_ap:            Whether to include the class-wise average precision in the returned metrics dictionary.
+                                            If enabled, output metrics dictionary will look similar to this:
                                             {
                                                 'Precision0.5:0.95': 0.5,
                                                 'Recall0.5:0.95': 0.5,
@@ -64,7 +64,7 @@ class DetectionMetrics(Metric):
                                             }
                                             Class names are either provided via the class_names parameter or are generated automatically.
     :param class_names:                     Array of class names. When include_classwise_ap=True, will use these names to make
-                                            per-class APs keys in the output metric_outputs dictionary.
+                                            per-class APs keys in the output metrics dictionary.
                                             If None, will use dummy names `class_{idx}` instead.
     :param state_dict_prefix:               A prefix to append to the state dict of the metric. A state dict used to synchronize metric in DDP mode.
                                             It was empirically found that if you have two metric classes A and B(A) that has same state key, for
@@ -96,7 +96,7 @@ class DetectionMetrics(Metric):
                 logger.warning(
                     "Parameter 'include_classwise_ap' is set to True, but no class names are provided. "
                     "We will generate dummy class names, but we recommend to provide class names explicitly to"
-                    "have meaningful names in reported metric_outputs."
+                    "have meaningful names in reported metrics."
                 )
             class_names = ["class_" + str(i) for i in range(num_cls)]
         else:
@@ -147,7 +147,7 @@ class DetectionMetrics(Metric):
 
         if self.calc_best_score_thresholds and self.include_classwise_ap:
             self.component_names += self.best_threshold_per_class_names
-        self.component_names += ["precision_recall_auc", "roc_auc"]
+        self.component_names += ["precision_recall", "roc"]
 
         self.components = len(self.component_names)
 
@@ -203,7 +203,7 @@ class DetectionMetrics(Metric):
         setattr(self, self.state_key, accumulated_matching_info + new_matching_info)
 
     def compute(self) -> Dict[str, Union[float, torch.Tensor]]:
-        """Compute the metric_outputs for all the accumulated results.
+        """Compute the metrics for all the accumulated results.
         :return: Metrics of interest
         """
         output_dict = {}

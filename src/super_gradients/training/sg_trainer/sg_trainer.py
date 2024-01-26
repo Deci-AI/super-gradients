@@ -666,6 +666,7 @@ class Trainer:
         # create metrics dict to save
         valid_metrics_titles = get_metrics_titles(self.valid_metrics)
 
+        # We only return the scalar values (plots are not dump)
         all_metrics = {
             "tracked_metric_name": self.metric_to_watch,
             "valid": get_scalar_metric_outputs({metric_name: validation_results_dict[metric_name] for metric_name in valid_metrics_titles}),
@@ -1580,7 +1581,6 @@ class Trainer:
                         timer.start()
                         dataset_metrics_dict = self._test_epoch(data_loader=dataloader, context=context, silent_mode=silent_mode, dataset_name=dataset_name)
                         test_inf_time += timer.stop()
-
                         dataset_metrics_dict_with_name = {
                             f"{dataset_name}:{metric_name}": metric_value for metric_name, metric_value in dataset_metrics_dict.items()
                         }

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Union, Dict, TypeAlias
+from typing import Union, Dict
 
 import numpy as np
 import torch
@@ -15,7 +15,7 @@ class PlottableMetricOutput:
     image: np.ndarray
 
 
-ScalarOutput: TypeAlias = Union[float, int, torch.Tensor]
+ScalarOutput = Union[float, int, torch.Tensor]
 MetricOutput = Union[PlottableMetricOutput, ScalarOutput]
 
 
