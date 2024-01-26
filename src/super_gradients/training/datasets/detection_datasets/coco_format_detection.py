@@ -7,6 +7,7 @@ from typing import List, Optional
 
 from contextlib import redirect_stdout
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.deprecate import deprecated_parameter
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.common.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
@@ -22,6 +23,12 @@ class COCOFormatDetectionDataset(DetectionDataset):
     Output format: (x, y, x, y, class_id)
     """
 
+    @deprecated_parameter(
+        "tight_box_rotation",
+        deprecated_since="3.7.0",
+        removed_from="3.8.0",
+        reason="Support of `tight_box_rotation` has been removed. This parameter has no effect anymore.",
+    )
     def __init__(
         self,
         data_dir: str,
@@ -41,10 +48,6 @@ class COCOFormatDetectionDataset(DetectionDataset):
         :param class_ids_to_ignore:     List of class ids to ignore in the dataset. By default, doesnt ignore any class.
         :param tight_box_rotation:      This parameter is deprecated and will be removed in a SuperGradients 3.8.
         """
-        if tight_box_rotation is not None:
-            logger.warning(
-                "Parameter `tight_box_rotation` is deprecated and will be removed in a SuperGradients 3.8." "Please remove this parameter from your code."
-            )
         self.images_dir = images_dir
         self.json_annotation_file = json_annotation_file
         self.with_crowd = with_crowd

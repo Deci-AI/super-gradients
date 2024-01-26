@@ -1,7 +1,10 @@
+import inspect
 import warnings
 from functools import wraps
 from typing import Optional, Callable
 from pkg_resources import parse_version
+
+__all__ = ["deprecated", "deprecated_parameter", "deprecated_training_param", "deprecate_param"]
 
 
 def deprecated(deprecated_since: str, removed_from: str, target: Optional[callable] = None, reason: str = ""):
@@ -69,6 +72,94 @@ def deprecated(deprecated_since: str, removed_from: str, target: Optional[callab
                     raise ImportError(message)
 
             return old_func(*args, **kwargs)
+
+        # Each decorated object will have its own _warned state
+        # This state ensures that the warning will appear only once, to avoid polluting the console in case the function is called too often.
+        wrapper._warned = False
+        return wrapper
+
+    return decorator
+
+
+def deprecated_parameter(parameter_name: str, deprecated_since: str, removed_from: str, target: Optional[callable] = None, reason: str = ""):
+    """
+    Decorator to mark a parameter of a callable as deprecated.
+    It provides a clear and actionable warning message informing
+    the user about the version in which parameter was deprecated,
+    the version in which it will be removed, and guidance on how to replace it.
+
+    :param parameter_name:   Name of the parameter
+    :param deprecated_since: Version number when the function was deprecated.
+    :param removed_from:     Version number when the function will be removed.
+    :param target:           (Optional) The new function that should be used as a replacement. If provided, it will guide the user to the updated function.
+    :param reason:           (Optional) Additional information or reason for the deprecation.
+
+    Example usage:
+        If a parameter removed with no replacement alternative:
+        >>> @deprecated_parameter("c",deprecated_since='3.2.0', removed_from='4.0.0', reason="This argument is not used")
+        >>> def do_some_work(a,b,c = None):
+        >>>     return a+b
+
+        If a parameter has new name:
+        >>> @deprecated_parameter("c", target="new_parameter", deprecated_since='3.2.0', removed_from='4.0.0', reason="This argument is not used")
+        >>> def do_some_work(a,b,target,c = None):
+        >>>     return a+b+target
+
+    """
+
+    def decorator(func: callable) -> callable:
+        argspec = inspect.getfullargspec(func)
+        argument_index = argspec.args.index(parameter_name)
+
+        default_value = None
+        sig = inspect.signature(func)
+        for name, param in sig.parameters.items():
+            if name == parameter_name:
+                default_value = param.default
+                break
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                value = args[argument_index]
+            except IndexError:
+                value = kwargs[parameter_name]
+
+            if value != default_value and not wrapper._warned:
+                import super_gradients
+
+                is_still_supported = parse_version(super_gradients.__version__) < parse_version(removed_from)
+                status_msg = "is deprecated" if is_still_supported else "was deprecated and has been removed"
+                message = (
+                    f"Parameter `{parameter_name}` of `{func.__module__}.{func.__name__}` {status_msg} since version `{deprecated_since}` "
+                    f"and will be removed in version `{removed_from}`.\n"
+                )
+                if reason:
+                    message += f"Reason: {reason}.\n"
+
+                if target is not None:
+                    message += (
+                        f"Please update your code:\n"
+                        f"  [-] from `{func.__name__}(..., {parameter_name}={value})`\n"
+                        f"  [+] to   `{func.__name__}(..., {target}={value})`\n"
+                    )
+                else:
+                    # fmt: off
+                    message += (
+                        f"Please update your code:\n"
+                        f"  [-] from `{func.__name__}(..., {parameter_name}={value})`\n"
+                        f"  [+] to   `{func.__name__}(...)`\n"
+                    )
+                    # fmt: on
+
+                if is_still_supported:
+                    warnings.simplefilter("once", DeprecationWarning)  # Required, otherwise the warning may never be displayed.
+                    warnings.warn(message, DeprecationWarning, stacklevel=2)
+                    wrapper._warned = True
+                else:
+                    raise ImportError(message)
+
+            return func(*args, **kwargs)
 
         # Each decorated object will have its own _warned state
         # This state ensures that the warning will appear only once, to avoid polluting the console in case the function is called too often.
