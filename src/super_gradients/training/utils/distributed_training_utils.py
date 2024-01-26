@@ -14,11 +14,17 @@ from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
-from super_gradients.common.environment.ddp_utils import init_trainer, get_world_size
+from super_gradients.common.environment.ddp_utils import (
+    init_trainer,
+    find_free_port,
+    is_distributed,
+    is_launched_using_sg,
+    get_world_size,
+    broadcast_from_master,
+)
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment.argparse_utils import EXTRA_ARGS
-from super_gradients.common.environment.ddp_utils import find_free_port, is_distributed, is_launched_using_sg
-
+from super_gradients.common.sg_loggers.metric_outputs import PlottableMetricOutput
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.abstractions.mute_processes import mute_current_process
@@ -44,15 +50,44 @@ def distributed_all_reduce_tensor_average(tensor, n):
     return rt
 
 
+def sync_plottable_metric_output_ddp(metric_output: PlottableMetricOutput, device: torch.device) -> PlottableMetricOutput:
+    """
+    Synchronize PlottableMetricOutput across all nodes in a DDP setup.
+    :param metric_output: Instance of PlottableMetricOutput.
+    :param device: The device to use for tensor operations.
+    :return: Synchronized PlottableMetricOutput instance.
+    """
+    from super_gradients.common.environment.ddp_utils import get_local_rank
+
+    if get_local_rank() == 0:
+        # Convert numpy array to tensor for broadcasting
+        image_tensor = torch.from_numpy(metric_output.image.copy()).to(device)
+    else:
+        # Prepare a dummy tensor for receiving the broadcast
+        image_tensor = torch.empty(metric_output.image.shape, dtype=torch.uint8).to(device)
+
+    # Broadcast the image tensor from main node to all others
+    broadcast_from_master(image_tensor)
+
+    # Update the PlottableMetricOutput instance with the synchronized image
+    metric_output.image = image_tensor.cpu().numpy()
+
+    return metric_output
+
+
 def reduce_results_tuple_for_ddp(validation_results_tuple, device):
     """Gather all validation tuples from the various devices and average them"""
     validation_results_list = list(validation_results_tuple)
     for i, validation_result in enumerate(validation_results_list):
-        if torch.is_tensor(validation_result):
-            validation_result = validation_result.clone().detach()
+
+        if isinstance(validation_result, PlottableMetricOutput):
+            validation_results_list[i] = sync_plottable_metric_output_ddp(validation_result, device=device)
         else:
-            validation_result = torch.tensor(validation_result)
-        validation_results_list[i] = distributed_all_reduce_tensor_average(tensor=validation_result.to(device), n=torch.distributed.get_world_size())
+            if torch.is_tensor(validation_result):
+                validation_result = validation_result.clone().detach()
+            else:
+                validation_result = torch.tensor(validation_result)
+            validation_results_list[i] = distributed_all_reduce_tensor_average(tensor=validation_result.to(device), n=torch.distributed.get_world_size())
     validation_results_tuple = tuple(validation_results_list)
     return validation_results_tuple
 

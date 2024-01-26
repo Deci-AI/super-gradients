@@ -206,15 +206,14 @@ class DetectionMetrics(Metric):
         """Compute the metric_outputs for all the accumulated results.
         :return: Metrics of interest
         """
+        output_dict = {}
+
         mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold = -1.0, -1.0, -1.0, -1.0, -1.0
         accumulated_matching_info = getattr(self, self.state_key)
         best_score_threshold_per_cls = np.zeros(self.num_cls)
         mean_ap_per_class = np.zeros(self.num_cls)
 
-        precision, recall = [], []
-
         if len(accumulated_matching_info):
-            import torch
 
             preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
 
@@ -252,12 +251,48 @@ class DetectionMetrics(Metric):
                 mean_ap_per_class[class_index] = float(ap_per_class[i])
                 best_score_threshold_per_cls[class_index] = float(best_score_thresholds_per_present_classes[i])
 
-        output_dict = {
-            self.precision_metric_key: float(mean_precision),
-            self.recall_metric_key: float(mean_recall),
-            self.map_metric_key: float(mean_ap),
-            self.f1_metric_key: float(mean_f1),
-        }
+            # > COMPUTE PLOTS
+
+            # Compute rolling values
+            rolling_tps, rolling_fps = compute_rolling_values(preds_matched, preds_scores, preds_to_ignore)
+
+            # Calculate precision and recall for PR curve
+            precision = rolling_tps / (rolling_tps + rolling_fps + torch.finfo(torch.float64).eps)
+            recall = rolling_tps / len(targets_cls)
+
+            # Calculate TPR and FPR for ROC curve
+            total_predictions = preds_scores.size(0)
+            tpr = recall  # TPR is the same as recall
+            fpr = rolling_fps / total_predictions
+
+            output_dict["precision_recall"] = PlottableMetricOutput(
+                image=plot_2d_graph(
+                    title="Precision-Recall Curve",
+                    x=recall[:, 0],
+                    y=precision[:, 0],
+                    xlabel="Recall",
+                    ylabel="Precision",
+                    xlim=(0, 1),
+                    ylim=(0, 1),
+                ),
+            )
+
+            output_dict["roc"] = PlottableMetricOutput(
+                image=plot_2d_graph(
+                    title="ROC",
+                    x=fpr[:, 0],
+                    y=tpr[:, 0],
+                    xlabel="False Positive Rate",
+                    ylabel="True Positive Rate",
+                    xlim=(0, 1),
+                    ylim=(0, 1),
+                ),
+            )
+
+        output_dict[self.precision_metric_key] = float(mean_precision)
+        output_dict[self.recall_metric_key] = float(mean_recall)
+        output_dict[self.map_metric_key] = float(mean_ap)
+        output_dict[self.f1_metric_key] = float(mean_f1)
 
         if self.include_classwise_ap:
             for i, ap_i in enumerate(mean_ap_per_class):
@@ -269,46 +304,6 @@ class DetectionMetrics(Metric):
         if self.include_classwise_ap and self.calc_best_score_thresholds:
             for threshold_per_class_names, threshold_value in zip(self.best_threshold_per_class_names, best_score_threshold_per_cls):
                 output_dict[threshold_per_class_names] = float(threshold_value)
-
-        import torch
-
-        # Compute rolling values
-        rolling_tps, rolling_fps = compute_rolling_values(preds_matched, preds_scores, preds_to_ignore)
-
-        # Calculate precision and recall for PR curve
-        precision = rolling_tps / (rolling_tps + rolling_fps + torch.finfo(torch.float64).eps)
-        recall = rolling_tps / len(targets_cls)
-
-        # Calculate TPR and FPR for ROC curve
-        total_predictions = preds_scores.size(0)
-        tpr = recall  # TPR is the same as recall
-        fpr = rolling_fps / total_predictions
-
-        output_dict["precision_recall_auc"] = PlottableMetricOutput(
-            scalar=np.trapz(x=recall[:, 0], y=precision[:, 0]),
-            image=plot_2d_graph(
-                title="Precision-Recall Curve",
-                x=recall[:, 0],
-                y=precision[:, 0],
-                xlabel="Recall",
-                ylabel="Precision",
-                xlim=(0, 1),
-                ylim=(0, 1),
-            ),
-        )
-
-        output_dict["roc_auc"] = PlottableMetricOutput(
-            scalar=np.trapz(x=fpr[:, 0], y=tpr[:, 0]),
-            image=plot_2d_graph(
-                title="ROC",
-                x=fpr[:, 0],
-                y=tpr[:, 0],
-                xlabel="False Positive Rate",
-                ylabel="True Positive Rate",
-                xlim=(0, 1),
-                ylim=(0, 1),
-            ),
-        )
 
         return output_dict
 

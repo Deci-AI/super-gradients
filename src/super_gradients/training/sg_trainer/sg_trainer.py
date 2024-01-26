@@ -666,18 +666,14 @@ class Trainer:
         # create metrics dict to save
         valid_metrics_titles = get_metrics_titles(self.valid_metrics)
 
-        from super_gradients.common.sg_loggers.metric_outputs import get_scalar_metric_output
-
         all_metrics = {
             "tracked_metric_name": self.metric_to_watch,
-            "valid": {metric_name: float(get_scalar_metric_output(metric_output=validation_results_dict[metric_name])) for metric_name in valid_metrics_titles},
+            "valid": get_scalar_metric_outputs({metric_name: validation_results_dict[metric_name] for metric_name in valid_metrics_titles}),
         }
 
         if train_metrics_dict is not None:
             train_metrics_titles = get_metrics_titles(self.train_metrics)
-            all_metrics["train"] = {
-                metric_name: float(get_scalar_metric_output(metric_output=train_metrics_dict[metric_name])) for metric_name in train_metrics_titles
-            }
+            all_metrics["train"] = get_scalar_metric_outputs({metric_name: validation_results_dict[metric_name] for metric_name in train_metrics_titles})
 
         # BUILD THE state_dict
         state = {

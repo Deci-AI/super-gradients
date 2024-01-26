@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Union, Dict
+from typing import Union, Dict, TypeAlias
 
 import numpy as np
 import torch
@@ -9,30 +9,27 @@ import torch
 class PlottableMetricOutput:
     """Metric output that can is represented as a graph.
     :attr image:    The image of the graph representing the metric value. This can be ROC or Precision/Recall curves for instance.
-                    This image will be logged as an image.
-    :attr scalar:   The scalar value of the metric that "summarizes" the graph (e.g. Area Under Curve). This value will be logged and displayed.
+                    This image will be logged as an image, and will not be associated with a scalar value.
     """
 
     image: np.ndarray
-    scalar: float
-
-    def __str__(self):
-        return str(self.scalar)
-
-    def __repr__(self):
-        return str(self)
 
 
-MetricOutput = Union[PlottableMetricOutput, float, int, torch.Tensor]
+ScalarOutput: TypeAlias = Union[float, int, torch.Tensor]
+MetricOutput = Union[PlottableMetricOutput, ScalarOutput]
 
 
-def get_scalar_metric_output(metric_output: MetricOutput) -> Union[float, int]:
-    return metric_output.scalar if isinstance(metric_output, PlottableMetricOutput) else metric_output
-
-
-def get_scalar_metric_outputs(metric_outputs: Dict[str, MetricOutput]) -> Dict[str, Union[float, int]]:
-    return {name: get_scalar_metric_output(metric_output=value) for name, value in metric_outputs.items()}
+def get_scalar_metric_outputs(metric_outputs: Dict[str, MetricOutput]) -> Dict[str, float]:
+    """Only keep the metric outputs that are a scalar (as opposed to plots for instance).
+    :param metric_outputs:  Dictionary of metric outputs.
+    :return:                Dictionary of scalar metric outputs.
+    """
+    return {name: float(value) for name, value in metric_outputs.items() if isinstance(value, (float, int, torch.Tensor))}
 
 
 def get_plottable_metric_outputs(metric_outputs: Dict[str, MetricOutput]) -> Dict[str, PlottableMetricOutput]:
+    """Only keep the metric outputs that are a plottable (as opposed to scalars for instance).
+    :param metric_outputs:  Dictionary of metric outputs.
+    :return:                Dictionary of metrics that are plottable.
+    """
     return {k: v for k, v in metric_outputs.items() if isinstance(v, PlottableMetricOutput)}

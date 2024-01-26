@@ -211,7 +211,7 @@ def display_epoch_summary(epoch: int, n_digits: int, monitored_values_dict: Dict
     def _format_to_str(val: Optional[float]) -> str:
         return str(round(val, n_digits)) if val is not None else "None"
 
-    def _generate_tree(value_name: str, monitored_value: MonitoredValue) -> Tree:
+    def _generate_tree(value_name: str, monitored_value: MonitoredValue) -> Union[Tree, None]:
         """Generate a tree that represents the stats of a given loss/metric."""
 
         current = _format_to_str(monitored_value.current)
@@ -246,7 +246,8 @@ def display_epoch_summary(epoch: int, n_digits: int, monitored_values_dict: Dict
             split_tree = Tree()
             split_tree.create_node(split, split)
             for name, value in monitored_values.items():
-                split_tree.paste(split, new_tree=_generate_tree(name, monitored_value=value))
+                if value.current is not None:
+                    split_tree.paste(split, new_tree=_generate_tree(name, monitored_value=value))
             summary_tree.paste("Summary", split_tree)
 
     print("===========================================================")
