@@ -1,7 +1,6 @@
 from enum import Enum
-from typing import List, Any, Union
+from typing import List, Any, Union, Optional, Dict
 
-from typing import Optional
 import torch
 from torchmetrics.collections import MetricCollection
 from torch.utils.data.dataloader import DataLoader
