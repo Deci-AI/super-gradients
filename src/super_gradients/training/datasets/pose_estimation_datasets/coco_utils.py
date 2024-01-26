@@ -55,7 +55,7 @@ def parse_coco_into_keypoints_annotations(
     with open(ann, "r") as f:
         coco = json.load(f)
 
-    if len(coco.dataset["categories"]) != 1:
+    if len(coco["categories"]) != 1:
         raise ValueError("Dataset must contain exactly one category")
 
     # Extract class names and class ids
