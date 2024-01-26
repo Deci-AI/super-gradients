@@ -12,7 +12,7 @@ arch_params:
 
 checkpoint_params:
   load_checkpoint: True
-  checkpoint_path: /mnt/ml-team/homes/marianna.parzych/Unstructured/super-gradients-fork/checkpoints/training_512x512/RUN_20240120_141334_742570/ckpt_best.pth
+  checkpoint_path: /mnt/ml-team/homes/adam.maciaszek/unstructured/ckpt_best
 
 # num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
 # Used when num_classes != checkpoint_num_class.

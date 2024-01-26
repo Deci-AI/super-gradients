@@ -22,9 +22,9 @@ checkpoint_num_classes: # number of classes in the checkpoint
 
 dataset_params:
   train_dataset_params:
-    data_dir: /mnt/ml-team/homes/marianna.parzych/Unstructured/DocLayNet # Where the data is stored.
+    data_dir: /mnt/ml-team/unstructured/DATA/dvc-data-registry/holistic-mini-pdf-image-dataset/mini-holistic-all/ # Where the data is stored.
     images_dir: PNG # Local path to directory that includes all the images. Path relative to `data_dir`. Can be the same as `labels_dir`.
-    json_file: COCO/train.json # Local path to json annotation file todo train.json
+    json_file: COCO/test_doclaynet_classes.json # Local path to json annotation file todo train.json
     all_classes_list: [ Caption, Footnote, Formula, List-item, Page-footer, Page-header, Picture, Section-header, Table, Text, Title,] # List of classes used in your dataset.
     input_dim: [1025, 1025]
     transforms:
@@ -40,9 +40,9 @@ dataset_params:
     num_workers: 4
 
   val_dataset_params:
-    data_dir: /mnt/ml-team/homes/marianna.parzych/Unstructured/DocLayNet
+    data_dir: /mnt/ml-team/unstructured/DATA/dvc-data-registry/holistic-mini-pdf-image-dataset/mini-holistic-all
     images_dir: PNG
-    json_file: COCO/val.json
+    json_file: COCO/test_doclaynet_classes.json
     transforms:
       - DetectionPaddedRescale:
           input_dim: [512, 512] 
