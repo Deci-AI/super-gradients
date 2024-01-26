@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Union, Dict
 
+import numpy
 import numpy as np
 import torch
 
@@ -15,7 +16,7 @@ class PlottableMetricOutput:
     image: np.ndarray
 
 
-ScalarOutput = Union[float, int, torch.Tensor]
+ScalarOutput = Union[float, int, np.number, torch.Tensor]
 MetricOutput = Union[PlottableMetricOutput, ScalarOutput]
 
 
@@ -24,7 +25,16 @@ def get_scalar_metric_outputs(metric_outputs: Dict[str, MetricOutput]) -> Dict[s
     :param metric_outputs:  Dictionary of metric outputs.
     :return:                Dictionary of scalar metric outputs.
     """
-    return {name: float(value) for name, value in metric_outputs.items() if isinstance(value, (float, int, torch.Tensor))}
+    scalar_metric_outputs = {}
+    for name, value in metric_outputs.items():
+        if isinstance(value, (float, int)):
+            scalar_metric_outputs[name] = float(value)
+        elif isinstance(value, np.number):
+            scalar_metric_outputs[name] = value.item()  # Convert numpy number to Python scalar
+        elif isinstance(value, torch.Tensor):
+            if value.ndim == 0:  # Check if it's a scalar tensor
+                scalar_metric_outputs[name] = value.item()  # Convert scalar tensor to Python scalar
+    return scalar_metric_outputs
 
 
 def get_plottable_metric_outputs(metric_outputs: Dict[str, MetricOutput]) -> Dict[str, PlottableMetricOutput]:

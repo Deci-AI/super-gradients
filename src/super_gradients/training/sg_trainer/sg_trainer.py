@@ -674,7 +674,7 @@ class Trainer:
 
         if train_metrics_dict is not None:
             train_metrics_titles = get_metrics_titles(self.train_metrics)
-            all_metrics["train"] = get_scalar_metric_outputs({metric_name: validation_results_dict[metric_name] for metric_name in train_metrics_titles})
+            all_metrics["train"] = get_scalar_metric_outputs({metric_name: train_metrics_dict[metric_name] for metric_name in train_metrics_titles})
 
         # BUILD THE state_dict
         state = {
