@@ -120,10 +120,17 @@ def deprecated_parameter(parameter_name: str, deprecated_since: str, removed_fro
 
         @wraps(func)
         def wrapper(*args, **kwargs):
+
+            # Initialize the value to the default value
+            value = default_value
+
+            # Try to get the actual value from the arguments
+            # Have to check both positional and keyword arguments
             try:
                 value = args[argument_index]
             except IndexError:
-                value = kwargs[parameter_name]
+                if parameter_name in kwargs:
+                    value = kwargs[parameter_name]
 
             if value != default_value and not wrapper._warned:
                 import super_gradients
