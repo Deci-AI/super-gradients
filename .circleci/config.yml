@@ -186,6 +186,7 @@ jobs:
             . venv/bin/activate
             python3 -m pip install pip==23.1.2
             python3 -m pip install -r requirements.txt
+            python3 -m pip install -r requirements.dev.txt
       - run:
           name: edit package version
           command: |
