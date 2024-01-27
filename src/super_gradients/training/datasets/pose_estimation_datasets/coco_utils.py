@@ -68,7 +68,7 @@ def parse_coco_into_keypoints_annotations(
     ann_keypoints = np.stack([np.array(annotation["keypoints"], dtype=np.float32).reshape(num_keypoints, 3) for annotation in coco["annotations"]])
     ann_iscrowd = np.array([annotation["iscrowd"] for annotation in coco["annotations"]], dtype=bool)
     ann_image_ids = np.array([annotation["image_id"] for annotation in coco["annotations"]], dtype=int)
-    ann_segmentations = np.array([annotation["segmentation"] for annotation in coco["annotations"]], dtype=str)
+    ann_segmentations = np.array([annotation["segmentation"] for annotation in coco["annotations"]], dtype=np.object_)
 
     # We check whether the area is present in the annotations. If it does we use it, otherwise we compute it from the bbox.
     if "area" in coco["annotations"][0]:
