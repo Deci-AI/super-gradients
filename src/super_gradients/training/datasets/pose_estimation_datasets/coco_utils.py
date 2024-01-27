@@ -60,7 +60,7 @@ def parse_coco_into_keypoints_annotations(
 
     # Extract class names and class ids
     category_name = coco["categories"][0]["name"]
-    keypoints = coco.dataset["categories"][0]["keypoints"]
+    keypoints = coco["categories"][0]["keypoints"]
     num_keypoints = len(keypoints)
 
     # Extract box annotations
