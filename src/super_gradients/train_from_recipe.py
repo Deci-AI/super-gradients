@@ -4,16 +4,26 @@ Entry point for training from a recipe using SuperGradients.
 General use: python -m super_gradients.train_from_recipe --config-name="DESIRED_RECIPE".
 For recipe's specific instructions and details refer to the recipe's configuration file in the recipes directory.
 """
-
-from logging import getLogger
+import os
 import hydra
 import modal
+from dotenv import load_dotenv
+from logging import getLogger
 from modal import Image
 
 from super_gradients import Trainer, init_trainer
 
-stub = modal.Stub(name="train_from_recipe")
-image = Image.from_dockerfile("Dockerfile")
+load_dotenv()
+
+stub = modal.Stub(name="train_from_recipe")    
+github_secret = modal.Secret.from_dotenv()
+
+image = Image.from_dockerfile("Dockerfile", force_build=True) \
+    .copy_local_dir("./src/super_gradients/recipes", "/root/recipes") \
+    .pip_install_private_repos(
+    "github.com/Unstructured-IO/super-gradients-fork.git@adam/modal-ai-tests",
+    git_user=os.getenv("GITHUB_USERNAME"),
+    secrets=[github_secret])
 
 logger = getLogger(__name__)
 
