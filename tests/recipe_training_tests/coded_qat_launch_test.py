@@ -15,9 +15,7 @@ class CodedQATLuanchTest(unittest.TestCase):
         net = ResNet18(num_classes=10, arch_params={})
         train_params = {
             "max_epochs": 10,
-            "lr_updates": [],
             "lr_decay_factor": 0.1,
-            "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 0,
             "initial_lr": 0.1,
             "loss": "CrossEntropyLoss",
@@ -76,9 +74,7 @@ class CodedQATLuanchTest(unittest.TestCase):
         net = ResNet18(num_classes=10, arch_params={})
         train_params = {
             "max_epochs": 10,
-            "lr_updates": [],
             "lr_decay_factor": 0.1,
-            "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 0,
             "initial_lr": 0.1,
             "loss": "CrossEntropyLoss",
