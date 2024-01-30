@@ -59,8 +59,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--conf",
-        default=11,
-        type=int,
+        default=0.3,
+        type=float,
         help="Confidence threshold. Predictions below this threshold are discarded.",
     )
     parser.add_argument(
@@ -99,19 +99,20 @@ def main(
         page_count = 0
         if file_path.suffix.lower() == ".pdf":
             images = convert_from_path(file_path)
-            images = [np.array(image) for image in images]
+            images = [cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR) for image in images]
             if len(images) < 1:
                 print(f"Found 0 images in file: {file_path}")
                 continue
         else:
-            images = [cv2.imread(str(file_path))]
+            images = [cv2.imread(str(file_path), cv2.IMREAD_COLOR)]  # DetectionDataset loads images as BGR, and channel last (HWC).
             if images[0] is None:
                 print(f"Couldn't load image: {file_path}")
                 continue
 
         for image_array in images:
             if res:
-                image_input, r = _rescale_and_pad_to_size(image_array, (res, res))
+                image_input, r = _rescale_and_pad_to_size(image_array, (res, res))  # yolox only resizes images, no other transforms
+                # todo: support for other backbones
             else:
                 image_input = image_array
                 r = None
