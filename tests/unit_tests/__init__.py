@@ -9,7 +9,6 @@ from tests.unit_tests.test_export_recipe import TestExportRecipe
 from tests.unit_tests.train_after_test_test import CallTrainAfterTestTest
 from tests.unit_tests.zero_weight_decay_on_bias_bn_test import ZeroWdForBnBiasTest
 from tests.unit_tests.save_ckpt_test import SaveCkptListUnitTest
-from tests.unit_tests.all_architectures_test import AllArchitecturesTest
 from tests.unit_tests.average_meter_test import TestAverageMeter
 from tests.unit_tests.repvgg_unit_test import TestRepVgg
 from tests.unit_tests.test_without_train_test import TestWithoutTrainTest
@@ -35,7 +34,6 @@ __all__ = [
     "CrashTipTest",
     "ZeroWdForBnBiasTest",
     "SaveCkptListUnitTest",
-    "AllArchitecturesTest",
     "TestAverageMeter",
     "TestRepVgg",
     "TestWithoutTrainTest",
