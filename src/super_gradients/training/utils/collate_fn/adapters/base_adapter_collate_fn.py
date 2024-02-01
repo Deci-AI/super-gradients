@@ -80,6 +80,6 @@ class BaseDatasetAdapterCollateFN(ABC):
         return self._adapt(data=batch)
 
     def _adapt(self, data: Iterable[SupportedDataType]) -> Tuple[torch.Tensor, torch.Tensor]:
-        images, targets = self.adapter.adapt(data)
-        images = images.float()  # SG takes float as input
+        images, targets = self.adapter.adapt(data)  # Tuple[List[Image], torch.Tensor]
+        images = torch.stack([image.to_float().as_torch() for image in images], dim=0)
         return images, targets

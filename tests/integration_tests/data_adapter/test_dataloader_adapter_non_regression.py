@@ -8,6 +8,7 @@ from data_gradients.managers.detection_manager import DetectionAnalysisManager
 from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 from data_gradients.managers.classification_manager import ClassificationAnalysisManager
 from data_gradients.utils.data_classes.image_channels import ImageChannels
+from data_gradients.dataset_adapters.formatters.utils import ScaledFloatImageFormat
 
 from super_gradients.training.dataloaders.dataloaders import coco2017_val, cityscapes_stdc_seg50_val, cifar10_val
 from super_gradients.training.dataloaders.adapters import (
@@ -63,6 +64,7 @@ class DataloaderAdapterNonRegressionTest(unittest.TestCase):
             val_data=loader,
             class_names=loader.dataset.classes + ["<unknown>"],
             image_channels=ImageChannels.from_str("RGB"),
+            image_format=ScaledFloatImageFormat(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             batches_early_stop=1,
             use_cache=True,  # With this we will be asked about the data information only once
         )
