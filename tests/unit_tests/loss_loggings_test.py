@@ -27,7 +27,7 @@ class CriterionWithNamedComponents(CriterionWithUnnamedComponents):
 
 class LossLoggingsTest(unittest.TestCase):
     def test_single_item_logging(self):
-        trainer = Trainer("test_single_item_logging", model_checkpoints_location="local")
+        trainer = Trainer("test_single_item_logging")
         dataloader = classification_test_dataloader(batch_size=10)
 
         model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
@@ -51,7 +51,7 @@ class LossLoggingsTest(unittest.TestCase):
         self.assertListEqual(trainer.loss_logging_items_names, ["CrossEntropyLoss"])
 
     def test_multiple_unnamed_components_loss_logging(self):
-        trainer = Trainer("test_multiple_unnamed_components_loss_logging", model_checkpoints_location="local")
+        trainer = Trainer("test_multiple_unnamed_components_loss_logging")
         dataloader = classification_test_dataloader(batch_size=10)
 
         model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
@@ -75,7 +75,7 @@ class LossLoggingsTest(unittest.TestCase):
         self.assertListEqual(trainer.loss_logging_items_names, ["CriterionWithUnnamedComponents/loss_0", "CriterionWithUnnamedComponents/loss_1"])
 
     def test_multiple_named_components_loss_logging(self):
-        trainer = Trainer("test_multiple_named_components_loss_logging", model_checkpoints_location="local")
+        trainer = Trainer("test_multiple_named_components_loss_logging")
         dataloader = classification_test_dataloader(batch_size=10)
 
         model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
