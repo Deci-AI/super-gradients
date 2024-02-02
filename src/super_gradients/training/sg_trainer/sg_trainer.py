@@ -7,6 +7,7 @@ from copy import deepcopy
 from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
 
 import hydra
+import neptune
 import numpy as np
 import torch
 import torch.cuda
@@ -44,6 +45,7 @@ from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.environment.package_utils import get_installed_packages
 from super_gradients.common.environment.cfg_utils import maybe_instantiate_test_loaders
+from super_gradients.common.environment.env_variables import env_variables
 
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import RepeatAugSampler
@@ -229,6 +231,8 @@ class Trainer:
 
         self._epoch_start_logging_values = {}
         self._torch_lr_scheduler = None
+
+        self.neptune_run = None
 
     @property
     def device(self) -> str:
@@ -1245,6 +1249,8 @@ class Trainer:
         if not self.ddp_silent_mode:
             self._initialize_sg_logger_objects(additional_configs_to_log)
 
+        self._initialize_neptune_run(additional_configs_to_log)
+
         # SET RANDOM SEED
         random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
 
@@ -1926,6 +1932,20 @@ class Trainer:
         """
         self.phase_callbacks.append(MetricsUpdateCallback(phase))
 
+    def _initialize_neptune_run(self, additional_configs_to_log: Dict = None):
+        """Initialize Neptune Run for logging."""
+        neptune_logging = core_utils.get_param(self.training_params, "neptune_logging")
+        if neptune_logging:
+            self.neptune_run = neptune.init_run(
+                project=env_variables.NEPTUNE_PROJECT,
+                api_token=env_variables.NEPTUNE_API_TOKEN,
+                **neptune_logging)
+            logger.info("Neptune Run initialized")
+            self.neptune_run["configs"] = additional_configs_to_log
+        else:
+            logger.warning("Neptune logging is not enabled. To enable it, set `neptune_logging` in training_params.")
+
+
     def _initialize_sg_logger_objects(self, additional_configs_to_log: Dict = None):
         """Initialize object that collect, write to disk, monitor and store remotely all training outputs"""
         sg_logger = core_utils.get_param(self.training_params, "sg_logger")
@@ -2024,6 +2044,10 @@ class Trainer:
             info_dict = {f"{tag} Inference Time": inference_time, **{f"{tag}_{k}": v for k, v in metrics.items()}}
 
             self.sg_logger.add_scalars(tag_scalar_dict=info_dict, global_step=epoch)
+
+            if self.neptune_run is not None:
+                for key, value in info_dict.items():
+                    self.neptune_run[f"{tag}/{key}"].log(value, step=epoch)
 
     def _get_epoch_start_logging_values(self) -> dict:
         """Get all the values that should be logged at the start of each epoch.

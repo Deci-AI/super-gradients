@@ -49,6 +49,14 @@ class EnvironmentVariables:
     @property
     def SUPER_GRADIENTS_LOG_DIR(self) -> str:
         return os.getenv("SUPER_GRADIENTS_LOG_DIR", default=str(Path.home() / "sg_logs"))
+    
+    @property
+    def NEPTUNE_PROJECT(self) -> str:
+        return os.getenv("NEPTUNE_PROJECT")
+    
+    @property
+    def NEPTUNE_API_TOKEN(self) -> str:
+        return os.getenv("NEPTUNE_API_TOKEN")
 
 
 env_variables = EnvironmentVariables()
