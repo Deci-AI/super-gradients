@@ -159,7 +159,7 @@ class AccessCounterDict(AccessCounterMixin, Mapping):
         return set(keys)
 
 
-class AccessCounterHpmStruct(AccessCounterMixin, Mapping):
+class AccessCounterHpmStruct(AccessCounterMixin, HpmStruct):
     def __init__(self, config: HpmStruct, access_counter: Mapping[str, int] = None, prefix: str = "", ignore_patterns: Set[str] = set()):
         super().__init__(config, access_counter, prefix, ignore_patterns)
 
@@ -180,7 +180,10 @@ class AccessCounterHpmStruct(AccessCounterMixin, Mapping):
         return self.maybe_wrap_as_counter(value, item)
 
     def __getattr__(self, item):
-        value = self.config.__dict__[item]
+        if item in self.config.__dict__:
+            value = self.config.__dict__[item]
+        else:
+            raise AttributeError
         return self.maybe_wrap_as_counter(value, item)
 
     def __setitem__(self, key, value):
@@ -206,7 +209,10 @@ class AccessCounterHpmStruct(AccessCounterMixin, Mapping):
         return set(keys)
 
     def to_dict(self, include_schema=True) -> dict:
-        return self.config.to_dict(include_schema=include_schema)
+        for key, value in self.config.to_dict().items():
+            if key not in self.access_counter:
+                self.access_counter[key] = 0
+        return AccessCounterDict(self.config.to_dict(include_schema=include_schema), self._access_counter, self._prefix)
 
     def override(self, **kwargs):
         self.config.override(**kwargs)
@@ -239,6 +245,7 @@ class AccessCounterTrainingParams(AccessCounterHpmStruct):
                 "lr_warmup_steps",
                 "step_lr_update_freq",
                 "lr_updates",
+                "lr_decay_factor",
             },
         )
 

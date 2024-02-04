@@ -612,7 +612,7 @@ DEFAULT_DDRNET_39_PARAMS = {**DEFAULT_DDRNET_23_PARAMS, "layers": [3, 4, 3, 3, 1
 class DDRNet39(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_39_PARAMS)
-        _arch_params.override(**arch_params.to_dict())
+        _arch_params.override(arch_params)
         # BUILD THE BACKBONE AND INSERT TO THE _arch_params
         backbone_layers, _arch_params.additional_layers = _arch_params.layers[:4], _arch_params.layers[4:]
         _arch_params.backbone = BasicDDRBackBone(
@@ -629,7 +629,7 @@ class DDRNet39(DDRNetCustom):
 class DDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_PARAMS)
-        _arch_params.override(**arch_params.to_dict())
+        _arch_params.override(arch_params)
         # BUILD THE BACKBONE AND INSERT TO THE _arch_params
         backbone_layers, _arch_params.additional_layers = _arch_params.layers[:4], _arch_params.layers[4:]
         _arch_params.backbone = BasicDDRBackBone(
@@ -646,7 +646,7 @@ class DDRNet23(DDRNetCustom):
 class DDRNet23Slim(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_SLIM_PARAMS)
-        _arch_params.override(**arch_params.to_dict())
+        _arch_params.override(arch_params)
         # BUILD THE BACKBONE AND INSERT TO THE _arch_params
         backbone_layers, _arch_params.additional_layers = _arch_params.layers[:4], _arch_params.layers[4:]
         _arch_params.backbone = BasicDDRBackBone(
@@ -663,7 +663,7 @@ class DDRNet23Slim(DDRNetCustom):
 class AnyBackBoneDDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_PARAMS)
-        _arch_params.override(**arch_params.to_dict())
+        _arch_params.override(arch_params)
         assert len(_arch_params.layers) == 4 or len(_arch_params.layers) == 8, "The length of 'arch_params.layers' must be 4 or 8"
         # TAKE THE LAST 4 NUMBERS AS THE ADDITIONAL LAYERS SPECIFICATION
         _arch_params.additional_layers = _arch_params.layers[-4:]

@@ -474,7 +474,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInp
         self.arch_params = HpmStruct(**DEFAULT_YOLO_ARCH_PARAMS)
         # FIXME: REMOVE anchors ATTRIBUTE, WHICH HAS NO MEANING OTHER THAN COMPATIBILITY.
         self.arch_params.anchors = COCO_DETECTION_80_CLASSES_BBOX_ANCHORS
-        self.arch_params.override(**arch_params.to_dict())
+        self.arch_params.override(arch_params)
         self.arch_params.skip_connections_dict = {k: v for k, v in self.arch_params.skip_connections_list}
         self.in_channels = 3
 

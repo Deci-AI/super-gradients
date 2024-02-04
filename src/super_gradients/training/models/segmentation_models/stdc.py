@@ -747,7 +747,7 @@ class STDC2Backbone(STDCBackbone):
 class STDC1Classification(STDCClassification):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC1Backbone(in_channels=get_param(arch_params, "input_channels", 3), out_down_ratios=(32,))
-        arch_params.override(**{"backbone": backbone})
+        arch_params.override({"backbone": backbone})
         super().__init__(arch_params)
 
 
@@ -755,7 +755,7 @@ class STDC1Classification(STDCClassification):
 class STDC2Classification(STDCClassification):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC2Backbone(in_channels=get_param(arch_params, "input_channels", 3), out_down_ratios=(32,))
-        arch_params.override(**{"backbone": backbone})
+        arch_params.override({"backbone": backbone})
         super().__init__(arch_params)
 
 
@@ -767,7 +767,7 @@ class STDC1Seg(CustomSTDCSegmentation):
         backbone = STDC1Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])
 
         custom_params = {"backbone": backbone, **STDC_SEG_DEFAULT_ARGS}
-        arch_params.override(**custom_params)
+        arch_params.override(custom_params)
         super().__init__(arch_params)
 
 
@@ -779,5 +779,5 @@ class STDC2Seg(CustomSTDCSegmentation):
         backbone = STDC2Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])
 
         custom_params = {"backbone": backbone, **STDC_SEG_DEFAULT_ARGS}
-        arch_params.override(**custom_params)
+        arch_params.override(custom_params)
         super().__init__(arch_params)

@@ -666,7 +666,7 @@ class DEKRW32NODC(DEKRPoseEstimationModel):
         POSE_DEKR_W32_NO_DC_ARCH_PARAMS = get_arch_params("pose_dekr_w32_no_dc_arch_params")
 
         merged_arch_params = HpmStruct(**copy.deepcopy(POSE_DEKR_W32_NO_DC_ARCH_PARAMS))
-        merged_arch_params.override(**arch_params.to_dict())
+        merged_arch_params.override(arch_params)
         super().__init__(merged_arch_params)
 
 

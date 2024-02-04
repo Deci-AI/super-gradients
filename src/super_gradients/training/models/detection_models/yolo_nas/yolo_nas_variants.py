@@ -151,7 +151,7 @@ class YoloNAS_S(YoloNAS):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
         default_arch_params = get_arch_params("yolo_nas_s_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
-        merged_arch_params.override(**arch_params.to_dict())
+        merged_arch_params.override(arch_params)
         super().__init__(
             backbone=merged_arch_params.backbone,
             neck=merged_arch_params.neck,
@@ -173,7 +173,7 @@ class YoloNAS_M(YoloNAS):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
         default_arch_params = get_arch_params("yolo_nas_m_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
-        merged_arch_params.override(**arch_params.to_dict())
+        merged_arch_params.override(arch_params)
         super().__init__(
             backbone=merged_arch_params.backbone,
             neck=merged_arch_params.neck,
@@ -195,7 +195,7 @@ class YoloNAS_L(YoloNAS):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
         default_arch_params = get_arch_params("yolo_nas_l_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
-        merged_arch_params.override(**arch_params.to_dict())
+        merged_arch_params.override(arch_params)
         super().__init__(
             backbone=merged_arch_params.backbone,
             neck=merged_arch_params.neck,

@@ -38,7 +38,7 @@ class TestRepVgg(unittest.TestCase):
         self.all_arch_params = HpmStruct(**{"num_classes": 10, "width_mult": 1, "build_residual_branches": True})
 
         self.backbone_arch_params = copy.deepcopy(self.all_arch_params)
-        self.backbone_arch_params.override(backbone_mode=True)
+        self.backbone_arch_params.override({"backbone_mode": True})
 
     def test_deployment_architecture(self):
         """

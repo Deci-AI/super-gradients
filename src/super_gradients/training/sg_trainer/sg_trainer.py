@@ -759,7 +759,7 @@ class Trainer:
         arch_params = getattr(self.net, "arch_params", default_arch_params)
         self.arch_params = default_arch_params
         if arch_params is not None:
-            self.arch_params.override(**arch_params.to_dict())
+            self.arch_params.override(arch_params)
 
     def _should_run_validation_for_epoch(self, epoch: int) -> bool:
         """
@@ -1258,10 +1258,11 @@ class Trainer:
             # Store the metric to follow (loss\accuracy) and initialize as the worst value
             self.metric_to_watch = self.training_params.metric_to_watch
             self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
+            self.criterion_params = self.training_params.criterion_params
 
             # Allowing loading instantiated loss or string
             if isinstance(self.training_params.loss, str):
-                self.criterion = LossesFactory().get({self.training_params.loss: self.training_params.criterion_params})
+                self.criterion = LossesFactory().get({self.training_params.loss: self.criterion_params})
 
             elif isinstance(self.training_params.loss, Mapping):
                 self.criterion = LossesFactory().get(self.training_params.loss)

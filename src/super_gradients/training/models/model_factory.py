@@ -22,6 +22,7 @@ from super_gradients.training.utils.checkpoint_utils import (
     load_pretrained_weights_local,
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.config_utils import AccessCounterHpmStruct
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.training.processing.processing import get_pretrained_processing_params
 
@@ -82,7 +83,7 @@ def get_architecture(
             model_name = _arch_params["model_name"]
             del _arch_params["model_name"]
             _arch_params = HpmStruct(**_arch_params)
-            _arch_params.override(**arch_params.to_dict())
+            _arch_params.override(arch_params)
             arch_params, is_remote = _arch_params, True
         else:
             raise UnknownTypeException(
@@ -129,7 +130,9 @@ def instantiate_model(
             num_classes = num_classes or arch_params.num_classes
 
         if num_classes is not None:
-            arch_params.override(num_classes=num_classes)
+            if not isinstance(arch_params, (HpmStruct, AccessCounterHpmStruct)):
+                print("what")
+            arch_params.override(entries={"num_classes": num_classes})
 
         if pretrained_weights is None and num_classes is None:
             raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")

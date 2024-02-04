@@ -612,7 +612,7 @@ def get_efficientnet_params(width: float, depth: float, res: float, dropout: flo
         }
     )
     # Update arch_params
-    arch_params_new.override(**arch_params.to_dict())
+    arch_params_new.override(arch_params)
     return blocks_args, arch_params_new
 
 

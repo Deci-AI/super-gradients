@@ -118,6 +118,6 @@ class TrainingParams(HpmStruct):
         if len(entries) > 0:
             self.override(**entries)
 
-    def override(self, **entries):
-        super().override(**entries)
+    def override(self, entries):
+        super().override(entries)
         self.validate()
