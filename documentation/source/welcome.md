@@ -35,6 +35,22 @@ You can also start from our tutorial on [Detection](ObjectDetection.md), [Segmen
 ## What's New
 
 __________________________________________________________________________________________________________
+Version 3.6.0 (Jan 25, 2024)
+
+* Added segmentation samples and support for albumentation transforms for segmentation
+* Implemented distance-based detection matching in `DetectionMetrics` as an enhancement (by @DimaBir)
+* New training hyperparameter - finetune, and multiple LR assignment read about it [https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/LRAssignment.md](here)
+* Enhanced `ImagePermute` processing inclusion
+* Improved dataset plotting and plot functionality
+* A new API for checking model input compatibility
+* Extended `predict()` support for segmentation models
+
+Version 3.5.0 (November 23, 2023)
+
+* Support for long videos in `model.predict()` (by @hakuryuu96)
+* Added support for multiple test loaders in `train_from_config`
+* Added skip_resize to `model.predict()` to support large images and small objects
+  
 Version 3.4.0 (November 6, 2023)
 
 * [YoloNAS-Pose](YOLONAS-POSE.md) model released - a new frontier in pose estimation
