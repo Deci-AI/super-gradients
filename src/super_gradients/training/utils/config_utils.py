@@ -34,10 +34,15 @@ class AccessCounterMixin:
         "_convert_",
     }
 
-    def __init__(self, ignore_patterns: Set[str]):
+    def __init__(self, config: dict, access_counter: Mapping[str, int] = None, prefix: str = "", ignore_patterns: Set[str] = set()):
         """
         :param ignore_patterns: Patterns to ignore when counting usage. Default is empty set.
         """
+
+        self.config = config
+        self._access_counter = access_counter or defaultdict(int)
+        self._prefix = str(prefix)
+
         self._ignore_patterns.update(ignore_patterns)
 
     def maybe_wrap_as_counter(self, value, key, count_usage: bool = True):
@@ -104,10 +109,7 @@ class AccessCounterMixin:
 
 class AccessCounterDict(AccessCounterMixin, Mapping):
     def __init__(self, config: dict, access_counter: Mapping[str, int] = None, prefix: str = "", ignore_patterns: Set[str] = set()):
-        super().__init__(ignore_patterns=ignore_patterns)
-        self.config = config
-        self._access_counter = access_counter or defaultdict(int)
-        self._prefix = str(prefix)
+        super().__init__(config, access_counter, prefix, ignore_patterns)
 
     def __iter__(self):
         return self.config.__iter__()
@@ -159,10 +161,7 @@ class AccessCounterDict(AccessCounterMixin, Mapping):
 
 class AccessCounterHpmStruct(AccessCounterMixin, Mapping):
     def __init__(self, config: HpmStruct, access_counter: Mapping[str, int] = None, prefix: str = "", ignore_patterns: Set[str] = set()):
-        super().__init__(ignore_patterns=ignore_patterns)
-        self.config = config
-        self._access_counter = access_counter or defaultdict(int)
-        self._prefix = str(prefix)
+        super().__init__(config, access_counter, prefix, ignore_patterns)
 
     def __iter__(self):
         return self.config.__dict__.__iter__()
@@ -244,11 +243,9 @@ class AccessCounterTrainingParams(AccessCounterHpmStruct):
         )
 
 
-class AccessCounterList(list, AccessCounterMixin):
-    def __init__(self, config: Iterable, access_counter: Mapping[str, int] = None, prefix: str = ""):
-        super().__init__(config)
-        self._access_counter = access_counter or defaultdict(int)
-        self._prefix = str(prefix)
+class AccessCounterList(AccessCounterMixin, list):
+    def __init__(self, config: Iterable, access_counter: Mapping[str, int] = None, prefix: str = "", ignore_patterns: Set[str] = set()):
+        super().__init__(config, access_counter, prefix, ignore_patterns)
 
     def __iter__(self):
         for index, value in enumerate(super().__iter__()):
