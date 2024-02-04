@@ -104,7 +104,7 @@ class AccessCounterMixin:
                     break
             if not match:
                 out_list.append(param_name)
-        return out_list
+        return set(out_list)
 
 
 class AccessCounterDict(AccessCounterMixin, Mapping):
@@ -245,7 +245,8 @@ class AccessCounterTrainingParams(AccessCounterHpmStruct):
 
 class AccessCounterList(AccessCounterMixin, list):
     def __init__(self, config: Iterable, access_counter: Mapping[str, int] = None, prefix: str = "", ignore_patterns: Set[str] = set()):
-        super().__init__(config, access_counter, prefix, ignore_patterns)
+        list.__init__(self, config)
+        AccessCounterMixin.__init__(self, config, access_counter, prefix, ignore_patterns)
 
     def __iter__(self):
         for index, value in enumerate(super().__iter__()):
