@@ -7,7 +7,6 @@ import omegaconf
 from super_gradients.common.crash_handler.utils import indent_string, fmt_txt, json_str_to_dict
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
-
 logger = get_logger(__name__)
 
 
@@ -75,7 +74,7 @@ class CrashTip:
 
             def format_tip(tip_index: int, tip: str):
                 first_sentence, *following_sentences = tip.split("\n")
-                first_sentence = f"{tip_index+1}. {first_sentence}"
+                first_sentence = f"{tip_index + 1}. {first_sentence}"
                 following_sentences = [f"   {sentence}" for sentence in following_sentences]
                 return "\n".join([first_sentence] + following_sentences)
 
@@ -88,7 +87,7 @@ class CrashTip:
                 "                                           ╚═════════════════════════╝ \n"
                 f"{fmt_txt('Something went wrong!', color='red', bold=True)} You can find below potential solution(s) to this error: \n\n"
                 f"{formatted_tips}\n"
-                f"{len(tips)+1}. If the proposed solution(s) did not help, feel free to contact the SuperGradient team or to open a ticket on "
+                f"{len(tips) + 1}. If the proposed solution(s) did not help, feel free to contact the SuperGradient team or to open a ticket on "
                 f"https://github.com/Deci-AI/super-gradients/issues/new/choose\n\n"
                 "see the trace above...\n"
                 "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════\n"
@@ -115,6 +114,24 @@ class TorchCudaMissingTip(CrashTip):
             f"   a. Make sure to {fmt_txt('uninstall torch, torchvision', color='green')}\n"
             f"   b. {fmt_txt('Install the torch version', color='green')} that respects your os & compute platform "
             f"{fmt_txt('following the instruction from https://pytorch.org/', color='green')}"
+        )
+        return [tip]
+
+
+class SGLoggerIsNoneTip(CrashTip):
+    @classmethod
+    def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> bool:
+        pattern = "AttributeError: 'NoneType' object has no attribute 'add_scalar'"
+        return isinstance(exc_value, AttributeError) and pattern in str(exc_value)
+
+    @classmethod
+    def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
+        tip = (
+            "SG logger is not available on non-master nodes in DDP.\n"
+            "Please either decorate the method you don't want to call on those nodes with the"
+            "super_gradients.common.environment.ddp_utils.multi_process_safe decorator, or check that "
+            "context.sg_logger is not"
+            " None inside the method implementation."
         )
         return [tip]
 
