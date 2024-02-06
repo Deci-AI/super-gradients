@@ -12,7 +12,7 @@ arch_params:
 
 checkpoint_params:
   load_checkpoint: True
-  checkpoint_path: /mnt/ml-team/homes/marianna.parzych/Unstructured/super-gradients-fork/checkpoints/training_512x512/RUN_20240120_141334_742570/ckpt_best.pth
+  checkpoint_path: /path/to/model/trained/on/DocLayNet/ckpt_best.pth
 
 # num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
 # Used when num_classes != checkpoint_num_class.
@@ -22,7 +22,7 @@ checkpoint_num_classes: 11 # number of classes in the checkpoint
 
 dataset_params:
   val_dataset_params:
-    data_dir: /mnt/ml-team/homes/marianna.parzych/Unstructured/DocLayNet
+    data_dir: /path/to/DocLayNet
     images_dir: PNG
     json_file: COCO/test.json
     transforms:
@@ -37,12 +37,12 @@ dataset_params:
     batch_size: 4
     num_workers: 4
 
-# resume: False
-# training_hyperparams:
-#   resume: ${resume}
-#   max_epochs: 100
-#   criterion_params:
-#     num_classes: ${arch_params.num_classes}
+resume: False
+training_hyperparams:
+  resume: ${resume}
+  max_epochs: 100
+  criterion_params:
+    num_classes: ${arch_params.num_classes}
 
 architecture: yolox_l
 
