@@ -8,6 +8,7 @@ from typing import List, Optional, Tuple
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
+from super_gradients.common.deprecate import deprecated_parameter
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy_inplace
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
@@ -24,6 +25,12 @@ class COCOFormatDetectionDataset(DetectionDataset):
     Output format: (x, y, x, y, class_id)
     """
 
+    @deprecated_parameter(
+        "tight_box_rotation",
+        deprecated_since="3.7.0",
+        removed_from="3.8.0",
+        reason="Support of `tight_box_rotation` has been removed. This parameter has no effect anymore.",
+    )
     def __init__(
         self,
         data_dir: str,
