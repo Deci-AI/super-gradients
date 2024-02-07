@@ -728,11 +728,13 @@ Request free trial [here](https://bit.ly/3qO3icq)
 
 
 ## Neptune integration
-The repository provides basic integration with neptune.ai. To track your experiment in neptune.ai yopu have to set `neptune_logging` parameter in training params. 
+The repository provides basic integration with neptune.ai. To track your experiment in neptune.ai yopu have to set `neptune_logging` parameter in training hyperparams. 
 Example:
 ```
-neptune_logging:
-  name:"lotus-alligator"
-  tags:["quickstart", "script"]
+training_hyperparams:
+  neptune_logging:
+    name:"lotus-alligator"
+    tags:["quickstart", "script"]
 ```
 Project name and API token are set based on environment variables. Set `NEPTUNE_PROJECT` and `NEPTUNE_API_TOKEN` accordingly or prepare your _.env_ based on _.env.template._
+`NEPTUNE_API_TOKEN` may be found in your user profile setting in neptune.ai.
