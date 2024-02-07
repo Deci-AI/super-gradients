@@ -1,8 +1,9 @@
-# Custom recipe to train YoloX on DocLayNet dataset
+# Custom recipe to train Yolo NAS on DocLayNet dataset
 
 defaults:
-  - training_hyperparams: coco2017_yolox_train_params
-  - dataset_params: coco_detection_dataset_params
+  - training_hyperparams: coco2017_yolo_nas_train_params
+  - dataset_params: coco_detection_yolo_nas_dataset_params
+  - arch_params: yolo_nas_l_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
   - variable_setup
@@ -20,10 +21,13 @@ checkpoint_params:
 # Finally model.replace_head(new_num_classes=num_classes) is called to replace the head with new_num_classes.
 checkpoint_num_classes: # number of classes in the checkpoint
 
+train_dataloader: coco2017_train_yolo_nas
+val_dataloader: coco2017_val_yolo_nas
+
 dataset_params:
   train_dataset_params:
     data_dir: /path/to/DocLayNet # Where the data is stored.
-    images_dir: PNG # Local path to directory that includes all the images. Path relative to `data_dir`. Can be the same as `labels_dir`.
+    subdir: PNG
     json_file: COCO/train.json # Local path to json annotation file
     all_classes_list: [ Caption, Footnote, Formula, List-item, Page-footer, Page-header, Picture, Section-header, Table, Text, Title,] # List of classes used in your dataset.
     input_dim: [1025, 1025]
@@ -35,13 +39,12 @@ dataset_params:
           output_format: LABEL_CXCYWH
 
   train_dataloader_params:
-    dataset: DocLayNetDetectionDataset
     batch_size: 4
     num_workers: 4
 
   val_dataset_params:
     data_dir: /path/to/DocLayNet
-    images_dir: PNG
+    subdir: PNG
     json_file: COCO/val.json
     transforms:
       - DetectionPaddedRescale:
@@ -51,7 +54,6 @@ dataset_params:
           output_format: LABEL_CXCYWH
 
   val_dataloader_params:
-    dataset: DocLayNetDetectionDataset
     batch_size: 4
     num_workers: 4
 
@@ -62,6 +64,6 @@ training_hyperparams:
   criterion_params:
     num_classes: ${arch_params.num_classes}
 
-architecture: yolox_l
+architecture: yolo_nas_l
 
-experiment_name: training_test_yolox
+experiment_name: training_test_yolo_nas
