@@ -16,6 +16,7 @@ from torch import nn
 
 from super_gradients.training.utils.visualization.detection import draw_bbox
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
+from super_gradients.common.deprecate import deprecate_param
 
 
 class DetectionTargetsFormat(Enum):
@@ -183,16 +184,30 @@ def change_bbox_bounds_for_image_size_inplace(boxes: np.ndarray, img_shape: Tupl
     return boxes
 
 
-def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, int]) -> np.ndarray:
+def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, int], inplace=True) -> np.ndarray:
     """
     Clips bboxes to image boundaries.
-    The function does not modify a caller and return a modified copy.
+    The function may operate both in- and on a copy of the input which is controlled by the inplace parameter.
+    It exists for backward compatibility and will be removed in the SG 3.8.0 and this method will not modify the input.
+    An inplace version of this method is available as change_bbox_bounds_for_image_size_inplace.
 
     :param bboxes:     (np.ndarray) Input bounding boxes in XYXY format of [..., 4] shape
     :param img_shape:  Tuple[int,int] of image shape (height, width).
+    :param inplace:    (bool) If True, the function operates in-place. Otherwise, it returns a modified copy.
+                       If True this will trigger a deprecated warning to inform the user to use
+                       change_bbox_bounds_for_image_size_inplace instead.
     :return:           (np.ndarray)clipped bboxes in XYXY format of [..., 4] shape
     """
-    return change_bbox_bounds_for_image_size_inplace(boxes.copy(), img_shape)
+    if not inplace:
+        boxes = boxes.copy()
+    else:
+        deprecate_param(
+            deprecated_param_name="inplace",
+            deprecated_since="3.7.0",
+            removed_from="3.8.0",
+            reason="For in-place operation, use change_bbox_bounds_for_image_size_inplace",
+        )
+    return change_bbox_bounds_for_image_size_inplace(boxes, img_shape)
 
 
 class DetectionPostPredictionCallback(ABC, nn.Module):

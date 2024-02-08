@@ -125,7 +125,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         height = annotation.image_height
 
         # Make a copy of the annotations, so that we can modify them
-        boxes_xyxy = change_bbox_bounds_for_image_size(annotation.ann_boxes_xyxy, img_shape=(height, width))
+        boxes_xyxy = change_bbox_bounds_for_image_size(annotation.ann_boxes_xyxy, img_shape=(height, width), inplace=False)
         iscrowd = annotation.ann_is_crowd.copy()
         labels = annotation.ann_labels.copy()
 
