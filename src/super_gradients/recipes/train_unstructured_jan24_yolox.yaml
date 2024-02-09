@@ -31,15 +31,18 @@ dataset_params:
     # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
     input_dim: [1025, 1025]
     transforms:
+      - DetectionGaussianBlur:
+          prob: 0.5
       - DetectionMixup:
           input_dim: ${dataset_params.train_dataset_params.input_dim}
           mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
-          prob: 0.5                       # probability to apply per-sample mixup
+          prob: 0.25                       # probability to apply per-sample mixup
           flip_prob: 0.                  # probability to apply horizontal flip
       - DetectionRandomAffine:
-          degrees: 5.                  # rotation degrees, randomly sampled from [-degrees, degrees]
-          translate: 0.1                # image translation fraction
-          scales: [ 0.1, 2 ]              # random rescale range (keeps size by padding/cropping) after mosaic transform.
+          prob: 0.25                       # probability to apply random affine transform
+          degrees: 3.                  # rotation degrees, randomly sampled from [-degrees, degrees]
+          translate: 0.05                # image translation fraction
+          scales: 0.05              # random rescale range (keeps size by padding/cropping) after mosaic transform.
           shear: 2.0                    # shear degrees, randomly sampled from [-degrees, degrees]
           target_size: ${dataset_params.train_dataset_params.input_dim}
           filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
@@ -95,4 +98,5 @@ training_hyperparams:
 
 architecture: yolox_l
 
-experiment_name: augmentations_mixup_05_random_affine_mosaic_05_hsv_05
+experiment_name: augmentations_blur_05_mixup_025_affine_025_mosaic_05_hsv_05
+
