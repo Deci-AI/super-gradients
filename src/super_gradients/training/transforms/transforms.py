@@ -459,6 +459,25 @@ class DetectionTransform:
         raise NotImplementedError
 
 
+@register_transform(Transforms.DetectionGaussianBlur)
+class DetectionGaussianBlur(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+    """
+    Adds Gaussian Blur to image with probability 'prob'.
+    """
+
+    def __init__(self, prob: float = 0.5):
+        assert 0.0 <= prob <= 1.0, "Probability value must be between 0 and 1"
+        self.prob = prob
+
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        if random.random() < self.prob:
+            sample.image = cv2.GaussianBlur(sample.image, (3, 3), cv2.BORDER_DEFAULT)
+        return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
+
+
 @register_transform(Transforms.DetectionStandardize)
 class DetectionStandardize(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """

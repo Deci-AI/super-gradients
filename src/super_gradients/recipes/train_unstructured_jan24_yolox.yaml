@@ -1,0 +1,98 @@
+# Custom recipe to train YoloX on NewData dataset
+
+defaults:
+  - training_hyperparams: coco2017_yolox_train_params
+  - dataset_params: coco_detection_dataset_params 
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+arch_params:
+  num_classes: 17
+
+checkpoint_params:
+  load_checkpoint: True
+  # checkpoint_path: /path/to/pretrained/weights/ckpt_best.pth
+  pretrained_weights: coco
+  # num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
+  # Used when num_classes != checkpoint_num_class.
+  # In this case, the module will be initialized with checkpoint_num_class, then weights will be loaded.
+  # Finally model.replace_head(new_num_classes=num_classes) is called to replace the head with new_num_classes.
+  # checkpoint_num_classes: 11 # number of classes in the checkpoint
+
+dataset_params:
+
+  train_dataset_params:
+    data_dir: /path/to/data # Where the data is stored.
+    images_dir: PNG # Local path to directory that includes all the images. Path relative to `data_dir`. Can be the same as `labels_dir`.
+    json_file: COCO/train.json # Local path to json annotation file todo train.json
+
+    all_classes_list: [image, page_number, paraprgaphs_in_image, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, paraprgaphs_in_form, checkbox_checked, checkbox, radio_button, radio_button_checked] # List of classes used in your dataset.
+    # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
+    input_dim: [1025, 1025]
+    transforms:
+      - DetectionMixup:
+          input_dim: ${dataset_params.train_dataset_params.input_dim}
+          mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
+          prob: 0.5                       # probability to apply per-sample mixup
+          flip_prob: 0.                  # probability to apply horizontal flip
+      - DetectionRandomAffine:
+          degrees: 5.                  # rotation degrees, randomly sampled from [-degrees, degrees]
+          translate: 0.1                # image translation fraction
+          scales: [ 0.1, 2 ]              # random rescale range (keeps size by padding/cropping) after mosaic transform.
+          shear: 2.0                    # shear degrees, randomly sampled from [-degrees, degrees]
+          target_size: ${dataset_params.train_dataset_params.input_dim}
+          filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
+          wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
+          area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
+          ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
+      - DetectionMosaic:
+          input_dim: ${dataset_params.train_dataset_params.input_dim}
+          prob: 0.5
+      - DetectionHSV:
+          prob: 0.5                       # probability to apply HSV transform
+          hgain: 5                        # HSV transform hue gain (randomly sampled from [-hgain, hgain])
+          sgain: 30                       # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
+          vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
+      - DetectionPaddedRescale:
+          input_dim: [512, 512] # Change for different training resolutions (multiplications of 32)
+      - DetectionTargetsFormatTransform:
+          input_dim: [512, 512] 
+          output_format: LABEL_CXCYWH
+
+
+  val_dataset_params:
+    data_dir: /path/to/data # Where the data is stored.
+    images_dir: PNG # Local path to directory that includes all the images. Path relative to `data_dir`. Can be the same as `labels_dir`.
+    json_file: COCO/val.json # Local path to json annotation file todo train.json
+
+    all_classes_list: [image, page_number, paraprgaphs_in_image, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, paraprgaphs_in_form, checkbox_checked, checkbox, radio_button, radio_button_checked] # List of classes used in your dataset.
+    # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
+    transforms:
+      - DetectionPaddedRescale:
+          input_dim: [512, 512] 
+      - DetectionTargetsFormatTransform:
+          input_dim: [512, 512] 
+          output_format: LABEL_CXCYWH
+
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
+  max_epochs: 100
+  criterion_params:
+    num_classes: ${arch_params.num_classes}
+  valid_metrics_list:
+    - DetectionMetrics:
+        normalize_targets: True
+        post_prediction_callback:
+          _target_: super_gradients.training.models.detection_models.yolo_base.YoloXPostPredictionCallback
+          iou: 0.65
+          conf: 0.01
+        num_cls: ${arch_params.num_classes}
+        include_classwise_ap: true
+        class_names: ${dataset_params.train_dataset_params.all_classes_list}
+
+architecture: yolox_l
+
+experiment_name: augmentations_mixup_05_random_affine_mosaic_05_hsv_05
