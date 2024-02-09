@@ -37,7 +37,7 @@ resume: # config.training_hyperparams.resume
 
 num_workers: # config.dataset_params.train_dataloader_params.num_workers and config.dataset_params.val_dataloader_params.num_workers
 
-ckpt_root_dir: "./modal_checkpoints"
+ckpt_root_dir:
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
   callbacks:
