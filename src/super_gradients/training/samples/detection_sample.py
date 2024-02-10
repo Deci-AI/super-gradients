@@ -8,7 +8,7 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyx
 
 __all__ = ["DetectionSample"]
 
-from super_gradients.training.utils.detection_utils import change_bbox_bounds_for_image_size
+from super_gradients.training.utils.detection_utils import change_bbox_bounds_for_image_size_inplace
 
 
 @dataclasses.dataclass
@@ -73,7 +73,7 @@ class DetectionSample:
         :return: A DetectionSample after filtering (caller instance).
         """
         image_height, image_width = self.image.shape[:2]
-        self.bboxes_xyxy = change_bbox_bounds_for_image_size(self.bboxes_xyxy, img_shape=(image_height, image_width))
+        self.bboxes_xyxy = change_bbox_bounds_for_image_size_inplace(self.bboxes_xyxy, img_shape=(image_height, image_width))
         self.filter_by_bbox_area(0)
         return self
 
