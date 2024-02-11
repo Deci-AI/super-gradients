@@ -187,6 +187,7 @@ jobs:
             . venv/bin/activate
             python3 -m pip install pip==23.1.2
             python3 -m pip install -r requirements.txt
+            python3 -m pip install -r requirements.dev.txt
       - run:
           name: edit package version
           command: |
@@ -539,6 +540,7 @@ jobs:
             source << parameters.sg_new_env_name >>/bin/activate
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
+            python3.8 -m pip install -r requirements.dev.txt
             python3.8 -m pip install .
             python3.8 -m pip install torch torchvision torchaudio
             make sweeper_test
@@ -576,6 +578,7 @@ jobs:
             source << parameters.sg_new_env_name >>/bin/activate
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
+            python3.8 -m pip install -r requirements.dev.txt
             python3.8 -m pip install .
             python3.8 -m pip install torch torchvision torchaudio
             python3.8 -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com

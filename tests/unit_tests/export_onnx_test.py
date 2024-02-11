@@ -12,7 +12,7 @@ from super_gradients.training.transforms import Standardize
 class TestModelsONNXExport(unittest.TestCase):
     def test_models_onnx_export_with_deprecated_input_shape(self):
         pretrained_model = models.get(Models.RESNET18, num_classes=1000, pretrained_weights="imagenet")
-        preprocess = Compose([Resize(224), Standardize(), Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        preprocess = Compose([Resize(224, antialias=False), Standardize(), Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         with tempfile.TemporaryDirectory() as tmpdirname:
             out_path = os.path.join(tmpdirname, "resnet18.onnx")
             models.convert_to_onnx(model=pretrained_model, out_path=out_path, input_shape=(3, 256, 256), pre_process=preprocess)
@@ -20,7 +20,7 @@ class TestModelsONNXExport(unittest.TestCase):
 
     def test_models_onnx_export(self):
         pretrained_model = models.get(Models.RESNET18, num_classes=1000, pretrained_weights="imagenet")
-        preprocess = Compose([Resize(224), Standardize(), Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        preprocess = Compose([Resize(224, antialias=False), Standardize(), Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         with tempfile.TemporaryDirectory() as tmpdirname:
             out_path = os.path.join(tmpdirname, "resnet18.onnx")
             models.convert_to_onnx(
