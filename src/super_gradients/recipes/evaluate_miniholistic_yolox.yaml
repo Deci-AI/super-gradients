@@ -1,0 +1,54 @@
+# Custom recipe to train YoloX on DocLayNet dataset
+
+defaults:
+  - training_hyperparams: coco2017_yolox_train_params
+  - dataset_params: coco_detection_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+arch_params:
+  num_classes: 11
+
+checkpoint_params:
+  load_checkpoint: True
+  checkpoint_path: /path_to_model/trained/on/DocLayNet/ckpt_best.pth
+
+# num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
+# Used when num_classes != checkpoint_num_class.
+# In this case, the module will be initialized with checkpoint_num_class, then weights will be loaded.
+# Finally model.replace_head(new_num_classes=num_classes) is called to replace the head with new_num_classes.
+checkpoint_num_classes: 11 # number of classes in the checkpoint
+
+dataset_params:
+  val_dataset_params:
+    data_dir: /path/to/MiniHolistic
+    images_dir: PNG
+    json_file: COCO/test_doclaynet_classes.json
+    transforms:
+      - DetectionPaddedRescale:
+          input_dim: [512, 512] 
+      - DetectionTargetsFormatTransform:
+          input_dim: [512, 512] 
+          output_format: LABEL_CXCYWH
+
+  val_dataloader_params:
+    dataset: DocLayNetDetectionDataset
+    batch_size: 4
+    num_workers: 4
+
+training_hyperparams:
+  valid_metrics_list:
+    - DetectionMetrics:
+        normalize_targets: True
+        post_prediction_callback:
+          _target_: super_gradients.training.models.detection_models.yolo_base.YoloXPostPredictionCallback
+          iou: 0.65
+          conf: 0.01
+        num_cls: 11
+        include_classwise_ap: true
+        class_names:
+
+architecture: yolox_l
+
+experiment_name: evaluation_test
