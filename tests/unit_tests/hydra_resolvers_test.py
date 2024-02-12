@@ -11,8 +11,17 @@ class HydraResolversTest(unittest.TestCase):
 
     def test_add(self):
         conf = OmegaConf.create({"a": 1, "b": 2, "c": 3, "a_plus_b": "${add: ${a},${b}}", "a_plus_b_plus_c": "${add: ${a}, ${b}, ${c}}"})
-        assert conf["a_plus_b"] == 3
-        assert conf["a_plus_b_plus_c"] == 6
+        self.assertEqual(conf["a_plus_b"], 3)
+        self.assertEqual(conf["a_plus_b_plus_c"], 6)
+
+    def test_div(self):
+        conf = OmegaConf.create({"a": 1, "b": 2, "a_div_b": "${div: ${a},${b}}"})
+        self.assertAlmostEqual(conf["a_div_b"], 0.5)
+
+    def test_mul(self):
+        conf = OmegaConf.create({"a": 1, "b": 2, "c": 4, "a_mul_b": "${mul: ${a},${b}}", "a_mul_b_mul_c": "${mul: ${a}, ${b}, ${c}}"})
+        self.assertEqual(conf["a_mul_b"], 2)
+        self.assertEqual(conf["a_mul_b_mul_c"], 8)
 
     def test_list(self):
         conf = OmegaConf.create(
