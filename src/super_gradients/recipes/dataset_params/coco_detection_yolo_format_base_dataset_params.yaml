@@ -74,12 +74,12 @@ val_dataset_params:
       input_dim: ${dataset_params.val_dataset_params.input_dim}
   - DetectionTargetsFormatTransform:
       input_dim: ${dataset_params.val_dataset_params.input_dim}
-      output_format: LABEL_CXCYWH
+      output_format: LABEL_XYWH
   class_inclusion_list:
   max_num_samples:
 
 val_dataloader_params:
-  batch_size: 25
+  batch_size: 4
   num_workers: 8
   drop_last: False
   pin_memory: True
