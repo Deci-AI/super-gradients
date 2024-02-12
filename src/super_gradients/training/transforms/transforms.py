@@ -891,7 +891,7 @@ class DetectionPadToSize(DetectionPadIfNeeded):
         super().__init__(min_height=min_height, min_width=min_width, pad_value=pad_value, padding_mode="center")
         self.output_size = ensure_is_tuple_of_two(output_size)
         self.pad_value = pad_value
-
+        
 
 @register_transform(Transforms.DetectionPaddedRescale)
 class DetectionPaddedRescale(AbstractDetectionTransform, LegacyDetectionTransformMixin):
@@ -927,6 +927,15 @@ class DetectionPaddedRescale(AbstractDetectionTransform, LegacyDetectionTransfor
             {Processings.ImagePermute: {"permutation": self.swap}},
         ]
 
+
+@register_transform(Transforms.DetectionRandomPaddedRescale)
+class DetectionRandomPaddedRescale(DetectionPaddedRescale):
+    def __init__(
+        self, input_dim: Union[List[int], List[Tuple[int, int]], None], swap: Tuple[int, ...] = (2, 0, 1), max_targets: Optional[int] = None, pad_value: int = 114
+    ):
+        input_dim = random.choice(input_dim)
+        super().__init__(input_dim, swap, max_targets, pad_value)
+        
 
 @register_transform(Transforms.DetectionHorizontalFlip)
 class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransformMixin):
