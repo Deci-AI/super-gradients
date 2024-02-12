@@ -57,8 +57,8 @@ dataset_params:
           hgain: 5                        # HSV transform hue gain (randomly sampled from [-hgain, hgain])
           sgain: 30                       # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
           vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
-      - DetectionPaddedRescale:
-          input_dim: [512, 512] # Change for different training resolutions (multiplications of 32)
+      - DetectionRandomPaddedRescale:
+          input_dim: [[480,480],[512,512],[1024,1024]] # Add more different training resolutions (multiplications of 32)
       - DetectionTargetsFormatTransform:
           input_dim: [512, 512] 
           output_format: LABEL_CXCYWH
@@ -81,6 +81,9 @@ dataset_params:
 
 resume: False
 training_hyperparams:
+  neptune_logging:
+    name: <task_id>_<task_description>
+    tags: ["task_id", "tag1", "tag2"]
   resume: ${resume}
   max_epochs: 100
   criterion_params:
@@ -98,5 +101,5 @@ training_hyperparams:
 
 architecture: yolox_l
 
-experiment_name: augmentations_blur_05_mixup_025_affine_025_mosaic_05_hsv_05
+experiment_name: ${training_hyperparams.neptune_logging.name}
 
