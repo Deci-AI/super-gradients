@@ -79,6 +79,7 @@ class Transforms:
     DetectionPadToSize = "DetectionPadToSize"
     DetectionImagePermute = "DetectionImagePermute"
     DetectionPaddedRescale = "DetectionPaddedRescale"
+    DetectionRandomPaddedRescale = "DetectionRandomPaddedRescale"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
     DetectionNormalize = "DetectionNormalize"
     DetectionPadIfNeeded = "DetectionPadIfNeeded"
