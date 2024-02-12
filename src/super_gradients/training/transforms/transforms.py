@@ -459,6 +459,26 @@ class DetectionTransform:
         raise NotImplementedError
 
 
+@register_transform(Transforms.DetectionGaussianBlur)
+class DetectionGaussianBlur(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+    """
+    Adds Gaussian Blur to image with probability 'prob'.
+    """
+
+    def __init__(self, prob: float = 0.5):
+        assert 0.0 <= prob <= 1.0, "Probability value must be between 0 and 1"
+        self.prob = prob
+
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        if random.random() < self.prob:
+            sample.image = cv2.GaussianBlur(sample.image, (3, 3), cv2.BORDER_DEFAULT)
+        return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
+
+
+
 @register_transform(Transforms.DetectionStandardize)
 class DetectionStandardize(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
@@ -585,6 +605,7 @@ class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransform
 
     def __init__(
         self,
+        prob: float = 1.0,
         degrees: Union[tuple, float] = 10,
         translate: Union[tuple, float] = 0.1,
         scales: Union[tuple, float] = 0.1,
@@ -597,6 +618,7 @@ class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransform
         border_value: int = 114,
     ):
         super(DetectionRandomAffine, self).__init__()
+        self.prob = prob
         self.degrees = degrees
         self.translate = translate
         self.scale = scales
@@ -613,7 +635,7 @@ class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransform
         self.enable = False
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        if self.enable:
+        if self.enable and random.random() < self.prob:
             crowd_mask = sample.is_crowd > 0
             crowd_targets = np.concatenate([sample.bboxes_xyxy[crowd_mask], sample.labels[crowd_mask, None]], axis=1)
             targets = np.concatenate([sample.bboxes_xyxy[~crowd_mask], sample.labels[~crowd_mask, None]], axis=1)

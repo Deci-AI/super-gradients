@@ -65,6 +65,7 @@ class Transforms:
     SegPadToDivisible = "SegPadToDivisible"
     SegColorJitter = "SegColorJitter"
     # Detection transforms
+    DetectionGaussianBlur = "DetectionGaussianBlur"
     DetectionStandardize = "DetectionStandardize"
     DetectionMosaic = "DetectionMosaic"
     DetectionRandomAffine = "DetectionRandomAffine"
