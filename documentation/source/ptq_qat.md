@@ -22,6 +22,8 @@ In this tutorial, we’ll compare post-training quantization (PTQ) to quantizati
 
 For mode detailed information and theoretical background, refer to this [NVIDIA whitepaper](https://arxiv.org/pdf/2004.09602.pdf) and [this practical guide from PyTorch](https://pytorch.org/blog/quantization-in-practice/).
 
+**Note: quantization is currently supported exclusively for GPU and TensorRT environments.**
+
 
 ## Quantization: FP32 vs FP16 vs INT8
 Quantization is a model size reduction technique that converts model weights from high-precision floating-point representation (32-bit float) to low-precision floating-point (FP) representation, such as 16-bit or 8-bit.
