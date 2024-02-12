@@ -49,8 +49,6 @@ class COCODetectionDataset(COCOFormatDetectionDataset):
         """
         :param json_file:           Name of the coco json file, that resides in data_dir/annotations/json_file.
         :param subdir:              Sub directory of data_dir containing the data.
-        :param tight_box_rotation:  bool, whether to use of segmentation maps convex hull as target_seg
-                                    (check get_sample docs).
         :param with_crowd: Add the crowd groundtruths to __getitem__
 
         kwargs:
