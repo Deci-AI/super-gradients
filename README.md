@@ -489,7 +489,8 @@ train_params = { ... # training parameters
 <details markdown="1">
 
 <summary><h3> Integration to ClearML </h3></summary>    
-    
+
+
 ```python
 from super_gradients import Trainer
 
@@ -508,7 +509,45 @@ train_params = { ... # training parameters
                }
 ```
 
+
   </details>
+<details markdown="1">
+
+  <summary><h3> Integration to Voxel51 </h3></summary>    
+  
+You can apply SuperGradients YOLO-NAS models directly to your FiftyOne dataset using the apply_model() method:
+
+```python
+import fiftyone as fo
+import fiftyone.zoo as foz
+
+from super_gradients.training import models
+
+dataset = foz.load_zoo_dataset("quickstart", max_samples=25)
+dataset.select_fields().keep_fields()
+
+model = models.get("yolo_nas_m", pretrained_weights="coco")
+
+dataset.apply_model(model, label_field="yolo_nas", confidence_thresh=0.7)
+
+session = fo.launch_app(dataset)
+```
+
+The SuperGradients YOLO-NAS model can be accessed directly from the FiftyOne Model Zoo:
+
+```python
+import fiftyone as fo
+import fiftyone.zoo as foz
+
+model = foz.load_zoo_model("yolo-nas-torch")
+
+dataset = foz.load_zoo_dataset("quickstart")
+dataset.apply_model(model, label_field="yolo_nas")
+
+session = fo.launch_app(dataset)
+```
+
+</details>
 
 
 ## Installation Methods

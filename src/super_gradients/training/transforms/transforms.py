@@ -32,7 +32,12 @@ from super_gradients.training.transforms.utils import (
     _rescale_xyxy_bboxes,
     _compute_scale_factor,
 )
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat, change_bbox_bounds_for_image_size
+from super_gradients.training.utils.detection_utils import (
+    get_mosaic_coordinate,
+    adjust_box_anns,
+    DetectionTargetsFormat,
+    change_bbox_bounds_for_image_size_inplace,
+)
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
@@ -739,7 +744,7 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
             cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
             cp_bboxes_transformed_np[:, [0, 2]] = cp_bboxes_transformed_np[:, [0, 2]] - x_offset
             cp_bboxes_transformed_np[:, [1, 3]] = cp_bboxes_transformed_np[:, [1, 3]] - y_offset
-            cp_bboxes_transformed_np = change_bbox_bounds_for_image_size(cp_bboxes_transformed_np, (target_h, target_w))
+            cp_bboxes_transformed_np = change_bbox_bounds_for_image_size_inplace(cp_bboxes_transformed_np, (target_h, target_w))
 
             mixup_boxes = np.concatenate([sample.bboxes_xyxy, cp_bboxes_transformed_np], axis=0)
             mixup_labels = np.concatenate([sample.labels, cp_sample.labels], axis=0)
