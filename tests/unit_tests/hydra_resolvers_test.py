@@ -14,6 +14,15 @@ class HydraResolversTest(unittest.TestCase):
         assert conf["a_plus_b"] == 3
         assert conf["a_plus_b_plus_c"] == 6
 
+    def test_div(self):
+        conf = OmegaConf.create({"a": 1, "b": 2, "a_div_b": "${div: ${a},${b}}"})
+        assert conf["a_div_b"] == 0.5
+
+    def test_mul(self):
+        conf = OmegaConf.create({"a": 1, "b": 2, "c": 4, "a_mul_b": "${mul: ${a},${b}}", "a_mul_b_mul_c": "${mul: ${a}, ${b}, ${c}}"})
+        assert conf["a_mul_b"] == 2
+        assert conf["a_mul_b_mul_c"] == 8
+
     def test_list(self):
         conf = OmegaConf.create(
             {
