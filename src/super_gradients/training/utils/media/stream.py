@@ -38,6 +38,9 @@ class WebcamStreaming:
             if sys.platform == "darwin":
                 message += " On macOS, you may need to grant the terminal access to the webcam in System Preferences."
                 message += " Check https://stackoverflow.com/search?q=OpenCV+macOS+camera+access for more information."
+            elif sys.platform == "nt":
+                message += " On Windows, you may need to grant the terminal access to the webcam in the settings."
+                message += " Check https://support.microsoft.com/en-us/windows/manage-app-permissions-for-your-camera-in-windows-87ebc757-1f87-7bbf-84b5-0686afb6ca6b#WindowsVersion=Windows_11 for more information."  # noqa
             raise ValueError("Could not open video capture device. " "Please check whether you have the webcam connected.")
 
         self._fps_counter = FPSCounter(update_frequency=fps_update_frequency)
