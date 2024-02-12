@@ -33,7 +33,7 @@ class KeypointsAnnotation:
 
     ann_boxes_xyxy: np.ndarray
     ann_is_crowd: np.ndarray
-    ann_area: np.ndarray
+    ann_areas: np.ndarray
     ann_keypoints: np.ndarray
     ann_segmentations: np.ndarray
 
@@ -108,7 +108,7 @@ def parse_coco_into_keypoints_annotations(
             image_height=image_height,
             ann_boxes_xyxy=ann_box_xyxy[mask],
             ann_is_crowd=ann_iscrowd[mask],
-            ann_area=ann_areas[mask],
+            ann_areas=ann_areas[mask],
             ann_keypoints=ann_keypoints[mask],
             ann_segmentations=ann_segmentations[mask],
         )
@@ -128,7 +128,7 @@ def parse_coco_into_keypoints_annotations(
 
             ann.ann_boxes_xyxy = ann.ann_boxes_xyxy[keep_mask]
             ann.ann_keypoints = ann.ann_keypoints[keep_mask]
-            ann.ann_area = ann.ann_area[keep_mask]
+            ann.ann_areas = ann.ann_areas[keep_mask]
             ann.ann_segmentations = ann.ann_segmentations[keep_mask]
             ann.ann_is_crowd = ann.ann_is_crowd[keep_mask]
 
