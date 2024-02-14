@@ -2,6 +2,7 @@ import sys
 import unittest
 
 from tests.integration_tests import EMAIntegrationTest, LRTest, PoseEstimationModelsIntegrationTest, YoloNASIntegrationTest, YoloNASPoseIntegrationTest
+from tests.integration_tests.coco_parsing_test import COCOParsingTest
 
 
 class CoreIntegrationTestSuiteRunner:
@@ -21,6 +22,7 @@ class CoreIntegrationTestSuiteRunner:
         self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(PoseEstimationModelsIntegrationTest))
         self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(YoloNASIntegrationTest))
         self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(YoloNASPoseIntegrationTest))
+        self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(COCOParsingTest))
 
 
 if __name__ == "__main__":
