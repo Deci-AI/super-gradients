@@ -1,9 +1,12 @@
 import dataclasses
 import json
+import numbers
 import os
+import pprint
 from enum import Enum
 from typing import Tuple, List, Dict
 
+import cv2
 import numpy as np
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -27,6 +30,7 @@ class CrowdAnnotationActionEnum(str, Enum):
 
 @dataclasses.dataclass
 class KeypointsAnnotation:
+    image_id: int
     image_path: str
     image_width: int
     image_height: int
@@ -103,6 +107,7 @@ def parse_coco_into_keypoints_annotations(
             image_path = os.path.join(image_path_prefix, image_path)
 
         ann = KeypointsAnnotation(
+            image_id=img_id,
             image_path=image_path,
             image_width=image_width,
             image_height=image_height,
@@ -141,18 +146,71 @@ def parse_coco_into_keypoints_annotations(
     return category_name, keypoints, annotations
 
 
-def rle2mask(rle: str, image_shape: Tuple[int, int]):
+def poly2mask(points: List, image: np.ndarray):
+    points = (np.array(points)).reshape(-1, 2).astype(int)
+    cv2.fillPoly(image, [points], 1)
+    return image
+
+
+def segmentation2mask(segmentation, image_shape: Tuple[int, int]):
+    """
+    Decode segmentation annotation into binary mask
+    :param segmentation: Input segmentation annotation. Can come in many forms:
+                         -
+    :param image_shape:
+    :return:
+    """
+    m = np.zeros(image_shape, dtype=np.uint8)
+
+    if isinstance(segmentation, list) and len(segmentation):
+        if isinstance(segmentation[0], numbers.Number):
+            if len(segmentation) == 4:
+                # box?
+                unsupported_input_repr = pprint.pformat(segmentation)
+                raise ValueError(
+                    "Box encoding is not supported yet.\n"
+                    "Please open an issue on GitHub (https://github.com/Deci-AI/super-gradients/issues) and attach the following information:\n"
+                    "```python\n"
+                    f"image_shape = {image_shape}\n"
+                    f"segmentation = {unsupported_input_repr}\n"
+                    "```python\n"
+                )
+            else:
+                poly2mask(segmentation, m)
+        else:
+            for seg_i in segmentation:
+                poly2mask(seg_i, m)
+    elif isinstance(segmentation, dict) and "counts" in segmentation and "size" in segmentation:
+        rle = segmentation["counts"]
+        m = rle2mask(rle, image_shape)
+    else:
+        unsupported_input_repr = pprint.pformat(segmentation)
+        raise ValueError(
+            "Unknown segmentation format\n"
+            "Please open an issue on GitHub (https://github.com/Deci-AI/super-gradients/issues) and attach the following information:\n"
+            "```python\n"
+            f"image_shape = {image_shape}\n"
+            f"segmentation = {unsupported_input_repr}\n"
+            "```python\n"
+        )
+    return m
+
+
+def rle2mask(rle: np.ndarray, image_shape: Tuple[int, int]):
     """
     Convert RLE to binary mask
     :param rle: A string containing RLE-encoded mask
     :param image_shape: Output image shape (rows, cols)
     :return: A decoded binary mask
     """
-    s = rle.split()
-    starts, lengths = [np.asarray(x, dtype=int) for x in (s[0:][::2], s[1:][::2])]
-    starts -= 1
-    ends = starts + lengths
+    rle = np.array(rle, dtype=int)
+
+    value = 0
+    start = 0
     img = np.zeros(image_shape[0] * image_shape[1], dtype=np.uint8)
-    for lo, hi in zip(starts, ends):
-        img[lo:hi] = 1
-    return img.reshape(image_shape)
+    for offset in rle:
+        img[start : start + offset] = value
+        start += offset
+        value = 1 - value
+
+    return img.reshape(*reversed(image_shape)).T

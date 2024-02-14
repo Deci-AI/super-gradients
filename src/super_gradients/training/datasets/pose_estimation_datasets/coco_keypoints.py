@@ -3,18 +3,21 @@ from typing import Tuple, List, Mapping, Any, Union
 
 import cv2
 import numpy as np
-from torch import Tensor
-
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.object_names import Datasets, Processings
-from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.target_generator_factory import TargetGeneratorsFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.common.object_names import Datasets, Processings
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyxy_to_xywh
 from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
-from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import parse_coco_into_keypoints_annotations, CrowdAnnotationActionEnum, rle2mask
+from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
+    parse_coco_into_keypoints_annotations,
+    CrowdAnnotationActionEnum,
+    segmentation2mask,
+)
 from super_gradients.training.transforms.keypoint_transforms import KeypointTransform
+from torch import Tensor
 
 logger = get_logger(__name__)
 
@@ -175,11 +178,11 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         :return: Float mask of [H,W] shape (same as image dimensions),
             where 1.0 values corresponds to pixels that should contribute to the loss, and 0.0 pixels indicates areas that should be excluded.
         """
-        m = np.zeros(image_shape, dtype=np.float32)
+        m = np.zeros(image_shape, dtype=bool)
 
         for segmentation in segmentations:
-            mask = rle2mask(segmentation, image_shape)
-            m += mask
+            mask = segmentation2mask(segmentation, image_shape)
+            m[mask] = True
 
         return (m < 0.5).astype(np.float32)
 
