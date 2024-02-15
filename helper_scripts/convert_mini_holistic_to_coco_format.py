@@ -21,6 +21,18 @@ from utils import load_json, dump_json
 # Known issue with labels:
 # OptimalEstimationMethodologies-for-PanelDataRegressionModels-pg9-12.pdf has 4 pages,
 # LS annotations point to pages 250-253
+#
+# There are 2 entries for 'NASA-SNA-8-D-027III-Rev2-CsmLmSpacecraftOperationalDataBook-Volume3-MassPr.pdf'
+# There are 2 files with this pattern:
+#       * NASA-SNA-8-D-027III-Rev2-CsmLmSpacecraftOperationalDataBook-Volume3-MassProperties-Pg54.pdf
+#       * NASA-SNA-8-D-027III-Rev2-CsmLmSpacecraftOperationalDataBook-Volume3-MassProperties-pg856.pdf
+# No information how to match anno with documents
+# 
+# There are multiple annotation entries for: Huang_Improving_Table_Structure_Recognition_With_Visual-Alignment_Sequential_Coordinate_Modeling_CVPR_2023_paper-p6.pdf
+# pdf2img library can not open this file.
+#
+# pdf2img library can not open: intel-extension-for-transformers intel_extension_for_transformers llm runtime graph docs infinite_in.pdf
+#pdf2img library can not open: intel_intel-extension-for-transformers_ Build your chatbot within minutes on your favorite device.pdf
 
 FP_MAPPING = {
     "wisconsin-sample-license.pdf": "wisconsin-sample-license.jpeg",
@@ -39,12 +51,16 @@ FP_MAPPING = {
     "intel-extension-for-transformers intel extension for transformers llm runt.pdf": "intel-extension-for-transformers intel_extension_for_transformers llm runtime graph docs infinite_in.pdf",
     "intel intel-extension-for-transformers  Build your chatbot within minutes .pdf": "intel_intel-extension-for-transformers_ Build your chatbot within minutes on your favorite device.pdf",
     "Huang Improving Table Structure Recognition With Visual-Alignment Sequenti.pdf": "Huang_Improving_Table_Structure_Recognition_With_Visual-Alignment_Sequential_Coordinate_Modeling_CVPR_2023_paper-p6.pdf",
-    "scanned letter.pdf": "scanned_letter.png",
-    "LCD data table.pdf": "LCD_data_table.jpg",
-    "income-18445487 1.pdf": "income-18445487_1.jpg",
-    "example table.pdf": "example_table.jpg",
-    "cashflow-18445494 2.pdf": "cashflow-18445494_2.jpg",
-    "balance-18460658 57.pdf": "balance-18460658_57.jpg",
+    "scanned_letter.pdf": "scanned_letter.png",
+    "LCD_data_table.pdf": "LCD_data_table.jpg",
+    "income-18445487_1.pdf": "income-18445487_1.jpg",
+    "example_table.pdf": "example_table.jpg",
+    "cashflow-18445494_2.pdf": "cashflow-18445494_2.jpg",
+    "balance-18460658_57.pdf": "balance-18460658_57.jpg",
+    "intel-extension-for-transformers_intel_extension_for_transformers_llm_runt.pdf": "intel-extension-for-transformers intel_extension_for_transformers llm runtime graph docs infinite_in.pdf",
+    'intel_intel-extension-for-transformers__Build_your_chatbot_within_minutes_.pdf': "intel_intel-extension-for-transformers_ Build your chatbot within minutes on your favorite device.pdf",
+    'Huang_Improving_Table_Structure_Recognition_With_Visual-Alignment_Sequenti.pdf': "Huang_Improving_Table_Structure_Recognition_With_Visual-Alignment_Sequential_Coordinate_Modeling_CVPR_2023_paper-p6.pdf",
+    
 }
 
 
@@ -123,12 +139,18 @@ def main(
             if mapped:
                 file_path = Path(FP_MAPPING.get(file_path.name, None))
             else:
-                file_path = Path(str(file_path).replace("_", " "))
-                if not file_path.exists():
+                modified = Path(str(file_path).replace("_", " "))
+                if modified.exists():
+                    file_path = modified
+                else:
                     print(f"{file_path} doesn't exist.")
                     continue
         if file_path.suffix == ".pdf":
-            pdf_images = convert_from_path(file_path)
+            try:
+                pdf_images = convert_from_path(file_path)
+            except:
+                print(f"Couldn't open file: {file_path}")
+                continue
             if len(pdf_images) < 1:
                 print(f"Found 0 images in file: {file_path}")
                 continue
@@ -136,7 +158,7 @@ def main(
                 print(f"Page id {page_id} is too high for file: {file_path} with {len(pdf_images)} pages.")
                 continue
             output_img = pdf_images[page_id]
-            output_img_name = f"{file_path.name.replace('.pdf','')}_{page_id}.jpg"
+            output_img_name = f"{file_path.name.replace('.pdf','')}_{page_id}.png"
         else:
             page_id = 0
             file_path = docs_dir / file_path
