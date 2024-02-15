@@ -218,7 +218,8 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ### Pose Estimation
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb) [Pose Estimation Transfer Learning](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/YoloNAS_Pose_Fine_Tuning_Animals_Pose_Dataset.ipynb) [Fine Tuning YoloNAS-Pose on AnimalPose dataset](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/YoloNAS_Pose_Fine_Tuning_Animals_Pose_Dataset.ipynb)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb) [Fine Tuning DEKR on AnimalPose dataset](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb)
 
 
 ###  Object Detection

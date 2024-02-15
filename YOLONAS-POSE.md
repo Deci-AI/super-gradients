@@ -72,9 +72,12 @@ We provide training recipies for training YOLO-NAS-POSE on COCO, CrowdPose and A
     </td>
 </tr>
 <tr>
-    <td>   
-        <a target="_blank" href="https://colab.research.google.com/drive/1agLj0aGx48C_rZPrTkeA18kuncack6lF">
-            <img src="./documentation/assets/SG_img/colab_logo.png" /> Fine-Tune YoloNAS Pose on AnimalPose dataset Notebook
+    <td>
+        <a href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/YoloNAS_Pose_Fine_Tuning_Animals_Pose_Dataset.ipynb">
+            <img src="./documentation/assets/SG_img/colab_logo.png" alt="Open In Colab" />
+        </a>
+        <a href="https://github.com/Deci-AI/super-gradients/blob/master/notebooks/YoloNAS_Pose_Fine_Tuning_Animals_Pose_Dataset.ipynb">
+            Fine Tuning YoloNAS-Pose on AnimalPose dataset
         </a>
     </td>
 </tr>
