@@ -397,7 +397,7 @@ class Trainer:
         )
 
         # TEST
-        valid_metrics_dict = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
+        valid_metrics_dict = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list, cfg=cfg)
 
         results = ["Validate Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
@@ -725,6 +725,10 @@ class Trainer:
             self.phase_callback_handler.on_validation_end_best_epoch(context)
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(curr_tracked_metric))
 
+            if self.neptune_run is not None:
+                best_checkpoint_path = f"{self.checkpoints_dir_path}/{self.ckpt_best_name}"
+                self.neptune_run["checkpoint_best"].upload(best_checkpoint_path)
+
         if self.training_params.average_best_models:
             net_for_averaging = unwrap_model(self.ema_model.ema if self.ema else self.net)
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_dict=validation_results_dict)
@@ -733,6 +737,11 @@ class Trainer:
             for key_to_remove in ["optimizer_state_dict", "scaler_state_dict", "ema_net"]:
                 _ = state.pop(key_to_remove, None)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
+
+            # UNCOMMENT IF YOU WANT TO LOG AVERAGE CHECKPOINT
+            # if self.neptune_run is not None:
+            #     average_checkpoint_path = f"{self.checkpoints_dir_path}/{self.average_model_checkpoint_filename}"
+            #     self.neptune_run["checkpoint_average"].upload(average_checkpoint_path)
 
     def _prep_net_for_train(self) -> None:
         if self.arch_params is None:
@@ -1251,7 +1260,7 @@ class Trainer:
         if not self.ddp_silent_mode:
             self._initialize_sg_logger_objects(additional_configs_to_log)
 
-        self._initialize_neptune_run(additional_configs_to_log)
+        self._initialize_neptune_run_train(additional_configs_to_log)
 
         # SET RANDOM SEED
         random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
@@ -1464,6 +1473,9 @@ class Trainer:
             valid_metrics=self.valid_metrics,
         )
         self.phase_callback_handler.on_training_start(context)
+        if self.neptune_run is not None:
+            self.neptune_run["experiment_name"] = self.experiment_name
+            self.neptune_run["checkpoints_dir_path"] = self.checkpoints_dir_path
 
         # Check if the model supports sliding window inference.
         model = unwrap_model(context.net)
@@ -1656,6 +1668,10 @@ class Trainer:
 
             # PHASE.TRAIN_END
             self.phase_callback_handler.on_training_end(context)
+            if self.neptune_run is not None:
+                experiment_logs_name = [filename for filename in os.listdir(self.checkpoints_dir_path) if "experiment_logs_" in filename][0]
+                experiment_logs_path = f"{self.checkpoints_dir_path}/{experiment_logs_name}"
+                self.neptune_run["experiments_logs"].upload(experiment_logs_path)
 
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
@@ -1934,19 +1950,47 @@ class Trainer:
         """
         self.phase_callbacks.append(MetricsUpdateCallback(phase))
 
-    def _initialize_neptune_run(self, additional_configs_to_log: Dict = None):
+    def _initialize_neptune_run_test(self, configs: Dict = None):
         """Initialize Neptune Run for logging."""
-        neptune_logging = core_utils.get_param(self.training_params, "neptune_logging")
+        neptune_logging = dict(configs.get("training_hyperparams").get("neptune_logging")) if configs.get("training_hyperparams") is not None else None
         if neptune_logging:
-            self.neptune_run = neptune.init_run(
-                project=env_variables.NEPTUNE_PROJECT,
-                api_token=env_variables.NEPTUNE_API_TOKEN,
-                **neptune_logging)
+            if neptune_logging.get("tags") is not None:
+                neptune_logging["tags"] = list(neptune_logging["tags"])
+            self.neptune_run = neptune.init_run(project=env_variables.NEPTUNE_PROJECT, api_token=env_variables.NEPTUNE_API_TOKEN, **neptune_logging)
             logger.info("Neptune Run initialized")
-            self.neptune_run["configs"] = additional_configs_to_log
+            self.neptune_run["configs"] = configs
+            self.neptune_run["configs"]["dataset_params"]["val_dataset_params"]["transforms"] = str(
+                configs["dataset_params"]["val_dataset_params"]["transforms"]
+            )
+            valid_split_path = f'{configs["dataset_params"]["val_dataset_params"]["data_dir"]}/{configs["dataset_params"]["val_dataset_params"]["json_file"]}'
+            self.neptune_run["valid_split"].upload(valid_split_path)
         else:
             logger.warning("Neptune logging is not enabled. To enable it, set `neptune_logging` in training_params.")
 
+    def _initialize_neptune_run_train(self, additional_configs_to_log: Dict = None):
+        """Initialize Neptune Run for logging."""
+        neptune_logging = core_utils.get_param(self.training_params, "neptune_logging")
+        if neptune_logging:
+            self.neptune_run = neptune.init_run(project=env_variables.NEPTUNE_PROJECT, api_token=env_variables.NEPTUNE_API_TOKEN, **neptune_logging)
+            logger.info("Neptune Run initialized")
+            hyper_param_config = self._get_hyper_param_config()
+            if additional_configs_to_log is not None:
+                hyper_param_config["additional_configs_to_log"] = additional_configs_to_log
+            self.neptune_run["configs"] = hyper_param_config
+
+            self.neptune_run["configs"]["dataset_params"]["train_dataset_params"]["transforms"] = str(
+                hyper_param_config["dataset_params"]["train_dataset_params"]["transforms"]
+            )
+            self.neptune_run["configs"]["dataset_params"]["valid_dataset_params"]["transforms"] = str(
+                hyper_param_config["dataset_params"]["valid_dataset_params"]["transforms"]
+            )
+
+            train_split_path = f'{hyper_param_config["dataset_params"]["train_dataset_params"]["data_dir"]}/{hyper_param_config["dataset_params"]["train_dataset_params"]["json_file"]}'
+            valid_split_path = f'{hyper_param_config["dataset_params"]["valid_dataset_params"]["data_dir"]}/{hyper_param_config["dataset_params"]["valid_dataset_params"]["json_file"]}'
+            self.neptune_run["train_split"].upload(train_split_path)
+            self.neptune_run["valid_split"].upload(valid_split_path)
+        else:
+            logger.warning("Neptune logging is not enabled. To enable it, set `neptune_logging` in training_params.")
 
     def _initialize_sg_logger_objects(self, additional_configs_to_log: Dict = None):
         """Initialize object that collect, write to disk, monitor and store remotely all training outputs"""
@@ -2074,6 +2118,7 @@ class Trainer:
         metrics_progress_verbose=False,
         test_phase_callbacks=None,
         use_ema_net=True,
+        **kwargs,
     ) -> Dict[str, float]:
         """
         Evaluates the model on given dataloader and metrics.
@@ -2089,6 +2134,7 @@ class Trainer:
         All of the above args will override Trainer's corresponding attribute when not equal to None. Then evaluation
          is ran on self.test_loader with self.test_metrics.
         """
+        cfg = kwargs.get("cfg")
 
         self.net = model or self.net
 
@@ -2118,6 +2164,10 @@ class Trainer:
             context.update_context(net=self.net)
             context.update_context(test_loader=test_loader)
 
+        self._initialize_neptune_run_test(cfg)
+        if self.neptune_run is not None:
+            self.neptune_run["experiment_name"] = self.experiment_name
+
         self.phase_callback_handler.on_test_loader_start(context)
         test_results = self.evaluate(
             data_loader=test_loader,
@@ -2133,6 +2183,10 @@ class Trainer:
             self.net = keep_model
 
         self._first_backward = True
+
+        if self.neptune_run is not None:
+            for k in test_results:
+                self.neptune_run[k] = test_results[k]
 
         return test_results
 
