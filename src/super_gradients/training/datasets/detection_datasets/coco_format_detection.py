@@ -44,7 +44,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
     ):
         """
         :param data_dir:                Where the data is stored.
-        :param json_annotation_file:    Name of the coco json file. Path relative to data_dir.
+        :param json_annotation_file:    Name of the coco json file. Path can be either absolute, or relative to data_dir.
         :param images_dir:              Name of the directory that includes all the images. Path relative to data_dir.
         :param with_crowd:              Add the crowd groundtruths to __getitem__
         :param class_ids_to_ignore:     List of class ids to ignore in the dataset. By default, doesnt ignore any class.
@@ -82,7 +82,10 @@ class COCOFormatDetectionDataset(DetectionDataset):
         Parse COCO annotation file
         :return: Number of images in annotation JSON
         """
-        annotation_file_path = os.path.join(self.data_dir, self.json_annotation_file)
+        if os.path.isabs(self.json_annotation_file):
+            annotation_file_path = self.json_annotation_file
+        else:
+            annotation_file_path = os.path.join(self.data_dir, self.json_annotation_file)
         if not os.path.exists(annotation_file_path):
             raise ValueError("Could not find annotation file under " + str(annotation_file_path))
 
