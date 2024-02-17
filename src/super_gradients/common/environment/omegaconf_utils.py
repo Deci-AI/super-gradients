@@ -1,5 +1,7 @@
 import importlib
+import operator
 import sys
+from functools import reduce
 from typing import Any
 
 from omegaconf import OmegaConf, DictConfig
@@ -84,6 +86,8 @@ def register_hydra_resolvers():
     OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
     OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
     OmegaConf.register_new_resolver("add", lambda *args: sum(args), replace=True)
+    OmegaConf.register_new_resolver("div", lambda x, y: x / y, replace=True)
+    OmegaConf.register_new_resolver("mul", lambda *args: reduce(operator.mul, args[1:], args[0]), replace=True)
     OmegaConf.register_new_resolver("cond", lambda boolean, x, y: x if boolean else y, replace=True)
     OmegaConf.register_new_resolver("getitem", lambda container, key: container[key], replace=True)  # get item from a container (list, dict...)
     OmegaConf.register_new_resolver("first", lambda lst: lst[0], replace=True)  # get the first item from a list
