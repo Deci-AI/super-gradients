@@ -194,6 +194,7 @@ class Samplers:
 
     REPEAT_AUG = "RepeatAugSampler"
     DISTRIBUTED = "DistributedSampler"
+    DISTRIBUTED_DETECTION_CLASS_BALANCING = "DistributedDetectionClassBalancingSampler"
     SEQUENTIAL = "SequentialSampler"
     SUBSET_RANDOM = "SubsetRandomSampler"
     RANDOM = "RandomSampler"
