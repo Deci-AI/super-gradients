@@ -22,6 +22,7 @@ nav:
     - Computer Vision Datasets: ./src/super_gradients/training/datasets/Dataset_Setup_Instructions.md
     - Dataset Adapter: ./documentation/source/dataloader_adapter.md
   - Loss functions: ./documentation/source/Losses.md
+  - LR Assignment: ./documentation/source/LRAssignment.md
   - LR schedulers: ./documentation/source/LRScheduling.md
   - Metrics: ./documentation/source/Metrics.md
   - Optimizers: ./documentation/source/optimizers.md

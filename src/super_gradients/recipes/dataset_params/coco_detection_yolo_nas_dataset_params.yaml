@@ -121,7 +121,6 @@ train_dataset_params:
     - DetectionTargetsFormatTransform:
         output_format: LABEL_CXCYWH
 
-  tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:
   with_crowd: False
@@ -153,7 +152,6 @@ val_dataset_params:
     - DetectionTargetsFormatTransform:
         input_dim: [640, 640]
         output_format: LABEL_CXCYWH
-  tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:
   with_crowd: True

@@ -1,10 +1,14 @@
+import sys
+
 import cv2
 import numpy as np
 import time
 from typing import Callable, Optional
-
+from super_gradients.common.abstractions.abstract_logger import get_logger
 
 __all__ = ["WebcamStreaming"]
+
+logger = get_logger(__name__)
 
 
 class WebcamStreaming:
@@ -30,7 +34,14 @@ class WebcamStreaming:
         self.frame_processing_fn = frame_processing_fn
         self.cap = cv2.VideoCapture(capture)
         if not self.cap.isOpened():
-            raise ValueError("Could not open video capture device")
+            message = "Could not open video capture device. Please check whether you have the webcam connected."
+            if sys.platform == "darwin":
+                message += " On macOS, you may need to grant the terminal access to the webcam in System Preferences."
+                message += " Check https://stackoverflow.com/search?q=OpenCV+macOS+camera+access for more information."
+            elif sys.platform == "nt":
+                message += " On Windows, you may need to grant the terminal access to the webcam in the settings."
+                message += " Check https://support.microsoft.com/en-us/windows/manage-app-permissions-for-your-camera-in-windows-87ebc757-1f87-7bbf-84b5-0686afb6ca6b#WindowsVersion=Windows_11 for more information."  # noqa
+            raise ValueError(message)
 
         self._fps_counter = FPSCounter(update_frequency=fps_update_frequency)
 
@@ -39,22 +50,30 @@ class WebcamStreaming:
 
         Press 'q' to quit the streaming.
         """
-        while not self._stop():
-            self._display_single_frame()
+        while not self._stop() and self._display_single_frame():
+            pass
 
-    def _display_single_frame(self) -> None:
+    def _display_single_frame(self) -> bool:
         """Read a single frame from the video capture device, apply any specified frame processing,
         and display the resulting frame in the window.
 
         Also updates the FPS counter and displays it in the frame.
         """
         _ret, frame = self.cap.read()
+        if not _ret or frame is None:
+            logger.warning("Could not read frame from video capture device.")
+            return False
 
         if self.frame_processing_fn:
+            # Convert the frame to RGB since this is the format expected
+            # by the predict function
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = self.frame_processing_fn(frame)
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
         _write_fps_to_frame(frame, self.fps)
         cv2.imshow(self.window_name, frame)
+        return _ret
 
     def _stop(self) -> bool:
         """Stopping condition for the streaming."""

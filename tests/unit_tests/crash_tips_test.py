@@ -11,6 +11,7 @@ from super_gradients.common.crash_handler.crash_tips import (
     DDPNotInitializedTip,
     WrongHydraVersionTip,
     InterpolationKeyErrorTip,
+    SGLoggerIsNoneTip,
 )
 
 
@@ -51,6 +52,10 @@ class CrashTipTest(unittest.TestCase):
             DocumentedException(
                 exc_value=omegaconf.errors.InterpolationKeyError("omegaconf.errors.InterpolationKeyError: Interpolation key 'x' not found"),
                 expected_crash_tip=InterpolationKeyErrorTip,
+            ),
+            DocumentedException(
+                exc_value=AttributeError("AttributeError: 'NoneType' object has no attribute 'add_scalar'"),
+                expected_crash_tip=SGLoggerIsNoneTip,
             ),
         ]
 

@@ -4,6 +4,7 @@ from super_gradients.training.models.classification_models.repvgg import RepVggA
 from super_gradients.training.utils.utils import HpmStruct
 import torch
 import copy
+import numpy as np
 
 
 class BackboneBasedModel(torch.nn.Module):
@@ -46,33 +47,40 @@ class TestRepVgg(unittest.TestCase):
         """
         image_size = 224
         in_channels = 3
+
         for arch_name in ARCHITECTURES:
             # skip custom constructors to keep all_arch_params as general as a possible
             if "repvgg" not in arch_name or "custom" in arch_name:
                 continue
-            model = ARCHITECTURES[arch_name](arch_params=self.all_arch_params)
-            self.assertTrue(hasattr(model.stem, "branch_3x3"))  # check single layer for training mode
-            self.assertTrue(model.build_residual_branches)
 
-            training_mode_sd = model.state_dict()
-            for module in training_mode_sd:
-                self.assertFalse("reparam" in module)  # deployment block included in training mode
-            test_input = torch.ones((1, in_channels, image_size, image_size))
-            model.eval()
-            training_mode_output = model(test_input)
+            with self.subTest(arch_name=arch_name):
+                # Set the seed to 0 to ensure that the model is initialized with the same weights
+                torch.manual_seed(0)
+                model = ARCHITECTURES[arch_name](arch_params=self.all_arch_params)
+                self.assertTrue(hasattr(model.stem, "branch_3x3"))  # check single layer for training mode
+                self.assertTrue(model.build_residual_branches)
 
-            model.prep_model_for_conversion()
-            self.assertTrue(hasattr(model.stem, "rbr_reparam"))  # check single layer for training mode
-            self.assertFalse(model.build_residual_branches)
+                training_mode_sd = model.state_dict()
+                for module in training_mode_sd:
+                    self.assertFalse("reparam" in module)  # deployment block included in training mode
 
-            deployment_mode_sd = model.state_dict()
-            for module in deployment_mode_sd:
-                self.assertFalse("running_mean" in module)  # BN were not fused
-                self.assertFalse("branch" in module)  # branches were not joined
+                # Initializing input with 0.1 instead of 1.0 to move mean of input closer to 0
+                test_input = torch.ones((1, in_channels, image_size, image_size)) * 0.1
+                model.eval()
+                training_mode_output = model(test_input)
 
-            deployment_mode_output = model(test_input)
-            # difference is of very low magnitude
-            self.assertFalse(False in torch.isclose(training_mode_output, deployment_mode_output, atol=1e-4))
+                model.prep_model_for_conversion()
+                self.assertTrue(hasattr(model.stem, "rbr_reparam"))  # check single layer for training mode
+                self.assertFalse(model.build_residual_branches)
+
+                deployment_mode_sd = model.state_dict()
+                for module in deployment_mode_sd:
+                    self.assertFalse("running_mean" in module)  # BN were not fused
+                    self.assertFalse("branch" in module)  # branches were not joined
+
+                deployment_mode_output = model(test_input)
+                # difference is of very low magnitude
+                np.testing.assert_array_almost_equal(training_mode_output.detach().numpy(), deployment_mode_output.detach().numpy(), decimal=4)
 
     def test_backbone_mode(self):
         """
@@ -80,6 +88,8 @@ class TestRepVgg(unittest.TestCase):
         """
         image_size = 224
         in_channels = 3
+        # Set the seed to 0 to ensure that the model is initialized with the same weights
+        torch.manual_seed(0)
         test_input = torch.rand((1, in_channels, image_size, image_size))
         backbone_model = RepVggA1(self.backbone_arch_params)
         model = BackboneBasedModel(backbone_model, backbone_output_channel=1280, num_classes=self.backbone_arch_params.num_classes)
