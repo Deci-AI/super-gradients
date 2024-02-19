@@ -12,7 +12,7 @@ from super_gradients.common.data_interface.adnn_model_repository_data_interface 
 from super_gradients.common.data_types import StrictLoad
 from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
 from super_gradients.module_interfaces import HasPredict
-from super_gradients.training.pretrained_models import MODEL_URLS
+from super_gradients.training.pretrained_models import MODEL_URLS, DATASET_LICENSES
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
 from super_gradients.common.environment.ddp_utils import get_local_rank
 from super_gradients.training.utils.utils import unwrap_model
@@ -23,7 +23,6 @@ try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
 except (ModuleNotFoundError, ImportError, NameError):
     from torch.hub import _download_url_to_file as download_url_to_file
-
 
 logger = get_logger(__name__)
 
@@ -52,8 +51,8 @@ def transfer_weights(model: nn.Module, model_state_dict: Mapping[str, Tensor]) -
     percentage_of_checkpoint = transfered_weights / len(model_state_dict)
     percentage_of_model = transfered_weights / len(model.state_dict())
     logger.debug(
-        f"Transfered {transfered_weights} ({(100*percentage_of_checkpoint):.2f}%) weights from the checkpoint. "
-        f"{(100*percentage_of_model):.2f}% of the model layers were initialized using checkpoint."
+        f"Transfered {transfered_weights} ({(100 * percentage_of_checkpoint):.2f}%) weights from the checkpoint. "
+        f"{(100 * percentage_of_model):.2f}% of the model layers were initialized using checkpoint."
     )
 
 
@@ -1562,6 +1561,13 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     if model_url_key not in MODEL_URLS.keys():
         raise MissingPretrainedWeightsException(model_url_key)
 
+    if pretrained_weights in DATASET_LICENSES:
+        logger.warning(
+            f"The pre-trained models provided by SuperGradients may have their own licenses or terms and "
+            "conditions derived from the dataset used for pre-training.\n It is your responsibility to determine whether you "
+            "have permission to use the models for your use case.\n The model you have requested was pre-trained on the "
+            f"{pretrained_weights} dataset, published under the following terms: {DATASET_LICENSES[pretrained_weights]}"
+        )
     url = MODEL_URLS[model_url_key]
 
     if architecture in {Models.YOLO_NAS_S, Models.YOLO_NAS_M, Models.YOLO_NAS_L}:
