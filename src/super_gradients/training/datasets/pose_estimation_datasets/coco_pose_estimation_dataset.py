@@ -3,7 +3,6 @@ from typing import Tuple, List, Union
 
 import cv2
 import numpy as np
-
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
@@ -15,7 +14,7 @@ from super_gradients.training.datasets.pose_estimation_datasets.abstract_pose_es
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
     CrowdAnnotationActionEnum,
     parse_coco_into_keypoints_annotations,
-    rle2mask,
+    segmentation2mask,
 )
 from super_gradients.training.samples import PoseEstimationSample
 from super_gradients.training.transforms.keypoint_transforms import AbstractKeypointTransform
@@ -154,11 +153,11 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
         :return: Float mask of [H,W] shape (same as image dimensions),
             where 1.0 values corresponds to pixels that should contribute to the loss, and 0.0 pixels indicates areas that should be excluded.
         """
-        m = np.zeros(image_shape, dtype=np.float32)
+        m = np.zeros(image_shape, dtype=bool)
 
         for segmentation in segmentations:
-            mask = rle2mask(segmentation, image_shape)
-            m += mask
+            mask = segmentation2mask(segmentation, image_shape)
+            m[mask] = True
 
         return (m < 0.5).astype(np.float32)
 
