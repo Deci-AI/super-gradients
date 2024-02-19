@@ -1563,7 +1563,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
 
     if pretrained_weights in DATASET_LICENSES:
         logger.warning(
-            f"The pre-trained models provided by SuperGradients may have their own licenses or terms and "
+            f":warning: The pre-trained models provided by SuperGradients may have their own licenses or terms and "
             "conditions derived from the dataset used for pre-training.\n It is your responsibility to determine whether you "
             "have permission to use the models for your use case.\n The model you have requested was pre-trained on the "
             f"{pretrained_weights} dataset, published under the following terms: {DATASET_LICENSES[pretrained_weights]}"
