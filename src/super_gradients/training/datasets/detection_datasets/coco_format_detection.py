@@ -161,6 +161,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
 
 @dataclasses.dataclass
 class DetectionAnnotation:
+    image_id: int
     image_path: str
     image_width: int
     image_height: int
@@ -276,6 +277,7 @@ def parse_coco_into_detection_annotations(
             image_path = os.path.join(image_path_prefix, image_path)
 
         ann = DetectionAnnotation(
+            image_id=img_id,
             image_path=image_path,
             image_width=image_width,
             image_height=image_height,
