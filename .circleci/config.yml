@@ -517,7 +517,7 @@ jobs:
           tag: $CIRCLE_TAG
           notes: "This GitHub Release was done automatically by CircleCI"
 
-  hydra_sweeper_test:
+  sg_core_integration_tests_coverage:
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
@@ -543,7 +543,8 @@ jobs:
             python3.8 -m pip install -r requirements.dev.txt
             python3.8 -m pip install .
             python3.8 -m pip install torch torchvision torchaudio
-            make sweeper_test
+            coverage run --source=super_gradients -m unittest tests/deci_core_integration_test_suite_runner.py
+
 
       - run:
           name: Remove new environment when failed
@@ -947,6 +948,9 @@ workflows:
   sanity_tests:
      when:  << pipeline.parameters.run_sanity_tests_flow >>
      jobs:
+       - sg_core_integration_tests_coverage:
+           context:
+             - slack
        - hydra_sweeper_test:
            context:
              - slack
@@ -1000,6 +1004,10 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
+      - sg_core_integration_tests_coverage:
+          context:
+            - slack
+          <<: *release_tag_filter
       - hydra_sweeper_test:
           context:
             - slack
@@ -1036,6 +1044,7 @@ workflows:
           py_version: "3.8"
           requires:
             - "build3.8"
+            - sg_core_integration_tests_coverage
             - hydra_sweeper_test
             - recipe_accuracy_tests
             - recipe_sanity_tests_classification_pt1
