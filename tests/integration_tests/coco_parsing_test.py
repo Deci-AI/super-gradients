@@ -3,6 +3,8 @@ import unittest
 
 import numpy as np
 from pycocotools.coco import COCO
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy
+from super_gradients.training.datasets.detection_datasets.coco_format_detection import parse_coco_into_detection_annotations
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import parse_coco_into_keypoints_annotations, segmentation2mask
 
 
@@ -16,8 +18,45 @@ class COCOParsingTest(unittest.TestCase):
 
         self.keypoint_annotations = [
             "annotations/person_keypoints_val2017.json",
-            "annotations/person_keypoints_train2017.json",
         ]
+
+        self.detection_annotations = [
+            "annotations/person_keypoints_val2017.json",
+        ]
+
+    def test_detection_parsing(self):
+        for annotation_file in self.detection_annotations:
+            annotation_file = os.path.join(self.data_dir, annotation_file)
+            with self.subTest(annotation_file=annotation_file):
+                coco = COCO(annotation_file)
+                category_id_to_name = {category["id"]: category["name"] for category in coco.loadCats(coco.getCatIds())}
+
+                all_class_names, annotations = parse_coco_into_detection_annotations(
+                    annotation_file,
+                    exclude_classes=None,
+                    include_classes=None,
+                    image_path_prefix="",
+                )
+
+                self.assertEquals(len(annotations), len(coco.getImgIds()))
+
+                for annotation in annotations:
+                    img_id = annotation.image_id
+
+                    ann_ids = coco.getAnnIds(imgIds=[img_id])
+                    anns = coco.loadAnns(ann_ids)
+
+                    coco_boxes = np.array([ann["bbox"] for ann in anns], dtype=np.float32).reshape(-1, 4)
+                    coco_boxes_xyxy = xywh_to_xyxy(coco_boxes, image_shape=None)
+                    coco_classes = [ann["category_id"] for ann in anns]
+                    coco_class_names = [category_id_to_name[category_id] for category_id in coco_classes]
+                    coco_is_crowd = np.array([ann["iscrowd"] for ann in anns], dtype=np.bool).reshape(-1)
+
+                    ann_class_names = [all_class_names[category_id] for category_id in annotation.ann_labels]
+
+                    self.assertArrayEqual(coco_class_names, ann_class_names)
+                    self.assertArrayEqual(coco_is_crowd, annotation.ann_is_crowd)
+                    self.assertArrayAlmostEqual(coco_boxes_xyxy, annotation.ann_boxes_xyxy, rtol=1e-5, atol=1)
 
     def test_keypoints_segmentation_masks(self):
         for annotation_file in self.keypoint_annotations:
@@ -78,6 +117,9 @@ class COCOParsingTest(unittest.TestCase):
 
     def assertArrayAlmostEqual(self, first, second, rtol, atol):
         self.assertTrue(np.allclose(first, second, rtol=rtol, atol=atol))
+
+    def assertArrayEqual(self, first, second):
+        self.assertTrue(np.array_equal(first, second))
 
 
 if __name__ == "__main__":
