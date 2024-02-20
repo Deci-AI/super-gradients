@@ -545,6 +545,34 @@ jobs:
             python3.8 -m pip install torch torchvision torchaudio
             coverage run --source=super_gradients -m unittest tests/deci_core_integration_test_suite_runner.py
 
+  hydra_sweeper_test:
+    docker:
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
+    resource_class: deci-ai/sg-gpu-on-premise
+    parameters:
+      sg_existing_env_path:
+        type: string
+        default: "/env/persistent_env"
+      sg_new_env_name:
+        type: string
+        default: "${CIRCLE_BUILD_NUM}"
+      sg_new_env_python_version:
+        type: string
+        default: "python3.8"
+    steps:
+      - checkout
+      - run:
+          name: install requirements and run recipe tests
+          command: |
+            << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
+            source << parameters.sg_new_env_name >>/bin/activate
+            python3.8 -m pip install --upgrade setuptools pip wheel
+            python3.8 -m pip install -r requirements.txt
+            python3.8 -m pip install -r requirements.dev.txt
+            python3.8 -m pip install .
+            python3.8 -m pip install torch torchvision torchaudio
+            make sweeper_test
+
 
       - run:
           name: Remove new environment when failed
