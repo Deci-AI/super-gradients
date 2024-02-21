@@ -94,6 +94,21 @@ def get_id_from_dict_list(dict_list: list[dict], key: any, value: any) -> any:
     for dict_ in dict_list:
         if dict_[key] == value:
             return dict_["id"]
+        
+
+def check_and_add_image(img_name, img, COCO_image_id, file_id, COCO_anno):
+    if img_name not in [image["file_name"] for image in COCO_anno["images"]]:
+        width, height = img.size
+        COCO_anno["images"].append({"width": width, "height": height, "id": COCO_image_id, "ls_id": file_id, "file_name": img_name})
+        COCO_image_id += 1
+    return COCO_anno, COCO_image_id
+
+
+def check_and_add_category(category, COCO_anno, COCO_category_id):
+    if category not in [cat["name"] for cat in COCO_anno["categories"]]:
+        COCO_anno["categories"].append({"id": COCO_category_id, "name": category})
+        COCO_category_id += 1
+    return COCO_anno, COCO_category_id
 
 
 def main(
@@ -165,10 +180,7 @@ def main(
             output_img = Image.open(file_path)
             output_img_name = file_path.name
 
-        if output_img_name not in [image["file_name"] for image in COCO_anno["images"]]:
-            width, height = output_img.size
-            COCO_anno["images"].append({"width": width, "height": height, "id": COCO_image_id, "ls_id": file_annotation["id"], "file_name": output_img_name})
-            COCO_image_id += 1
+        COCO_anno, COCO_image_id = check_and_add_image(output_img_name, output_img, COCO_image_id, file_annotation["id"], COCO_anno)
 
         output_image_path = output_img_dir / output_img_name
         output_img.save(output_image_path)
@@ -178,9 +190,7 @@ def main(
             for annotation in element["result"]:
                 if annotation["type"] == "labels":
                     category = annotation["value"]["labels"][0]
-                    if category not in [cat["name"] for cat in COCO_anno["categories"]]:
-                        COCO_anno["categories"].append({"id": COCO_category_id, "name": category})
-                        COCO_category_id += 1
+                    COCO_anno, COCO_category_id = check_and_add_category(category, COCO_anno, COCO_category_id)
 
                     x0 = annotation["value"]["x"] / 100 * annotation["original_width"]
                     y0 = annotation["value"]["y"] / 100 * annotation["original_height"]

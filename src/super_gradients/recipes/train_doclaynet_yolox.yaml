@@ -61,7 +61,11 @@ training_hyperparams:
   max_epochs: 100
   criterion_params:
     num_classes: ${arch_params.num_classes}
+  - DetectionMetrics:
+        num_cls: ${arch_params.num_classes}
+        include_classwise_ap: true
+        class_names: ${dataset_params.train_dataset_params.all_classes_list}
 
 architecture: yolox_l
 
-experiment_name: training_test_yolox
+experiment_name: training_test_doclaynet

@@ -47,5 +47,8 @@ class DocLayNetDetectionDataset(COCOFormatDetectionDataset):
         """
         kwargs.pop("subdir", None)
         kwargs.pop("root", None)
+        if "json_annotation_file" in kwargs:
+            json_file = kwargs["json_annotation_file"]
+            kwargs.pop("json_annotation_file", None)
 
         super().__init__(json_annotation_file=json_file, images_dir=images_dir, *args, **kwargs)

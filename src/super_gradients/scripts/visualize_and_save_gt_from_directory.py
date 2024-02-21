@@ -56,8 +56,9 @@ def main(
 
     colours = [(randint(0, 255), randint(0, 255), randint(0, 255)) for cl in dataset.classes]
 
-    for no, sample in enumerate(dataset):
-        image, target, _ = sample
+    for idx in range(len(dataset)):
+        image, target, img_path = dataset.get_named_item(idx)
+        img_name = Path(img_path).name
 
         for box in target:
             xmin, ymin, xmax, ymax, class_id = box
@@ -67,7 +68,7 @@ def main(
 
             image = draw_bbox(image, class_name, colour, box_thickness, x1=int(xmin), y1=int(ymin), x2=int(xmax), y2=int(ymax))
 
-        output_path = str(output_dir / f"sample_{no}.png")
+        output_path = str(output_dir / img_name)
         cv2.imwrite(output_path, image)
         print(f"Saved in: {output_path}.")
 

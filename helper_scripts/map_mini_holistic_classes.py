@@ -16,46 +16,128 @@ DOCLAYNET_CAT = [
     {"supercategory": "Title", "id": 11, "name": "Title"},
 ]
 
+UNSTRUCTURED_CAT = [
+    {'id': 0, 'name': 'image'},
+    {'id': 1, 'name': 'page_number'},
+    {'id': 2, 'name': 'paraprgaphs_in_image'},
+    {'id': 3, 'name': 'paraprgaph'},
+    {'id': 4, 'name': 'subheading'},
+    {'id': 5, 'name': 'page_header'},
+    {'id': 6, 'name': 'formulas'},
+    {'id': 7, 'name': 'other'},
+    {'id': 8, 'name': 'table'},
+    {'id': 9, 'name': 'page_footer'},
+    {'id': 10, 'name': 'title'},
+    {'id': 11, 'name': 'form'},
+    {'id': 12, 'name': 'paraprgaphs_in_form'},
+    {'id': 13, 'name': 'checkbox_checked'},
+    {'id': 14, 'name': 'checkbox'},
+    {'id': 15, 'name': 'radio_button'},
+    {'id': 16, 'name': 'radio_button_checked'},
+]
+
+MINIHOLISTIC_CAT = [
+    {'id': 0, 'name': 'Text'},
+    {'id': 1, 'name': 'Table'},
+    {'id': 2, 'name': 'NarrativeText'},
+    {'id': 3, 'name': 'Title'},
+    {'id': 4, 'name': 'Footer'},
+    {'id': 5, 'name': 'PageNumber'},
+    {'id': 6, 'name': 'Header'},
+    {'id': 7, 'name': 'ListItem'},
+    {'id': 8, 'name': 'Figure'},
+    {'id': 9, 'name': 'OtherText'},
+    {'id': 10, 'name': 'MajorTitle'},
+    {'id': 11, 'name': 'FieldName'},
+    {'id': 12, 'name': 'Value'},
+    {'id': 13, 'name': 'Form'},
+    {'id': 14, 'name': 'Image'},
+    {'id': 15, 'name': 'Caption'},
+    {'id': 16, 'name': 'List'},
+    {'id': 17, 'name': 'Checkbox'},
+    {'id': 18, 'name': 'Abstract'},
+    {'id': 19, 'name': 'Formula'},
+    {'id': 20, 'name': 'PageBreak'},
+]
+
 MINIHOLISTIC_DOCLAYNET_MAP = {
-    0: 10,
-    1: 9,
-    2: 10,
-    3: 11,
-    4: 5,
-    5: 5,
-    6: 6,
-    7: 4,
-    8: 7,
-    9: 10,
-    10: 11,
-    11: None,
-    12: None,
-    13: None,
-    14: 7,
-    15: 1,
-    16: 4,
-    17: None,
-    18: 10,
-    19: 3,
-    20: None,
-    # None: 2, 'name': 'Footnote'
-    # None: 8, 'name': 'Section-header'
+    "Text": None,
+    "Table": None,
+    "NarrativeText": None,
+    "Title": None,
+    "Footer": None,
+    "PageNumber": None,
+    "Header": None,
+    "ListItem": None,
+    "Figure": None,
+    "OtherText": None,
+    "MajorTitle": None,
+    "FieldName": None,
+    "Value": None,
+    "Form": None,
+    "Image": None,
+    "Caption": None,
+    "List": None,
+    "Checkbox": None,
+    "Abstract": None,
+    "Formula": None,
+    "PageBreak": None,
+}
+
+MINIHOLISTIC_UNSTRUCTURED_MAP = {
+    "Text": None,
+    "Table": 'table',
+    "NarrativeText": None,
+    "Title": None,
+    "Footer": None,
+    "PageNumber": None,
+    "Header": None,
+    "ListItem": None,
+    "Figure": None,
+    "OtherText": None,
+    "MajorTitle": None,
+    "FieldName": None,
+    "Value": None,
+    "Form": 'form',
+    "Image": 'image',
+    "Caption": None,
+    "List": None,
+    "Checkbox": None,
+    "Abstract": None,
+    "Formula": 'formulas',
+    "PageBreak": None,
 }
 
 COCO_PATH = Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/COCO/test.json")
-COCO_CONVERTED_PATH = Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/COCO/test_doclaynet_classes.json")
+COCO_CONVERTED_PATH = Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/COCO/test_unstructured_classes.json")
 
 COCO_anno = load_json(COCO_PATH)
 
-COCO_anno["categories"] = DOCLAYNET_CAT
+table_count = 0
+form_count = 0
+image_count = 0
+formula_count = 0
+
+COCO_anno["categories"] = UNSTRUCTURED_CAT
 mapped_annotations = []
 for annotation in COCO_anno["annotations"]:
-    mapped_id = MINIHOLISTIC_DOCLAYNET_MAP[annotation["category_id"]]
+    original_category = [cat for cat in MINIHOLISTIC_CAT if cat["id"] == annotation["category_id"]][0]
+    mapped_cat_name = MINIHOLISTIC_UNSTRUCTURED_MAP[original_category["name"]]
+    mapped_category = [cat for cat in UNSTRUCTURED_CAT if cat["name"] == mapped_cat_name][0] if mapped_cat_name is not None else None
+    mapped_id = mapped_category["id"] if mapped_category is not None else None
     if mapped_id is not None:
         annotation["category_id"] = mapped_id
         mapped_annotations.append(annotation)
+    if mapped_cat_name == 'table':
+        table_count += 1
+    elif mapped_cat_name == 'form':
+        form_count += 1
+    elif mapped_cat_name == 'image':
+        image_count += 1
+    elif mapped_cat_name == 'formulas':
+        formula_count += 1
 COCO_anno["annotations"] = mapped_annotations
 
-dump_json(COCO_CONVERTED_PATH, COCO_anno)
+#dump_json(COCO_CONVERTED_PATH, COCO_anno)
 
 print("Done")

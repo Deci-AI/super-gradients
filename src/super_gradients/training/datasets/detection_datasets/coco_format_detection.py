@@ -183,6 +183,26 @@ class COCOFormatDetectionDataset(DetectionDataset):
         }
         return annotation
 
+    def get_named_item(self, index: int) -> tuple:
+        """Get the sample post transforms at a specific index of the dataset.
+        Return also the image name.
+        The output of this function will be collated to form batches.
+
+        :param index:   Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        :return:        Sample, i.e. a dictionary including "image", "target", and "name"
+        """
+        sample = self.get_sample(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
+        sample = self.apply_transforms(sample)
+
+        sample_annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
+        sample["name"] = sample_annotations["img_path"]
+
+        output_fields = ["image", "target", "name"]
+        for field in output_fields:
+            if field not in sample.keys():
+                raise KeyError(f"The field {field} must be present in the sample but was not found." "Please check the output fields of your transforms.")
+        return tuple(sample[field] for field in output_fields)
+
 
 def remove_useless_info(coco: COCO, use_seg_info: bool = False) -> None:
     """

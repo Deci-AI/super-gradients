@@ -8,23 +8,23 @@ defaults:
   - variable_setup
 
 arch_params:
-  num_classes: 11
+  num_classes: 17
 
 checkpoint_params:
   load_checkpoint: True
-  checkpoint_path: /path/to/model/trained/on/DocLayNet/ckpt_best.pth
+  checkpoint_path: /path/to/model/trained/on/new/data/ckpt_best.pth
 
 # num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
 # Used when num_classes != checkpoint_num_class.
 # In this case, the module will be initialized with checkpoint_num_class, then weights will be loaded.
 # Finally model.replace_head(new_num_classes=num_classes) is called to replace the head with new_num_classes.
-checkpoint_num_classes: 11 # number of classes in the checkpoint
+checkpoint_num_classes: 17 # number of classes in the checkpoint
 
 dataset_params:
   val_dataset_params:
-    data_dir: /path/to/DocLayNet
-    images_dir: PNG
-    json_file: COCO/test.json
+    data_dir: /path/to/new/data/dir
+    images_dir: all_images
+    json_file: COCO/val.json
     transforms:
       - DetectionPaddedRescale:
           input_dim: [512, 512] 
@@ -45,9 +45,9 @@ training_hyperparams:
           _target_: super_gradients.training.models.detection_models.yolo_base.YoloXPostPredictionCallback
           iou: 0.65
           conf: 0.01
-        num_cls: 11
-        include_classwise_ap: true
-        class_names:
+        num_cls: 17
+        include_classwise_ap: false
+        class_names: [image, page_number, paraprgaphs_in_image, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, paraprgaphs_in_form, checkbox_checked, checkbox, radio_button, radio_button_checked]
 
 architecture: yolox_l
 

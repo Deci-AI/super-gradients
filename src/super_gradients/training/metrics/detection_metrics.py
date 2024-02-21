@@ -134,6 +134,8 @@ class DetectionMetrics(Metric):
             self.per_class_ap_names = [f"{state_dict_prefix}AP{self._get_range_str()}_{class_name}" for class_name in class_names]
             greater_component_is_better += [(key, True) for key in self.per_class_ap_names]
 
+        self.per_class_metric_names = [f"_{class_name}" for class_name in class_names]
+
         self.greater_component_is_better = collections.OrderedDict(greater_component_is_better)
         self.component_names = list(self.greater_component_is_better.keys())
         self.calc_best_score_thresholds = calc_best_score_thresholds
@@ -207,6 +209,10 @@ class DetectionMetrics(Metric):
         best_score_threshold_per_cls = np.zeros(self.num_cls)
         mean_ap_per_class = np.zeros(self.num_cls)
 
+        mean_precision_per_class = np.zeros(self.num_cls)
+        mean_recall_per_class = np.zeros(self.num_cls)
+        mean_f1_per_class = np.zeros(self.num_cls)
+
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
 
@@ -235,8 +241,16 @@ class DetectionMetrics(Metric):
 
             # Fill array of per-class AP scores with values for classes that were present in the dataset
             ap_per_class = ap_per_present_classes.mean(1)
+            precision_per_class = precision_per_present_classes.mean(1)
+            recall_per_class = recall_per_present_classes.mean(1)
+            f1_per_class = f1_per_present_classes.mean(1)
             for i, class_index in enumerate(present_classes):
                 mean_ap_per_class[class_index] = float(ap_per_class[i])
+
+                mean_precision_per_class[class_index] = float(precision_per_class[i])
+                mean_recall_per_class[class_index] = float(recall_per_class[i])
+                mean_f1_per_class[class_index] = float(f1_per_class[i])
+
                 best_score_threshold_per_cls[class_index] = float(best_score_thresholds_per_present_classes[i])
 
         output_dict = {
@@ -249,6 +263,21 @@ class DetectionMetrics(Metric):
         if self.include_classwise_ap:
             for i, ap_i in enumerate(mean_ap_per_class):
                 output_dict[self.per_class_ap_names[i]] = float(ap_i)
+
+        # per class precision
+        for i, precision_i in enumerate(mean_precision_per_class):
+            output_dict[f"Precision@0.50:0.95{self.per_class_metric_names[i]}"] = float(precision_i)
+            print(f"Precision@0.50:0.95{self.per_class_metric_names[i]}: {float(precision_i)}")
+
+        # per class recall
+        for i, recall_i in enumerate(mean_recall_per_class):
+            output_dict[f"Recall@0.50:0.95{self.per_class_metric_names[i]}"] = float(recall_i)
+            print(f"Recall@0.50:0.95{self.per_class_metric_names[i]}: {float(recall_i)}")
+
+        # per class f1
+        for i, f1_i in enumerate(mean_f1_per_class):
+            output_dict[f"F1@0.50:0.95{self.per_class_metric_names[i]}"] = float(f1_i)
+            print(f"F1@0.50:0.95{self.per_class_metric_names[i]}: {float(f1_i)}")
 
         if self.calc_best_score_thresholds:
             output_dict["Best_score_threshold"] = float(best_score_threshold)
