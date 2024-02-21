@@ -58,7 +58,7 @@ dataset_params:
           sgain: 30                       # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
           vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
       - DetectionRandomPaddedRescale:
-          input_dim: [[480,480],[512,512],[1024,1024]] # Add more different training resolutions (multiplications of 32)
+          input_dim: [[544,544],[576,576],[608,608],[640,640],[672,672],[704,704],[736,736]] # Add more different training resolutions (multiplications of 32)
       - DetectionTargetsFormatTransform:
           input_dim: [512, 512] 
           output_format: LABEL_CXCYWH
@@ -73,9 +73,8 @@ dataset_params:
     # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
     transforms:
       - DetectionPaddedRescale:
-          input_dim: [512, 512] 
+          input_dim: [640, 640] 
       - DetectionTargetsFormatTransform:
-          input_dim: [512, 512] 
           output_format: LABEL_CXCYWH
 
 
