@@ -3,9 +3,6 @@ from typing import Optional
 
 from torch.utils.data import Dataset, Sampler, DistributedSampler
 
-from super_gradients.common.object_names import Samplers
-from super_gradients.common.registry import register_sampler
-
 
 class DatasetFromSampler(Dataset):
     def __init__(self, sampler: Sampler):
