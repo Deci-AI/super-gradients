@@ -3,29 +3,17 @@ from typing import Optional
 
 from torch.utils.data import Dataset, Sampler, DistributedSampler
 
+from super_gradients.common.object_names import Samplers
+from super_gradients.common.registry import register_sampler
+
 
 class DatasetFromSampler(Dataset):
-    """Dataset to create indexes from `Sampler`.
-
-    Args:
-        sampler: PyTorch sampler
-    """
-
     def __init__(self, sampler: Sampler):
-        """Initialisation for DatasetFromSampler."""
         self.sampler = sampler
         self.sampler_list = None
 
     def __getitem__(self, index: int):
-        """Gets element of the dataset.
-
-        Args:
-            index: index of the element in the dataset
-
-        Returns:
-            Single element by index
-        """
-        if self.sampler_list is None:
+        if self.sampler_list is None:  # we don't instantiate the list in __init__ because want to shuffle first (happens in DistributedSamplerWrapper.__iter__)
             self.sampler_list = list(self.sampler)
         return self.sampler_list[index]
 

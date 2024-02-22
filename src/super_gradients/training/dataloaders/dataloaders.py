@@ -25,7 +25,7 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
 )
 from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets.rescoring_dataset import TrainRescoringDataset, ValTrainRescoringDataset
-from super_gradients.training.datasets.samplers import RepeatAugSampler
+from super_gradients.training.datasets.samplers import RepeatAugSampler, DistributedSamplerWrapper
 from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     CoCoSegmentationDataSet,
@@ -161,10 +161,10 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     is_dist = super_gradients.is_distributed()
     dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
     if get_param(dataloader_params, "sampler") is not None:
-        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+        dataloader_params = _instantiate_sampler(dataset, dataloader_params, is_dist)
     elif is_dist:
         dataloader_params["sampler"] = {"DistributedSampler": {}}
-        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+        dataloader_params = _instantiate_sampler(dataset, dataloader_params, is_dist)
         if get_param(dataloader_params, "min_samples") is not None:
             min_samples = dataloader_params.pop("min_samples")
             if len(dataset) < min_samples:
@@ -195,13 +195,17 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     return dataloader_params
 
 
-def _instantiate_sampler(dataset, dataloader_params):
+def _instantiate_sampler(dataset, dataloader_params, is_distributed: bool):
     sampler_name = list(dataloader_params["sampler"].keys())[0]
     if "shuffle" in dataloader_params.keys():
         # SHUFFLE IS MUTUALLY EXCLUSIVE WITH SAMPLER ARG IN DATALOADER INIT
         dataloader_params["sampler"][sampler_name]["shuffle"] = dataloader_params.pop("shuffle")
     dataloader_params["sampler"][sampler_name]["dataset"] = dataset
-    dataloader_params["sampler"] = SamplersFactory().get(dataloader_params["sampler"])
+    dataloader_params["sampler"] = SamplersFactory().get(dataloader_params["sampler"])  # a living object
+
+    if is_distributed and not isinstance(dataloader_params["sampler"], torch.utils.data.distributed.DistributedSampler):
+        dataloader_params["sampler"] = DistributedSamplerWrapper(dataloader_params["sampler"])
+
     return dataloader_params
 
 
