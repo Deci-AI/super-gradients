@@ -1,4 +1,4 @@
-from typing import Dict, Mapping, Optional
+from typing import Dict, Mapping
 
 import hydra
 import numpy as np
