@@ -1,4 +1,4 @@
-from typing import Dict, Mapping
+from typing import Dict, Mapping, Optional
 
 import hydra
 import numpy as np
@@ -161,10 +161,10 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     is_dist = super_gradients.is_distributed()
     dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
     if get_param(dataloader_params, "sampler") is not None:
-        dataloader_params = _instantiate_sampler(dataset, dataloader_params, is_dist)
+        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
     elif is_dist:
         dataloader_params["sampler"] = {"DistributedSampler": {}}
-        dataloader_params = _instantiate_sampler(dataset, dataloader_params, is_dist)
+        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
         if get_param(dataloader_params, "min_samples") is not None:
             min_samples = dataloader_params.pop("min_samples")
             if len(dataset) < min_samples:
@@ -195,7 +195,8 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     return dataloader_params
 
 
-def _instantiate_sampler(dataset, dataloader_params, is_distributed: bool):
+def _instantiate_sampler(dataset, dataloader_params):
+    is_distributed = super_gradients.is_distributed()
     sampler_name = list(dataloader_params["sampler"].keys())[0]
     if "shuffle" in dataloader_params.keys():
         # SHUFFLE IS MUTUALLY EXCLUSIVE WITH SAMPLER ARG IN DATALOADER INIT
