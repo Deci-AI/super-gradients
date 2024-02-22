@@ -1,5 +1,6 @@
 import collections
 import sys
+from itertools import chain
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -14,7 +15,7 @@ class DummyDataset(Dataset):
         self.length = length
 
     def __getitem__(self, index):
-        return index
+        return -index
 
     def __len__(self):
         return self.length
@@ -39,7 +40,7 @@ def aggregate_epoch(data_loader):
 
     for batch in data_loader:
         for element in batch:
-            results.append(element)
+            results.append(element.item())
     return results
 
 
@@ -63,6 +64,8 @@ if __name__ == "__main__":
     sampler = RepeatSampler(dataset, repeat_times=sampler_n_repeats)
     dataloader = DataLoader(dataset, batch_size=bs, sampler=sampler)
 
+    whole_epoch_data = list(chain.from_iterable([[-i] * sampler_n_repeats for i in range(data_size)]))
+
     # Test *non-distributed* sampler *in DDP mode*
     # THIS IS BAD EXAMPLE BECAUSE YOU EXPECT A DISTRIBUTED SAMPLER TO BE USED IN DDP MODE
     # The expected `len(dataloader)` when implemented correctly should ALSO be divided by `n_gpus`
@@ -71,8 +74,8 @@ if __name__ == "__main__":
         torch.distributed.destroy_process_group()
         sys.exit(1)
 
-    epoch_data = aggregate_epoch(dataloader)
-    if not compare_counts(epoch_data, [i for i in dataset] * sampler_n_repeats * n_gpus):  # Note that epoch contains `n_gpus`-times more elements.
+    epoch_data_per_rank = aggregate_epoch(dataloader)
+    if not compare_counts(epoch_data_per_rank, whole_epoch_data):  # NOTE THAT EACH GPU SEES ALL DATA -- NOT WHAT WE WANT!
         torch.distributed.destroy_process_group()
         sys.exit(1)
 
@@ -84,8 +87,13 @@ if __name__ == "__main__":
         torch.distributed.destroy_process_group()
         sys.exit(1)
 
-    epoch_data = aggregate_epoch(dataloader)
-    if not compare_counts(epoch_data, [i for i in dataset] * sampler_n_repeats):
+    # We have dataset split across `n_gpus` processes. Let's aggregate and make sure we get the same results.
+    per_rank_aggregated = torch.tensor(aggregate_epoch(dataloader)).cuda()
+    all_gathered_placeholder = torch.zeros(len(per_rank_aggregated) * n_gpus, dtype=torch.int64).cuda()
+
+    torch.distributed.all_gather_into_tensor(all_gathered_placeholder, per_rank_aggregated)
+
+    if not compare_counts(all_gathered_placeholder.cpu().tolist(), whole_epoch_data):
         torch.distributed.destroy_process_group()
         sys.exit(1)
 
