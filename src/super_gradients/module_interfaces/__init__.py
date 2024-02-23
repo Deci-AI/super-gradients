@@ -4,6 +4,13 @@ from .exportable_detector import ExportableObjectDetectionModel, AbstractObjectD
 from .exportable_pose_estimation import ExportablePoseEstimationModel, PoseEstimationModelExportResult, AbstractPoseEstimationDecodingModule
 from .pose_estimation_post_prediction_callback import AbstractPoseEstimationPostPredictionCallback, PoseEstimationPredictions
 from .supports_input_shape_check import SupportsInputShapeCheck
+from .exportable_segmentation import (
+    SegmentationModelExportResult,
+    ExportableSegmentationModel,
+    AbstractSegmentationDecodingModule,
+    SemanticSegmentationDecodingModule,
+    BinarySegmentationDecodingModule,
+)
 
 __all__ = [
     "HasPredict",
@@ -20,4 +27,9 @@ __all__ = [
     "AbstractPoseEstimationDecodingModule",
     "SupportsFineTune",
     "SupportsInputShapeCheck",
+    "SegmentationModelExportResult",
+    "ExportableSegmentationModel",
+    "AbstractSegmentationDecodingModule",
+    "SemanticSegmentationDecodingModule",
+    "BinarySegmentationDecodingModule",
 ]

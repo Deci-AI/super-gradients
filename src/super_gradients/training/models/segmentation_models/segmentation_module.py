@@ -1,4 +1,4 @@
-from super_gradients.module_interfaces import SupportsInputShapeCheck
+from super_gradients.module_interfaces import SupportsInputShapeCheck, ExportableSegmentationModel
 from super_gradients.training.models.sg_module import SgModule
 import torch.nn as nn
 from abc import abstractmethod, ABC
@@ -13,7 +13,7 @@ from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.module_interfaces import HasPredict
 
 
-class SegmentationModule(SgModule, ABC, HasPredict, SupportsInputShapeCheck):
+class SegmentationModule(SgModule, ABC, HasPredict, SupportsInputShapeCheck, ExportableSegmentationModel):
     """
     Base SegmentationModule class
     """
@@ -134,3 +134,11 @@ class SegmentationModule(SgModule, ABC, HasPredict, SupportsInputShapeCheck):
         For segmentation models the default is 32x32, which corresponds to the largest stride in the encoder part of the model
         """
         return 32, 32
+
+    def get_processing_params(self):
+        return self._image_processor
+
+    def get_preprocessing_callback(self, **kwargs):
+        processing = self.get_processing_params()
+        preprocessing_module = processing.get_equivalent_photometric_module()
+        return preprocessing_module
