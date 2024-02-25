@@ -16,7 +16,7 @@ torchmetrics==0.8
 hydra-core>=1.2.0
 omegaconf
 onnxruntime==1.16.0
-onnx==1.16.0
+onnx==1.15.0
 pillow>=5.3.0,!=8.3
 pip-tools>=6.12.1
 pyparsing==2.4.5
