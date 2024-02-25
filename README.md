@@ -32,6 +32,9 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FDeci-AI%2Fsuper-gradients.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FDeci-AI%2Fsuper-gradients?ref=badge_large)
+
 ## Build with SuperGradients
 __________________________________________________________________________________________________________
 
@@ -745,6 +748,7 @@ This project is released under the [Apache 2.0 license](LICENSE).
 ### Latest DOI
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7789328.svg)](https://doi.org/10.5281/zenodo.7789328)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FDeci-AI%2Fsuper-gradients.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FDeci-AI%2Fsuper-gradients?ref=badge_shield)
 
     
 __________________________________________________________________________________________________________
@@ -765,4 +769,4 @@ Features
 - Deci supports all common frameworks and Hardware, from Intel CPUs to Nvidia's GPUs and Jetsons.
 ֿ
 
-Request free trial [here](https://bit.ly/3qO3icq) 
+Request free trial [here](https://bit.ly/3qO3icq)
