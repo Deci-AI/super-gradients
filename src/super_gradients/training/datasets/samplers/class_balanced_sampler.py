@@ -1,8 +1,7 @@
 import json
-import math
 import os
 import warnings
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 import numpy as np
 from torch.utils.data import WeightedRandomSampler
