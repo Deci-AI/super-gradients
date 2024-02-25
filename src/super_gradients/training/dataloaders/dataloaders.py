@@ -196,6 +196,9 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
 
 
 def _instantiate_sampler(dataset, dataloader_params):
+    if isinstance(dataloader_params["sampler"], str):  # turn string to single-key dict.
+        dataloader_params["sampler"] = {dataloader_params["sampler"]: {}}
+
     sampler_name = list(dataloader_params["sampler"].keys())[0]
     if "shuffle" in dataloader_params.keys():
         # SHUFFLE IS MUTUALLY EXCLUSIVE WITH SAMPLER ARG IN DATALOADER INIT
