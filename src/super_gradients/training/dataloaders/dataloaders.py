@@ -25,7 +25,7 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
 )
 from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets.rescoring_dataset import TrainRescoringDataset, ValTrainRescoringDataset
-from super_gradients.training.datasets.samplers import RepeatAugSampler
+from super_gradients.training.datasets.samplers import *
 from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     CoCoSegmentationDataSet,
