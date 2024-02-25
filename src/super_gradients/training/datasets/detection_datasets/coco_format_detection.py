@@ -147,9 +147,10 @@ class COCOFormatDetectionDataset(DetectionDataset):
             resized_img_shape = (int(height * scale_factor), int(width * scale_factor))
         else:
             resized_img_shape = initial_img_shape
+            scale_factor = 1
 
-        targets = np.concatenate([boxes_xyxy[~iscrowd], labels[~iscrowd, None]], axis=1).astype(np.float32)
-        crowd_targets = np.concatenate([boxes_xyxy[iscrowd], labels[iscrowd, None]], axis=1).astype(np.float32)
+        targets = np.concatenate([boxes_xyxy[~iscrowd] * scale_factor, labels[~iscrowd, None]], axis=1).astype(np.float32)
+        crowd_targets = np.concatenate([boxes_xyxy[iscrowd] * scale_factor, labels[iscrowd, None]], axis=1).astype(np.float32)
 
         annotation = {
             "target": targets,
@@ -163,6 +164,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
 
 @dataclasses.dataclass
 class DetectionAnnotation:
+    image_id: int
     image_path: str
     image_width: int
     image_height: int
@@ -278,6 +280,7 @@ def parse_coco_into_detection_annotations(
             image_path = os.path.join(image_path_prefix, image_path)
 
         ann = DetectionAnnotation(
+            image_id=img_id,
             image_path=image_path,
             image_width=image_width,
             image_height=image_height,
