@@ -9,6 +9,7 @@ from typing import List, Optional, Tuple
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
 from super_gradients.common.deprecate import deprecated_parameter
+from super_gradients.common.registry import register_dataset
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy_inplace
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
@@ -17,6 +18,7 @@ from super_gradients.training.utils.detection_utils import change_bbox_bounds_fo
 logger = get_logger(__name__)
 
 
+@register_dataset("COCOFormatDetectionDataset")
 class COCOFormatDetectionDataset(DetectionDataset):
     """Base dataset to load ANY dataset that is with a similar structure to the COCO dataset.
     - Annotation file (.json). It has to respect the exact same format as COCO, for both the json schema and the bbox format (xywh).
