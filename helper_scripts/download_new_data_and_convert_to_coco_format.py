@@ -283,8 +283,6 @@ def main(
         COCO_anno_split = all_COCO_anno_splits[split]
         if number_of_remaining_documents:
             number_of_samples = ceil(splits[split] * number_of_remaining_documents)
-            if number_of_samples < len(COCO_anno_split["images"]):
-                raise ValueError(f"The number of samples for {split} split is lower then the number of existing images in {split} split.")
 
             if number_of_samples > len(COCO_anno_split["images"]):
                 stop = start + number_of_samples
