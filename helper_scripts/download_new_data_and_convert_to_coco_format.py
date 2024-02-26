@@ -15,7 +15,7 @@ from pathlib import Path
 from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list
 from PIL import Image
 from tqdm import tqdm
-from utils import dump_json, load_json_by_line
+from utils import dump_json, load_json, load_json_by_line
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,22 +27,103 @@ def parse_args() -> argparse.Namespace:
         help="Path to directory where documents are stored.",
     )
     parser.add_argument(
-        "--labels_path",
+        "--labels_path",  # TODO we will probably need to add more than 1 labels file
         type=Path,
         help="Path to Label Studio json annotation file.",
+    )
+    parser.add_argument(
+        "--existing_coco_labels_dir",
+        type=Path,
+        help="Path to directory where existing COCO splits are saved.",
+    )
+    parser.add_argument(
+        "--train_split_name",
+        default="train.json",
+        type=str,
+        help="Path to directory where existing COCO splits are saved.",
+    )
+    parser.add_argument(
+        "--val_split_name",
+        default="val.json",
+        type=str,
+        help="Path to directory where existing COCO splits are saved.",
+    )
+    parser.add_argument(
+        "--test_split_name",
+        default="test.json",
+        type=str,
+        help="Path to directory where existing COCO splits are saved.",
     )
     parser.add_argument(
         "--coco_labels_dir",
         type=Path,
         help="Path to directory where COCO annotations will be saved.",
     )
+    parser.add_argument(
+        "--train_split_size",
+        default=0.7,
+        type=float,
+        help="What fraction of documents should be included in the training split.",
+    )
+    parser.add_argument(
+        "--val_split_size",
+        default=0.2,
+        type=float,
+        help="What fraction of documents should be included in the validatio split.",
+    )
+    parser.add_argument(
+        "--test_split_size",
+        default=0.1,
+        type=float,
+        help="What fraction of documents should be included in the testing split.",
+    )
     return parser.parse_args()
+
+
+def sort_labels(labels: list[dict]) -> list[dict]:
+    for indice in range(len(labels)):
+        labels[indice]["file_name"] = labels[indice]["url"].split("/")[-1]
+    labels = sorted(labels, key=lambda x: x["file_name"])
+    return labels
 
 
 def download_images(labels: list[dict], images_dir: Path):
     for label in tqdm(labels, desc="Downloading images..."):
-        if not os.path.exists(f"{images_dir}/{label['url'].split('/')[-1]}"):
-            urllib.request.urlretrieve(label["url"], f"{images_dir}/{label['url'].split('/')[-1]}")
+        if not os.path.exists(f"{images_dir}/{label['file_name']}"):
+            urllib.request.urlretrieve(label["url"], f"{images_dir}/{label['file_name']}")
+
+
+def load_images_names_for_split(split_path: Path) -> list[str] | None:
+    if split_path.exists():
+        split = load_json(split_path)
+        return [image["file_name"] for image in split["images"]]
+    else:
+        return None
+
+
+def load_existing_splits(
+    existing_coco_labels_dir: Path,
+    train_split_name: str,
+    val_split_name: str,
+    test_split_name: str,
+) -> dict:
+    if existing_coco_labels_dir:
+        train_split_path = existing_coco_labels_dir / train_split_name
+        val_split_path = existing_coco_labels_dir / val_split_name
+        test_split_path = existing_coco_labels_dir / test_split_name
+
+        splits = {
+            "train": load_images_names_for_split(train_split_path),
+            "val": load_images_names_for_split(val_split_path),
+            "test": load_images_names_for_split(test_split_path),
+        }
+        return splits
+    else:
+        return {
+            "train": None,
+            "val": None,
+            "test": None,
+        }
 
 
 def flatten_tuple(input_tuple):
@@ -77,12 +158,22 @@ def filter_dicts_by_keys(input_list, keys_to_check):
 def main(
     images_dir: Path,
     labels_path: Path,
+    existing_coco_labels_dir: Path,
+    train_split_name: str,
+    val_split_name: str,
+    test_split_name: str,
     coco_labels_dir: Path,
+    train_split_size,
+    val_split_size,
+    test_split_size,
     seed: int = 42,
 ) -> None:
     images_dir.mkdir(parents=True, exist_ok=True)
+    coco_labels_dir.mkdir(parents=True, exist_ok=True)
     documents = load_json_by_line(labels_path)
 
+    # Ensure reproducibility between different label files
+    documents = sort_labels(documents)
     random.seed(seed)
     random.shuffle(documents)
 
@@ -163,22 +254,44 @@ def main(
     dump_json(coco_labels_path, COCO_anno)
     print(f"Annotation saved in {coco_labels_path}")
 
-    number_of_documents = len(COCO_anno["images"])
-    print(f"There are {number_of_documents} documents found.")
+    # number_of_documents = len(COCO_anno["images"])
 
     print("Preparing train/val/test splits...")
-    splits = {"train": 0.7, "val": 0.2, "test": 0.1}
-    start = 0
+    splits = {"train": train_split_size, "val": val_split_size, "test": test_split_size}
+    existing_splits = load_existing_splits(existing_coco_labels_dir, train_split_name, val_split_name, test_split_name)
+    all_COCO_anno_splits = {}
+
+    # If existing split provided - use them
     for split in splits:
-        number_of_samples = ceil(splits[split] * number_of_documents)
         COCO_anno_split = {}
         COCO_anno_split["categories"] = COCO_anno["categories"]
+        COCO_anno_split["images"] = []
 
-        stop = start + number_of_samples
-        if stop > number_of_documents:
-            stop = number_of_documents
-        COCO_anno_split["images"] = COCO_anno["images"][start:stop]
-        start = stop
+        if existing_splits[split]:
+            for doc_name in existing_splits[split]:
+                entry = next((image for image in COCO_anno["images"] if image["file_name"] == doc_name), None)
+
+                if entry:
+                    COCO_anno_split["images"].append(entry)
+                    COCO_anno["images"].remove(entry)
+        all_COCO_anno_splits[split] = COCO_anno_split
+
+    # Add new images to the split and complete the annotations
+    start = 0
+    number_of_remaining_documents = len(COCO_anno["images"])
+    for split in splits:
+        COCO_anno_split = all_COCO_anno_splits[split]
+        if number_of_remaining_documents:
+            number_of_samples = ceil(splits[split] * number_of_remaining_documents)
+            if number_of_samples < len(COCO_anno_split["images"]):
+                raise ValueError(f"The number of samples for {split} split is lower then the number of existing images in {split} split.")
+
+            if number_of_samples > len(COCO_anno_split["images"]):
+                stop = start + number_of_samples
+                if stop > number_of_remaining_documents:
+                    stop = number_of_remaining_documents
+                COCO_anno_split["images"].extend(COCO_anno["images"][start:stop])
+                start = stop
         print(f"{len(COCO_anno_split['images'])} samples in {split} split.")
 
         img_ids = [image["id"] for image in COCO_anno_split["images"]]
@@ -199,5 +312,12 @@ if __name__ == "__main__":
     main(
         args.images_dir,
         args.labels_path,
+        args.existing_coco_labels_dir,
+        args.train_split_name,
+        args.val_split_name,
+        args.test_split_name,
         args.coco_labels_dir,
+        args.train_split_size,
+        args.val_split_size,
+        args.test_split_size,
     )
