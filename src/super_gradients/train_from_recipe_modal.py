@@ -17,7 +17,7 @@ stub = modal.Stub(name="train_from_recipe")
 
 # git branch and repository url for the image build
 # remember to have your changes pushed to the remote repository so that it can be accessed by the modal environment
-git_branch = None  # set to None to use the default branch, remember to update it after merging
+git_branch = "split_generation_procedure"  # set to None to use the default branch, remember to update it after merging
 repository_url = "github.com/Unstructured-IO/super-gradients-fork.git"
 if git_branch:
     repository_url += f"@{git_branch}"
