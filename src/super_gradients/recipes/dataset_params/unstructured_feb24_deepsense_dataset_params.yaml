@@ -1,0 +1,24 @@
+# this config is to be used by deepsense.ai team members to run experiments on local pascal infrastructure
+
+defaults:
+  - coco_detection_dataset_params
+
+train_dataset_params:
+  data_dir: /mnt/ml-team/unstructured/DATA/unstructured_feb24_1/
+  images_dir: images
+  json_file: COCO/train.json
+
+val_dataset_params:
+  data_dir: /mnt/ml-team/unstructured/DATA/unstructured_feb24_1/
+  images_dir: images
+  json_file: COCO/val.json
+
+train_dataloader_params:
+  dataset: DocLayNetDetectionDataset
+  batch_size: 4
+  num_workers: 4
+
+val_dataloader_params:
+  dataset: DocLayNetDetectionDataset
+  batch_size: 4
+  num_workers: 4

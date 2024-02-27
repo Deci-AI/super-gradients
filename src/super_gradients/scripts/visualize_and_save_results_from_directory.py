@@ -68,6 +68,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         help="Resize the image to resolution before inference.",
     )
+    parser.add_argument(
+        "--output_json",
+        default=False,
+        type=bool,
+        help="If True, saves results in json format.",
+    )
     return parser.parse_args()
 
 
@@ -81,6 +87,7 @@ def main(
     iou: float,
     conf: float,
     res: int | None,
+    output_json: bool,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -131,6 +138,20 @@ def main(
             cv2.imwrite(output_path, image_output)
             print(f"Saved in: {output_path}.")
 
+            if output_json:
+                dict_output = {
+                    "class_names": output.class_names,
+                    "bboxes_xyxy": output.prediction.bboxes_xyxy.tolist(),
+                    "confidence": output.prediction.confidence.tolist(),
+                    "labels": output.prediction.labels.tolist(),
+                    "image_shape": output.prediction.image_shape,
+                }
+                out_json_path = output_path.with_suffix(".json")
+                with open(out_json_path, "w") as file:
+                    json.dump(dict_output, file)
+
+                print(f"Saved in: {out_json_path}")
+
     print("Processing done.")
 
 
@@ -146,4 +167,5 @@ if __name__ == "__main__":
         args.iou,
         args.conf,
         args.res,
+        args.output_json,
     )

@@ -60,6 +60,9 @@ class DetectionMetrics(Metric):
                                                 ...
                                             }
                                             Class names are either provided via the class_names parameter or are generated automatically.
+    :param include_classwise_precision:     Whether to include the class-wise precision in the returned metrics dictionary.
+    :param include_classwise_recall:        Whether to include the class-wise recall
+    :param include_classwise_f1:            Whether to include the class-wise f1
     :param class_names:                     Array of class names. When include_classwise_ap=True, will use these names to make
                                             per-class APs keys in the output metrics dictionary.
                                             If None, will use dummy names `class_{idx}` instead.
@@ -85,6 +88,9 @@ class DetectionMetrics(Metric):
         accumulate_on_cpu: bool = True,
         calc_best_score_thresholds: bool = True,
         include_classwise_ap: bool = False,
+        include_classwise_precision: bool = False,
+        include_classwise_recall: bool = False,
+        include_classwise_f1: bool = False,
         class_names: List[str] = None,
         state_dict_prefix: str = "",
     ):
@@ -117,6 +123,9 @@ class DetectionMetrics(Metric):
 
         self.map_str = "mAP" + self._get_range_str()
         self.include_classwise_ap = include_classwise_ap
+        self.include_classwise_precision = include_classwise_precision
+        self.include_classwise_recall = include_classwise_recall
+        self.include_classwise_f1 = include_classwise_f1
 
         self.precision_metric_key = f"{state_dict_prefix}Precision{self._get_range_str()}"
         self.recall_metric_key = f"{state_dict_prefix}Recall{self._get_range_str()}"
@@ -133,6 +142,18 @@ class DetectionMetrics(Metric):
         if self.include_classwise_ap:
             self.per_class_ap_names = [f"{state_dict_prefix}AP{self._get_range_str()}_{class_name}" for class_name in class_names]
             greater_component_is_better += [(key, True) for key in self.per_class_ap_names]
+
+        if self.include_classwise_precision:
+            self.per_class_precision_names = [f"{state_dict_prefix}Precision{self._get_range_str()}_{class_name}" for class_name in class_names]
+            greater_component_is_better += [(key, True) for key in self.per_class_precision_names]
+
+        if self.include_classwise_recall:
+            self.per_class_recall_names = [f"{state_dict_prefix}Recall{self._get_range_str()}_{class_name}" for class_name in class_names]
+            greater_component_is_better += [(key, True) for key in self.per_class_recall_names]
+
+        if self.include_classwise_f1:
+            self.per_class_f1_names = [f"{state_dict_prefix}F1{self._get_range_str()}_{class_name}" for class_name in class_names]
+            greater_component_is_better += [(key, True) for key in self.per_class_f1_names]
 
         self.per_class_metric_names = [f"_{class_name}" for class_name in class_names]
 
@@ -264,20 +285,17 @@ class DetectionMetrics(Metric):
             for i, ap_i in enumerate(mean_ap_per_class):
                 output_dict[self.per_class_ap_names[i]] = float(ap_i)
 
-        # per class precision
-        for i, precision_i in enumerate(mean_precision_per_class):
-            output_dict[f"Precision@0.50:0.95{self.per_class_metric_names[i]}"] = float(precision_i)
-            print(f"Precision@0.50:0.95{self.per_class_metric_names[i]}: {float(precision_i)}")
+        if self.include_classwise_precision:
+            for i, precision_i in enumerate(mean_precision_per_class):
+                output_dict[self.per_class_precision_names[i]] = float(precision_i)
 
-        # per class recall
-        for i, recall_i in enumerate(mean_recall_per_class):
-            output_dict[f"Recall@0.50:0.95{self.per_class_metric_names[i]}"] = float(recall_i)
-            print(f"Recall@0.50:0.95{self.per_class_metric_names[i]}: {float(recall_i)}")
+        if self.include_classwise_recall:
+            for i, recall_i in enumerate(mean_recall_per_class):
+                output_dict[self.per_class_recall_names[i]] = float(recall_i)
 
-        # per class f1
-        for i, f1_i in enumerate(mean_f1_per_class):
-            output_dict[f"F1@0.50:0.95{self.per_class_metric_names[i]}"] = float(f1_i)
-            print(f"F1@0.50:0.95{self.per_class_metric_names[i]}: {float(f1_i)}")
+        if self.include_classwise_f1:
+            for i, f1_i in enumerate(mean_f1_per_class):
+                output_dict[self.per_class_f1_names[i]] = float(f1_i)
 
         if self.calc_best_score_thresholds:
             output_dict["Best_score_threshold"] = float(best_score_threshold)
