@@ -1,17 +1,18 @@
+# Custom recipe to train YoloX on NewData dataset
 
 defaults:
   - training_hyperparams: coco2017_yolox_train_params
-  - dataset_params: unstructured_jan24_modal_dataset_params  # set for proper dataset paths
+  - dataset_params: unstructured_feb24_modal_dataset_params  # set for proper dataset paths
   - checkpoint_params: default_checkpoint_params
   - _self_
   - variable_setup_modal
 
 arch_params:
-  num_classes: 17
+  num_classes: 19
 
 checkpoint_params:
   load_checkpoint: True
-  checkpoint_path: /path/to/pretrained/weights/ckpt_best.pth
+  # checkpoint_path: /path/to/pretrained/weights/ckpt_best.pth
   pretrained_weights: coco
   # num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
   # Used when num_classes != checkpoint_num_class.
@@ -21,7 +22,9 @@ checkpoint_params:
 
 dataset_params:
   train_dataset_params:
-    all_classes_list: [image, page_number, paraprgaphs_in_image, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, paraprgaphs_in_form, checkbox_checked, checkbox, radio_button, radio_button_checked] # List of classes used in your dataset.
+    # 19
+    all_classes_list: [paraprgaph, formulas, other, page_number, page_header, subheading, page_footer, title, table, paragraphs_in_table, image, paraprgaphs_in_image, code_snippet, checkbox, paraprgaphs_in_form, form, checkbox_checked, radio_button, radio_button_checked] # List of classes used in your dataset.
+    # 17
     # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
     input_dim: [1025, 1025]
     transforms:
@@ -59,7 +62,9 @@ dataset_params:
 
 
   val_dataset_params:
-    all_classes_list: [image, page_number, paraprgaphs_in_image, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, paraprgaphs_in_form, checkbox_checked, checkbox, radio_button, radio_button_checked] # List of classes used in your dataset.
+    # 19
+    all_classes_list: [paraprgaph, formulas, other, page_number, page_header, subheading, page_footer, title, table, paragraphs_in_table, image, paraprgaphs_in_image, code_snippet, checkbox, paraprgaphs_in_form, form, checkbox_checked, radio_button, radio_button_checked] # List of classes used in your dataset.
+    # 17
     # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
     transforms:
       - DetectionPaddedRescale:
@@ -90,7 +95,6 @@ training_hyperparams:
         include_classwise_precision: true
         include_classwise_recall: true
         class_names: ${dataset_params.train_dataset_params.all_classes_list}
-
 
 architecture: yolox_l
 

@@ -1,0 +1,24 @@
+# this config contains paths to the dataset on modal unstructured_jan24 volume
+
+defaults:
+  - coco_detection_dataset_params
+
+train_dataset_params:
+  data_dir: /data/unstructured_jan24
+  images_dir: all_images
+  json_file: COCO/train.json
+
+val_dataset_params:
+  data_dir: /data/unstructured_jan24
+  images_dir: all_images
+  json_file: COCO/val.json
+
+train_dataloader_params:
+  dataset: DocLayNetDetectionDataset
+  batch_size: 16
+  num_workers: 16
+
+val_dataloader_params:
+  dataset: DocLayNetDetectionDataset
+  batch_size: 16
+  num_workers: 16

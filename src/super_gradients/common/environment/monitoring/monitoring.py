@@ -2,7 +2,7 @@ import time
 import threading
 
 from super_gradients.common.environment.ddp_utils import multi_process_safe
-from super_gradients.common.environment.monitoring import disk, virtual_memory, network, cpu, gpu
+from super_gradients.common.environment.monitoring import virtual_memory, network, cpu, gpu
 from super_gradients.common.environment.monitoring.utils import average, delta_per_s
 from super_gradients.common.environment.monitoring.data_models import StatAggregator, GPUStatAggregatorIterator
 from torch.utils.tensorboard import SummaryWriter
@@ -26,9 +26,10 @@ class SystemMonitor:
         self.sample_interval = self.aggregate_frequency / self.n_samples_per_aggregate
 
         self.stat_aggregators = [
-            StatAggregator(name="System/disk.usage_percent", sampling_fn=disk.get_disk_usage_percent, aggregate_fn=average),
-            StatAggregator(name="System/disk.io_write_mbs", sampling_fn=disk.get_io_write_mb, aggregate_fn=delta_per_s, reset_callback_fn=disk.reset_io_write),
-            StatAggregator(name="System/disk.io_read_mbs", sampling_fn=disk.get_io_read_mb, aggregate_fn=delta_per_s, reset_callback_fn=disk.reset_io_read),
+            # disk monitoring is disabled because it breaks when run in a docker container (used in modal scenario)
+            # StatAggregator(name="System/disk.usage_percent", sampling_fn=disk.get_disk_usage_percent, aggregate_fn=average),
+            # StatAggregator(name="System/disk.io_write_mbs", sampling_fn=disk.get_io_write_mb, aggregate_fn=delta_per_s, reset_callback_fn=disk.reset_io_write),
+            # StatAggregator(name="System/disk.io_read_mbs", sampling_fn=disk.get_io_read_mb, aggregate_fn=delta_per_s, reset_callback_fn=disk.reset_io_read),
             StatAggregator(name="System/memory.usage_percent", sampling_fn=virtual_memory.virtual_memory_used_percent, aggregate_fn=average),
             StatAggregator(
                 name="System/network.network_sent_mbs",
