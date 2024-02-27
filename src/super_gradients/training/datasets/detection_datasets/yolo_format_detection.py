@@ -5,6 +5,7 @@ import numpy as np
 from typing import List, Optional, Tuple
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.registry import register_dataset
 from super_gradients.training.utils.media.image import is_image
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
@@ -13,6 +14,7 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 logger = get_logger(__name__)
 
 
+@register_dataset("YoloDarknetFormatDetectionDataset")
 class YoloDarknetFormatDetectionDataset(DetectionDataset):
     """Base dataset to load ANY dataset that is with a similar structure to the Yolo/Darknet dataset.
 
