@@ -27,9 +27,10 @@ def parse_args() -> argparse.Namespace:
         help="Path to directory where documents are stored.",
     )
     parser.add_argument(
-        "--labels_path",  # TODO we will probably need to add more than 1 labels file
+        "--labels_path",
         type=Path,
-        help="Path to Label Studio json annotation file.",
+        nargs='+',
+        help="Paths to Label Studio json annotation file.",
     )
     parser.add_argument(
         "--existing_coco_labels_dir",
@@ -90,7 +91,13 @@ def sort_labels(labels: list[dict]) -> list[dict]:
 def download_images(labels: list[dict], images_dir: Path):
     for label in tqdm(labels, desc="Downloading images..."):
         if not os.path.exists(f"{images_dir}/{label['file_name']}"):
-            urllib.request.urlretrieve(label["url"], f"{images_dir}/{label['file_name']}")
+            try:
+                urllib.request.urlretrieve(
+                    label["url"].replace(" ", "+").replace("®", "%C2%AE"),
+                    f"{images_dir}/{label['url'].split('/')[-1]}"
+                )
+            except Exception as e:
+                print(f"Coudn't download image: {label['url']}.\n{e}")
 
 
 def load_images_names_for_split(split_path: Path) -> list[str] | None:
@@ -157,7 +164,7 @@ def filter_dicts_by_keys(input_list, keys_to_check):
 
 def main(
     images_dir: Path,
-    labels_path: Path,
+    labels_paths: list[Path],
     existing_coco_labels_dir: Path,
     train_split_name: str,
     val_split_name: str,
@@ -170,7 +177,10 @@ def main(
 ) -> None:
     images_dir.mkdir(parents=True, exist_ok=True)
     coco_labels_dir.mkdir(parents=True, exist_ok=True)
-    documents = load_json_by_line(labels_path)
+    
+    documents = []
+    for path in labels_paths:
+        documents.extend(load_json_by_line(path))
 
     # Ensure reproducibility between different label files
     documents = sort_labels(documents)
@@ -254,8 +264,6 @@ def main(
     dump_json(coco_labels_path, COCO_anno)
     print(f"Annotation saved in {coco_labels_path}")
 
-    # number_of_documents = len(COCO_anno["images"])
-
     print("Preparing train/val/test splits...")
     splits = {"train": train_split_size, "val": val_split_size, "test": test_split_size}
     existing_splits = load_existing_splits(existing_coco_labels_dir, train_split_name, val_split_name, test_split_name)
@@ -303,7 +311,6 @@ def main(
         print(f"{split} finished. Annotation saved in {coco_labels_path}")
 
     print("Done.")
-
 
 if __name__ == "__main__":
     args = parse_args()
