@@ -30,7 +30,6 @@ from super_gradients.training.datasets.pose_estimation_datasets.rescoring_datase
 from super_gradients.training.datasets.samplers import (
     RepeatAugSampler,
     DistributedSamplerWrapper,
-    ClassBalancedSampler,  # noqa (importing ClassBalancedSampler to registry)
 )
 from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
