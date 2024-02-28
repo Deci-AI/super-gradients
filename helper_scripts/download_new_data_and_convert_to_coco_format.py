@@ -15,7 +15,7 @@ from pathlib import Path
 from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list
 from PIL import Image
 from tqdm import tqdm
-from utils import dump_json, load_json, load_json_by_line
+from utils import dump_json, load_json, load_json_by_line, save_to_txt_file
 
 
 def parse_args() -> argparse.Namespace:
@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--labels_path",
         type=Path,
-        nargs='+',
+        nargs="+",
         help="Paths to Label Studio json annotation file.",
     )
     parser.add_argument(
@@ -78,6 +78,7 @@ def parse_args() -> argparse.Namespace:
         type=float,
         help="What fraction of documents should be included in the testing split.",
     )
+    parser.add_argument("--download_images", action="store_true", help="Flag indicating images should be downloaded from S3 bucket")
     return parser.parse_args()
 
 
@@ -92,10 +93,7 @@ def download_images(labels: list[dict], images_dir: Path):
     for label in tqdm(labels, desc="Downloading images..."):
         if not os.path.exists(f"{images_dir}/{label['file_name']}"):
             try:
-                urllib.request.urlretrieve(
-                    label["url"].replace(" ", "+").replace("®", "%C2%AE"),
-                    f"{images_dir}/{label['url'].split('/')[-1]}"
-                )
+                urllib.request.urlretrieve(label["url"].replace(" ", "+").replace("®", "%C2%AE"), f"{images_dir}/{label['url'].split('/')[-1]}")
             except Exception as e:
                 print(f"Coudn't download image: {label['url']}.\n{e}")
 
@@ -162,6 +160,19 @@ def filter_dicts_by_keys(input_list, keys_to_check):
     return result
 
 
+def clean_categories(categories: list[dict]) -> list[dict]:
+    # Replace "paraprgaph" with "paragraph"
+    for category in categories:
+        category["name"] = category["name"].replace("paraprgaph", "paragraph")
+    return sorted(categories, key=lambda x: x["id"])
+
+
+def save_list_to_txt_file(path: Path, data: list[str]):
+    with open(path, "w") as file:
+        for name in data:
+            file.write(name + ", ")
+
+
 def main(
     images_dir: Path,
     labels_paths: list[Path],
@@ -170,14 +181,15 @@ def main(
     val_split_name: str,
     test_split_name: str,
     coco_labels_dir: Path,
-    train_split_size,
-    val_split_size,
-    test_split_size,
+    train_split_size: float,
+    val_split_size: float,
+    test_split_size: float,
+    download_images: bool,
     seed: int = 42,
 ) -> None:
     images_dir.mkdir(parents=True, exist_ok=True)
     coco_labels_dir.mkdir(parents=True, exist_ok=True)
-    
+
     documents = []
     for path in labels_paths:
         documents.extend(load_json_by_line(path))
@@ -187,7 +199,8 @@ def main(
     random.seed(seed)
     random.shuffle(documents)
 
-    download_images(documents, images_dir)
+    if download_images:
+        download_images(documents, images_dir)
 
     COCO_anno = {
         "images": [],
@@ -259,6 +272,12 @@ def main(
 
     keys_to_check = ["image_id", "category_id", "bbox"]
     COCO_anno["annotations"] = filter_dicts_by_keys(COCO_anno["annotations"], keys_to_check)
+    COCO_anno["categories"] = clean_categories(COCO_anno["categories"])
+
+    # Create a list of class names to use in training configs
+    class_names = [category["name"] for category in COCO_anno["categories"]]
+    class_names_path = coco_labels_dir / "classnames.txt"
+    save_to_txt_file(class_names_path, class_names)
 
     coco_labels_path = coco_labels_dir / "all.json"
     dump_json(coco_labels_path, COCO_anno)
@@ -312,6 +331,7 @@ def main(
 
     print("Done.")
 
+
 if __name__ == "__main__":
     args = parse_args()
     main(
@@ -325,4 +345,5 @@ if __name__ == "__main__":
         args.train_split_size,
         args.val_split_size,
         args.test_split_size,
+        args.download_images,
     )
