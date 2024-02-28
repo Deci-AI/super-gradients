@@ -24,9 +24,10 @@ class LegacyDetectionTransformMixin:
         if isinstance(sample, DetectionSample):
             return self.apply_to_sample(sample)
         else:
+            has_crowd_target = "crowd_target" in sample
             sample = self.convert_input_dict_to_detection_sample(sample)
             sample = self.apply_to_sample(sample)
-            return self.convert_detection_sample_to_dict(sample, include_crowd_target=hasattr(sample, "crowd_targets"))
+            return self.convert_detection_sample_to_dict(sample, include_crowd_target=has_crowd_target)
 
     @classmethod
     def convert_input_dict_to_detection_sample(cls, sample_annotations: Dict[str, Union[np.ndarray, Any]]) -> DetectionSample:
