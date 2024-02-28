@@ -15,7 +15,7 @@ from pathlib import Path
 from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list
 from PIL import Image
 from tqdm import tqdm
-from utils import dump_json, load_json, load_json_by_line, save_to_txt_file
+from utils import dump_json, load_json, load_json_by_line
 
 
 def parse_args() -> argparse.Namespace:
@@ -277,7 +277,7 @@ def main(
     # Create a list of class names to use in training configs
     class_names = [category["name"] for category in COCO_anno["categories"]]
     class_names_path = coco_labels_dir / "classnames.txt"
-    save_to_txt_file(class_names_path, class_names)
+    save_list_to_txt_file(class_names_path, class_names)
 
     coco_labels_path = coco_labels_dir / "all.json"
     dump_json(coco_labels_path, COCO_anno)
