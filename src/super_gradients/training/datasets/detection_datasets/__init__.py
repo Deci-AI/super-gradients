@@ -1,4 +1,4 @@
-from super_gradients.training.datasets.detection_datasets.coco_detection import COCODetectionDataset
+from super_gradients.training.datasets.detection_datasets.coco_detection import COCODetectionDataset, COCOFormatDetectionDataset
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.datasets.detection_datasets.doclaynet_detection import DocLayNetDetectionDataset
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PascalVOCDetectionDataset
@@ -7,6 +7,7 @@ from super_gradients.training.datasets.detection_datasets.yolo_format_detection 
 
 __all__ = [
     "COCODetectionDataset",
+    "COCOFormatDetectionDataset",
     "DetectionDataset",
     "DocLayNetDetectionDataset",
     "PascalVOCDetectionDataset",

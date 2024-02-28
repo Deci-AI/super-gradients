@@ -56,4 +56,4 @@ class COCODetectionDataset(COCOFormatDetectionDataset):
         kwargs:
             all_classes_list: all classes list, default is COCO_DETECTION_CLASSES_LIST.
         """
-        super().__init__(json_annotation_file=os.path.join("annotations", json_file), images_dir=subdir, *args, **kwargs)
+        super().__init__(json_annotation_file=os.path.join("annotations", json_file), *args, **kwargs)

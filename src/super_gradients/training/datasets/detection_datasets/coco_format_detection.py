@@ -26,7 +26,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
     def __init__(
         self,
         data_dir: str,
-        json_annotation_file: str,
+        json_file: str,
         images_dir: str,
         tight_box_rotation: bool = False,
         with_crowd: bool = True,
@@ -44,7 +44,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         :param class_ids_to_ignore:     List of class ids to ignore in the dataset. By default, doesnt ignore any class.
         """
         self.images_dir = images_dir
-        self.json_annotation_file = json_annotation_file
+        self.json_annotation_file = json_file
         self.tight_box_rotation = tight_box_rotation
         self.with_crowd = with_crowd
         self.class_ids_to_ignore = class_ids_to_ignore or []

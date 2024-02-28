@@ -358,6 +358,7 @@ class ConcatenatedTensorFormats:
 class Dataloaders:
     COCO2017_TRAIN = "coco2017_train"
     COCO2017_VAL = "coco2017_val"
+    COCO2017_VAL_DEEPSENSE = "coco2017_val_deepsense"
     COCO2017_TRAIN_YOLOX = "coco2017_train_yolox"
     COCO2017_VAL_YOLOX = "coco2017_val_yolox"
     COCO2017_TRAIN_YOLO_NAS = "coco2017_train_yolo_nas"

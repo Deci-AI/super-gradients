@@ -7,7 +7,7 @@ import torch.cuda
 
 from super_gradients.common.object_names import Models
 from super_gradients.training import utils as core_utils, models
-from super_gradients.training.dataloaders.dataloaders import coco2017_val
+from super_gradients.training.dataloaders.dataloaders import coco2017_val, coco2017_val_deepsense
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_collate_fn import flat_collate_tensors_with_batch_index
 from super_gradients.training.metrics import DetectionMetrics, DetectionMetrics_050
@@ -93,9 +93,9 @@ class TestDetectionUtils(unittest.TestCase):
                 self.assertTrue(os.path.exists(img_path))
                 os.remove(img_path)
 
-    @unittest.skipIf(not is_data_available(), "run only when /data is available")
+    # @unittest.skipIf(not is_data_available(), "run only when /data is available")
     def test_detection_metrics(self):
-        valid_loader = coco2017_val(dataloader_params={"batch_size": 16, "num_workers": 0})
+        valid_loader = coco2017_val_deepsense(dataloader_params={"batch_size": 16, "num_workers": 0})
 
         metrics = [
             DetectionMetrics(num_cls=80, post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True),

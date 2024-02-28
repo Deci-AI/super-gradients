@@ -18,7 +18,7 @@ from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar10,
     Cifar100,
 )
-from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, RoboflowDetectionDataset, YoloDarknetFormatDetectionDataset
+from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, COCOFormatDetectionDataset, RoboflowDetectionDataset, YoloDarknetFormatDetectionDataset
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
     PascalVOCUnifiedDetectionTrainDataset,
     PascalVOCDetectionDataset,
@@ -221,6 +221,16 @@ def coco2017_val(dataset_params: Dict = None, dataloader_params: Dict = None) ->
     return get_data_loader(
         config_name="coco_detection_dataset_params",
         dataset_cls=COCODetectionDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+@register_dataloader(Dataloaders.COCO2017_VAL_DEEPSENSE)
+def coco2017_val_deepsense(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
+    return get_data_loader(
+        config_name="unstructured_jan24_deepsense_dataset_params",
+        dataset_cls=COCOFormatDetectionDataset,
         train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
