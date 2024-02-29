@@ -351,6 +351,9 @@ class DetectionMetricsDistanceBased(DetectionMetrics):
         accumulate_on_cpu: bool = True,
         calc_best_score_thresholds: bool = True,
         include_classwise_ap: bool = False,
+        include_classwise_precision: bool = False,
+        include_classwise_recall: bool = False,
+        include_classwise_f1: bool = False,
         class_names: List[str] = None,
     ):
         self.distance_thresholds = distance_thresholds
@@ -366,6 +369,9 @@ class DetectionMetricsDistanceBased(DetectionMetrics):
             accumulate_on_cpu=accumulate_on_cpu,
             calc_best_score_thresholds=calc_best_score_thresholds,
             include_classwise_ap=include_classwise_ap,
+            include_classwise_precision=include_classwise_precision,
+            include_classwise_recall=include_classwise_recall,
+            include_classwise_f1=include_classwise_f1,
             class_names=class_names,
             state_dict_prefix="distance_based_",
         )
@@ -430,6 +436,9 @@ class DetectionMetrics_050(DetectionMetrics):
         accumulate_on_cpu: bool = True,
         calc_best_score_thresholds: bool = True,
         include_classwise_ap: bool = False,
+        include_classwise_precision: bool = False,
+        include_classwise_recall: bool = False,
+        include_classwise_f1: bool = False,
         class_names: List[str] = None,
     ):
         super().__init__(
@@ -444,6 +453,9 @@ class DetectionMetrics_050(DetectionMetrics):
             accumulate_on_cpu=accumulate_on_cpu,
             calc_best_score_thresholds=calc_best_score_thresholds,
             include_classwise_ap=include_classwise_ap,
+            include_classwise_precision=include_classwise_precision,
+            include_classwise_recall=include_classwise_recall,
+            include_classwise_f1=include_classwise_f1,
             class_names=class_names,
         )
 
@@ -462,6 +474,9 @@ class DetectionMetrics_075(DetectionMetrics):
         accumulate_on_cpu: bool = True,
         calc_best_score_thresholds: bool = True,
         include_classwise_ap: bool = False,
+        include_classwise_precision: bool = False,
+        include_classwise_recall: bool = False,
+        include_classwise_f1: bool = False,
         class_names: List[str] = None,
     ):
         super().__init__(
@@ -476,6 +491,47 @@ class DetectionMetrics_075(DetectionMetrics):
             accumulate_on_cpu=accumulate_on_cpu,
             calc_best_score_thresholds=calc_best_score_thresholds,
             include_classwise_ap=include_classwise_ap,
+            include_classwise_precision=include_classwise_precision,
+            include_classwise_recall=include_classwise_recall,
+            include_classwise_f1=include_classwise_f1,
+            class_names=class_names,
+        )
+
+
+@register_metric(Metrics.DETECTION_METRICS_095)
+class DetectionMetrics_095(DetectionMetrics):
+    def __init__(
+        self,
+        num_cls: int,
+        post_prediction_callback: DetectionPostPredictionCallback = None,
+        normalize_targets: bool = False,
+        recall_thres: torch.Tensor = None,
+        score_thres: float = 0.1,
+        top_k_predictions: int = 100,
+        dist_sync_on_step: bool = False,
+        accumulate_on_cpu: bool = True,
+        calc_best_score_thresholds: bool = True,
+        include_classwise_ap: bool = False,
+        include_classwise_precision: bool = False,
+        include_classwise_recall: bool = False,
+        include_classwise_f1: bool = False,
+        class_names: List[str] = None,
+    ):
+        super().__init__(
+            num_cls=num_cls,
+            post_prediction_callback=post_prediction_callback,
+            normalize_targets=normalize_targets,
+            iou_thres=0.95,
+            recall_thres=recall_thres,
+            score_thres=score_thres,
+            top_k_predictions=top_k_predictions,
+            dist_sync_on_step=dist_sync_on_step,
+            accumulate_on_cpu=accumulate_on_cpu,
+            calc_best_score_thresholds=calc_best_score_thresholds,
+            include_classwise_ap=include_classwise_ap,
+            include_classwise_precision=include_classwise_precision,
+            include_classwise_recall=include_classwise_recall,
+            include_classwise_f1=include_classwise_f1,
             class_names=class_names,
         )
 
@@ -494,6 +550,9 @@ class DetectionMetrics_050_095(DetectionMetrics):
         accumulate_on_cpu: bool = True,
         calc_best_score_thresholds: bool = True,
         include_classwise_ap: bool = False,
+        include_classwise_precision: bool = False,
+        include_classwise_recall: bool = False,
+        include_classwise_f1: bool = False,
         class_names: List[str] = None,
     ):
         super().__init__(
@@ -508,5 +567,8 @@ class DetectionMetrics_050_095(DetectionMetrics):
             accumulate_on_cpu=accumulate_on_cpu,
             calc_best_score_thresholds=calc_best_score_thresholds,
             include_classwise_ap=include_classwise_ap,
+            include_classwise_precision=include_classwise_precision,
+            include_classwise_recall=include_classwise_recall,
+            include_classwise_f1=include_classwise_f1,
             class_names=class_names,
         )
