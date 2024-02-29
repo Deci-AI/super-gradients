@@ -1,4 +1,5 @@
 import copy
+import dataclasses
 import inspect
 import os
 import typing
@@ -104,6 +105,8 @@ from super_gradients.common.factories.pre_launch_callbacks_factory import PreLau
 from super_gradients.training.params import TrainingParams
 from super_gradients.module_interfaces import ExportableObjectDetectionModel, SupportsInputShapeCheck
 from super_gradients.conversion import ExportQuantizationMode
+from super_gradients.common.deprecate import deprecated_parameter
+from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 
 logger = get_logger(__name__)
 
@@ -119,6 +122,43 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.debug("Failed to import pytorch_quantization:")
     logger.debug(import_err)
     _imported_pytorch_quantization_failure = import_err
+
+
+@dataclasses.dataclass
+class PTQResult:
+    quantized_model: nn.Module
+    output_onnx_path: str
+    valid_metrics_dict: Dict[str, float]
+
+
+@dataclasses.dataclass
+class QATResult:
+    quantized_model: nn.Module
+    output_onnx_path: str
+    valid_metrics_dict: Dict[str, float]
+
+
+@dataclasses.dataclass
+class ExportParams:
+    """
+    Parameters for the export function.
+    :param output_onnx_path: The path to save the ONNX model.
+                             If None, the ONNX filename will use current experiment dir folder
+                             and the output filename will reflect model input shape & whether it's a PTQ or QAT model.
+    :param preprocessing: If True, the preprocessing will be included in the ONNX model.
+                          This option is only available for models that support model.export() syntax.
+    :param postprocessing: If True, the postprocessing will be included in the ONNX model.
+                           This option is only available for models that support model.export() syntax.
+    :param confidence_threshold: The confidence threshold for object detection models.
+                                 This option is only available for models that support model.export() syntax.
+                                 If None, the default confidence threshold for a given model will be used.
+    """
+
+    output_onnx_path: Optional[str] = None
+    batch_size: int = 1
+    preprocessing: bool = True
+    postprocessing: bool = True
+    confidence_threshold: Optional[float] = None
 
 
 class Trainer:
@@ -2498,6 +2538,7 @@ class Trainer:
         quantization_params: Mapping = None,
         additional_qat_configs_to_log: Dict = None,
         valid_metrics_list: List[Metric] = None,
+        export_params: ExportParams = None,
     ):
         """
         Performs post-training quantization (PTQ), and then quantization-aware training (QAT).
@@ -2556,15 +2597,16 @@ class Trainer:
             logger.info(f"Using default quantization params: {quantization_params}")
         valid_metrics_list = valid_metrics_list or get_param(training_params, "valid_metrics_list")
 
-        _ = self.ptq(
+        ptq_result = self.ptq(
             calib_loader=calib_loader,
             model=model,
             quantization_params=quantization_params,
             valid_loader=valid_loader,
             valid_metrics_list=valid_metrics_list,
-            deepcopy_model_for_export=True,
+            export_params=None,  # Do not export PTQ model
         )
         # TRAIN
+        model = ptq_result.quantized_model
         model.train()
         torch.cuda.empty_cache()
 
@@ -2577,21 +2619,26 @@ class Trainer:
         )
 
         # EXPORT QUANTIZED MODEL TO ONNX
-        input_shape = next(iter(valid_loader))[0].shape
         os.makedirs(self.checkpoints_dir_path, exist_ok=True)
-        qdq_onnx_path = os.path.join(self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape))}_qat.onnx")
+        if export_params is not None:
+            input_shape_from_loader = tuple(map(int, next(iter(valid_loader))[0].shape))
+            input_shape_with_batch_size_one = (1,) + input_shape_from_loader[1:]
 
-        # TODO: modify SG's convert_to_onnx for quantized models and use it instead
-        export_quantized_module_to_onnx(
-            model=model.cpu(),
-            onnx_filename=qdq_onnx_path,
-            input_shape=input_shape,
-            input_size=input_shape,
-            train=False,
-        )
-        logger.info(f"Exported QAT ONNX to {qdq_onnx_path}")
+            if export_params.output_onnx_path is None:
+                export_params.output_onnx_path = os.path.join(
+                    self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_batch_size_one))}_qat.onnx"
+                )
+            self._export_quantized_model(model, export_params, input_shape_from_loader)
+
+            logger.info(f"Exported QAT ONNX to {export_params.output_onnx_path}")
         return res
 
+    @deprecated_parameter(
+        "deepcopy_model_for_export",
+        deprecated_since="3.6.1",
+        removed_from="3.8.0",
+        reason="This parameter is no longer used. A ptq() method will always make a deepcopy of the model.",
+    )
     def ptq(
         self,
         calib_loader: DataLoader,
@@ -2599,8 +2646,9 @@ class Trainer:
         valid_loader: DataLoader,
         valid_metrics_list: List[torchmetrics.Metric],
         quantization_params: Dict = None,
-        deepcopy_model_for_export: bool = False,
-    ):
+        export_params: ExportParams = None,
+        deepcopy_model_for_export=None,
+    ) -> PTQResult:
         """
         Performs post-training quantization (calibration of the model)..
 
@@ -2643,6 +2691,12 @@ class Trainer:
 
         :return: Validation results of the calibrated model.
         """
+        if deepcopy_model_for_export is False:
+            raise RuntimeError(
+                "deepcopy_model_for_export=False is not supported. "
+                "A deepcopy_model_for_export is always considered True and the input model is not modified in-place anymore."
+                "If you need an acess to the quantized model object use `quantized_model` attribute of the return value of the ptq() call."
+            )
 
         logger.debug("Performing post-training quantization (PTQ)...")
         logger.debug(f"Experiment name {self.experiment_name}")
@@ -2664,6 +2718,7 @@ class Trainer:
             logger.info(f"Using default quantization params: {quantization_params}")
 
         model = unwrap_model(model)  # Unwrap model in case it is wrapped with DataParallel or DistributedDataParallel
+        model = copy.deepcopy(model)  # Deepcopy model to avoid modifying the original model
         model = model.to(device_config.device).eval()
 
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
@@ -2700,19 +2755,46 @@ class Trainer:
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
 
-        input_shape = next(iter(valid_loader))[0].shape
-        input_shape_with_batch_size_one = tuple([1] + list(input_shape[1:]))
-        qdq_onnx_path = os.path.join(
-            self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_batch_size_one))}_ptq.onnx"
+        if export_params is not None:
+            input_shape_from_loader = tuple(map(int, next(iter(valid_loader))[0].shape))
+            input_shape_with_batch_size_one = (1,) + input_shape_from_loader[1:]
+
+            if export_params.output_onnx_path is None:
+                export_params.output_onnx_path = os.path.join(
+                    self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_batch_size_one))}_ptq.onnx"
+                )
+            logger.debug(f"Output ONNX file path {export_params.output_onnx_path}")
+            self._export_quantized_model(model, export_params, input_shape_from_loader)
+            output_onnx_path = export_params.output_onnx_path
+        else:
+            output_onnx_path = None
+
+        return PTQResult(
+            quantized_model=model,
+            onnx_path=output_onnx_path,
+            validation_results=valid_metrics_dict,
         )
-        logger.debug(f"Output ONNX file path {qdq_onnx_path}")
+
+    @staticmethod
+    def _export_quantized_model(self, model, export_params: ExportParams, input_shape_from_dataloader: Tuple[int, int, int, int]):
+        input_shape = export_params.input_shape
+        if input_shape is None:
+            input_shape = infer_image_shape_from_model(model)
+        if input_shape is None:
+            input_shape = input_shape_from_dataloader[2:]
+
+        input_channels = infer_image_input_channels(model)
+        if input_channels is not None and input_channels != input_shape_from_dataloader[1]:
+            logger.warning("Infered input channels does not match with the number of channels from the dataloader")
+
+        input_shape_with_explicit_batch = tuple([export_params.batch_size] + list(input_shape[1:]))
 
         if isinstance(model, ExportableObjectDetectionModel):
             model: ExportableObjectDetectionModel = typing.cast(ExportableObjectDetectionModel, model)
             export_result = model.export(
-                output=qdq_onnx_path,
+                output=export_params.output_onnx_path,
                 quantization_mode=ExportQuantizationMode.INT8,
-                input_image_shape=(input_shape_with_batch_size_one[2], input_shape_with_batch_size_one[3]),
+                input_image_shape=input_shape,
                 preprocessing=False,
                 postprocessing=True,
             )
@@ -2721,11 +2803,9 @@ class Trainer:
             # TODO: modify SG's convert_to_onnx for quantized models and use it instead
             export_quantized_module_to_onnx(
                 model=model.cpu(),
-                onnx_filename=qdq_onnx_path,
-                input_shape=input_shape_with_batch_size_one,
-                input_size=input_shape_with_batch_size_one,
+                onnx_filename=export_params.output_onnx_path,
+                input_shape=input_shape_with_explicit_batch,
+                input_size=input_shape_with_explicit_batch,
                 train=False,
-                deepcopy_model=deepcopy_model_for_export,
+                deepcopy_model=False,
             )
-
-        return valid_metrics_dict
