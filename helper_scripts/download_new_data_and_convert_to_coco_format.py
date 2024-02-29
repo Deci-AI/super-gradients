@@ -78,7 +78,8 @@ def parse_args() -> argparse.Namespace:
         type=float,
         help="What fraction of documents should be included in the testing split.",
     )
-    parser.add_argument("--download_images", action="store_true", help="Flag indicating images should be downloaded from S3 bucket")
+    parser.add_argument("--download_images", action="store_true", help="Flag indicating images should be downloaded from S3 bucket.")
+    parser.add_argument("--use_existing_COCO", action="store_true", help="Flag indicating the previously converted annotations should be used to split.")
     return parser.parse_args()
 
 
@@ -185,6 +186,7 @@ def main(
     val_split_size: float,
     test_split_size: float,
     download_images: bool,
+    use_existing_COCO: bool,
     seed: int = 42,
 ) -> None:
     images_dir.mkdir(parents=True, exist_ok=True)
@@ -202,86 +204,89 @@ def main(
     if download_images:
         download_images(documents, images_dir)
 
-    COCO_anno = {
-        "images": [],
-        "categories": [],
-        "annotations": [],
-        "info": {
-            "year": 2024,
-            "version": "1.0",
-        },
-    }
-
-    COCO_image_id = 0
-    COCO_category_id = 0
-    COCO_annotation_id = 0
-
-    for document in tqdm(documents, desc="Preparing COCO annotations..."):
-        document_file_name = document["url"].split("/")[-1]
-        document_file_pth = f"{images_dir}/{document_file_name}"
-
-        if os.path.exists(document_file_pth):
-            try:
-                target_image = Image.open(document_file_pth)
-            except Exception as e:
-                print(f"Can't open image {document_file_pth}: {e}")
-                continue
-
-            COCO_anno, COCO_image_id = check_and_add_image(document_file_name, target_image, COCO_image_id, document["sd_result"]["id"], COCO_anno)
-
-            for item in document["sd_result"]["items"]:
-                bbox = item["meta"]["geometry"]
-                label = item["labels"]["entity"].lower()
-
-                COCO_anno, COCO_category_id = check_and_add_category(label, COCO_anno, COCO_category_id)
-
-                image_id = get_id_from_dict_list(COCO_anno["images"], "file_name", document_file_name)
-                category_id = get_id_from_dict_list(COCO_anno["categories"], "name", label)
-
-                if item["meta"]["type"] == "POLYGON":
-                    X = []
-                    Y = []
-                    for pair in bbox:
-                        X.append(pair[0])
-                        Y.append(pair[1])
-                    x0 = min(X)
-                    x1 = max(X)
-                    y0 = min(Y)
-                    y1 = max(Y)
-                    width = x1 - x0
-                    height = y1 - y0
-                elif item["meta"]["type"] == "BBOX":
-                    x0, y0, x1, y1 = bbox[0], bbox[1], bbox[2], bbox[3]
-                    width = x1 - x0
-                    height = y1 - y0
-                area = width * height
-
-                COCO_anno["annotations"].append(
-                    {
-                        "id": COCO_annotation_id,
-                        "image_id": image_id,
-                        "category_id": category_id,
-                        "segmentation": [],
-                        "bbox": [float(x0), float(y0), float(width), float(height)],
-                        "ignore": 0,
-                        "iscrowd": 0,
-                        "area": float(area),
-                    },
-                )
-                COCO_annotation_id += 1
-
-    keys_to_check = ["image_id", "category_id", "bbox"]
-    COCO_anno["annotations"] = filter_dicts_by_keys(COCO_anno["annotations"], keys_to_check)
-    COCO_anno["categories"] = clean_categories(COCO_anno["categories"])
-
-    # Create a list of class names to use in training configs
-    class_names = [category["name"] for category in COCO_anno["categories"]]
-    class_names_path = coco_labels_dir / "classnames.txt"
-    save_list_to_txt_file(class_names_path, class_names)
-
     coco_labels_path = coco_labels_dir / "all.json"
-    dump_json(coco_labels_path, COCO_anno)
-    print(f"Annotation saved in {coco_labels_path}")
+    if use_existing_COCO and coco_labels_path.exists():
+        COCO_anno = load_json(coco_labels_path)
+    else:
+        COCO_anno = {
+            "images": [],
+            "categories": [],
+            "annotations": [],
+            "info": {
+                "year": 2024,
+                "version": "1.0",
+            },
+        }
+
+        COCO_image_id = 0
+        COCO_category_id = 0
+        COCO_annotation_id = 0
+
+        for document in tqdm(documents, desc="Preparing COCO annotations..."):
+            document_file_name = document["url"].split("/")[-1]
+            document_file_pth = f"{images_dir}/{document_file_name}"
+
+            if os.path.exists(document_file_pth):
+                try:
+                    target_image = Image.open(document_file_pth)
+                except Exception as e:
+                    print(f"Can't open image {document_file_pth}: {e}")
+                    continue
+
+                COCO_anno, COCO_image_id = check_and_add_image(document_file_name, target_image, COCO_image_id, document["sd_result"]["id"], COCO_anno)
+
+                for item in document["sd_result"]["items"]:
+                    bbox = item["meta"]["geometry"]
+                    label = item["labels"]["entity"].lower()
+
+                    COCO_anno, COCO_category_id = check_and_add_category(label, COCO_anno, COCO_category_id)
+
+                    image_id = get_id_from_dict_list(COCO_anno["images"], "file_name", document_file_name)
+                    category_id = get_id_from_dict_list(COCO_anno["categories"], "name", label)
+
+                    if item["meta"]["type"] == "POLYGON":
+                        X = []
+                        Y = []
+                        for pair in bbox:
+                            X.append(pair[0])
+                            Y.append(pair[1])
+                        x0 = min(X)
+                        x1 = max(X)
+                        y0 = min(Y)
+                        y1 = max(Y)
+                        width = x1 - x0
+                        height = y1 - y0
+                    elif item["meta"]["type"] == "BBOX":
+                        x0, y0, x1, y1 = bbox[0], bbox[1], bbox[2], bbox[3]
+                        width = x1 - x0
+                        height = y1 - y0
+                    area = width * height
+
+                    COCO_anno["annotations"].append(
+                        {
+                            "id": COCO_annotation_id,
+                            "image_id": image_id,
+                            "category_id": category_id,
+                            "segmentation": [],
+                            "bbox": [float(x0), float(y0), float(width), float(height)],
+                            "ignore": 0,
+                            "iscrowd": 0,
+                            "area": float(area),
+                        },
+                    )
+                    COCO_annotation_id += 1
+
+        keys_to_check = ["image_id", "category_id", "bbox"]
+        COCO_anno["annotations"] = filter_dicts_by_keys(COCO_anno["annotations"], keys_to_check)
+        COCO_anno["categories"] = clean_categories(COCO_anno["categories"])
+
+        # Create a list of class names to use in training configs
+        class_names = [category["name"] for category in COCO_anno["categories"]]
+        class_names_path = coco_labels_dir / "classnames.txt"
+        save_list_to_txt_file(class_names_path, class_names)
+
+        dump_json(coco_labels_path, COCO_anno)
+        print(f"Annotation saved in {coco_labels_path}")
 
     print("Preparing train/val/test splits...")
     splits = {"train": train_split_size, "val": val_split_size, "test": test_split_size}
@@ -311,12 +316,12 @@ def main(
         if number_of_remaining_documents:
             number_of_samples = ceil(splits[split] * number_of_remaining_documents)
 
-            if number_of_samples > len(COCO_anno_split["images"]):
-                stop = start + number_of_samples
-                if stop > number_of_remaining_documents:
-                    stop = number_of_remaining_documents
-                COCO_anno_split["images"].extend(COCO_anno["images"][start:stop])
-                start = stop
+            # if number_of_samples > len(COCO_anno_split["images"]):
+            stop = start + number_of_samples
+            if stop > number_of_remaining_documents:
+                stop = number_of_remaining_documents
+            COCO_anno_split["images"].extend(COCO_anno["images"][start:stop])
+            start = stop
         print(f"{len(COCO_anno_split['images'])} samples in {split} split.")
 
         img_ids = [image["id"] for image in COCO_anno_split["images"]]
@@ -346,4 +351,5 @@ if __name__ == "__main__":
         args.val_split_size,
         args.test_split_size,
         args.download_images,
+        args.use_existing_COCO,
     )
