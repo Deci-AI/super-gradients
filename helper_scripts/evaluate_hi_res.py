@@ -213,7 +213,7 @@ def main(
         results = metric.compute()
         metric_outputs.append(results)
         for k, v in results.items():
-            neptune_run[f"metrics/{k}"] = v
+            neptune_run[k] = v
 
     logger.info(f"Metric outputs: {metric_outputs}")
 
