@@ -910,7 +910,7 @@ def create_lr_scheduler_callback(
 
                     When str:
 
-                    Learning rate scheduling policy, one of ['StepLRScheduler','PolyLRScheduler','CosineLRScheduler','FunctionLRScheduler'].
+                    Learning rate scheduling policy, one of ['StepLRScheduler','PolyLRScheduler','CosineLRScheduler'].
 
                     'StepLRScheduler' refers to constant updates at epoch numbers passed through `lr_updates`.
                         Each update decays the learning rate by `lr_decay_factor`.
@@ -920,9 +920,6 @@ def create_lr_scheduler_callback(
 
                     'PolyLRScheduler' refers to the polynomial decrease:
                         in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
-
-                    'FunctionLRScheduler' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
-
 
 
                     When Mapping, refers to a torch.optim.lr_scheduler._LRScheduler, following the below API:

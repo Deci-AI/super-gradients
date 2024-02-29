@@ -177,8 +177,6 @@ class LRSchedulers:
     STEP = "StepLRScheduler"
     POLY = "PolyLRScheduler"
     COSINE = "CosineLRScheduler"
-    EXP = "ExponentialLRScheduler"
-    FUNCTION = "FunctionLRScheduler"
 
 
 class LRWarmups:

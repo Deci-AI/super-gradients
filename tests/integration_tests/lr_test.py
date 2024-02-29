@@ -38,24 +38,6 @@ class LRTest(unittest.TestCase):
         model = models.get(Models.RESNET18_CIFAR, num_classes=5)
         return trainer, model
 
-    def test_function_lr(self):
-        trainer, model = self.get_trainer(self.folder_name)
-
-        def test_lr_function(initial_lr, epoch, iter, max_epoch, iters_per_epoch, **kwargs):
-            return initial_lr * (1 - ((epoch * iters_per_epoch + iter) / (max_epoch * iters_per_epoch)))
-
-        # test if we are able that lr_function supports functions with this structure
-        training_params = {**self.training_params, "lr_mode": "FunctionLRScheduler", "lr_schedule_function": test_lr_function}
-        trainer.train(
-            model=model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
-        )
-        # test that we assert lr_function is callable
-        training_params = {**self.training_params, "lr_mode": "FunctionLRScheduler"}
-        with self.assertRaises(AssertionError):
-            trainer.train(
-                model=model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
-            )
-
     def test_cosine_lr(self):
         trainer, model = self.get_trainer(self.folder_name)
         training_params = {**self.training_params, "lr_mode": "CosineLRScheduler", "cosine_final_lr_ratio": 0.01}
