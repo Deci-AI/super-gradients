@@ -23,7 +23,7 @@ def _default_oversample_heuristic(
                                         The default value is 0.5, and corresponds to the implementation in the paper.
                                         A value of 0.0 corresponds to no oversampling.
 
-    Value of 1.0 corresponds to no oversampling.
+    Returns a numpy array indicating the oversample factor per class. An entry with value of 1.0 corresponds to no oversampling.
     """
     if oversample_threshold is None:
         oversample_threshold = np.median(class_frequencies)
@@ -63,7 +63,7 @@ class ClassBalancer:
         Returns a list of repeat factors (length = dataset_length). How to read: result[i] is a float, indicates the repeat factor of image i.
         """
 
-        class_information = class_information_provider.get_dataset_classes_information()
+        class_information = class_information_provider.get_dataset_classes_information()  # shape = (dataset_length, num_classes)
 
         # 1. For each category c, compute the fraction # of images that contain it: f(c)
         class_frequencies = np.sum(class_information, axis=0)
@@ -125,6 +125,7 @@ class ClassBalancedSampler(WeightedRandomSampler):
         precomputed_factors_file: Optional[str] = None,
         oversample_threshold: Optional[float] = None,
         oversample_aggressiveness: float = 0.5,
+        num_samples: Optional[int] = None,
         generator=None,
     ) -> None:
         """
@@ -148,4 +149,4 @@ class ClassBalancedSampler(WeightedRandomSampler):
 
         weights = np.array(repeat_factors) / sum(repeat_factors)
 
-        super().__init__(weights=weights, num_samples=len(weights), replacement=True, generator=generator)
+        super().__init__(weights=weights, num_samples=num_samples or len(weights), replacement=True, generator=generator)

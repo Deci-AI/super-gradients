@@ -10,7 +10,7 @@ from super_gradients.training.transforms import DetectionPaddedRescale
 from super_gradients.training.utils.collate_fn import DetectionCollateFN
 
 
-def get_class_frequency(dataloader):
+def _get_class_frequency(dataloader):
     class_frequency = {}
     for batch_x, batch_y in tqdm(dataloader, total=len(dataloader)):
         for cls in batch_y[:, -1]:
@@ -35,7 +35,7 @@ def main():
     initial_discrepancy = initial_class_balance.max() / initial_class_balance.min()
 
     print(
-        f" BEFORE BALANCE:"
+        f"BEFORE BALANCE:"
         f" Most frequent class (#{np.argmax(initial_class_balance)}) appears {initial_class_balance.max()} times, which is {initial_discrepancy:.2f}x"
         f" more frequent than the least frequent class (#{np.argmin(initial_class_balance)}) that appears only {initial_class_balance.min()} times!"
     )
@@ -43,7 +43,7 @@ def main():
     vanilla_dataloader = DataLoader(dataset, batch_size=8, drop_last=False, collate_fn=DetectionCollateFN())
     vanilla_sampled_class_balance = np.zeros_like(initial_class_balance)
 
-    for k, v in get_class_frequency(vanilla_dataloader).items():
+    for k, v in _get_class_frequency(vanilla_dataloader).items():
         vanilla_sampled_class_balance[k] = v
 
     np.testing.assert_equal(vanilla_sampled_class_balance, initial_class_balance)  # no special sampling
@@ -54,7 +54,7 @@ def main():
         balanced_dataloader = DataLoader(dataset, batch_size=8, drop_last=False, collate_fn=DetectionCollateFN(), sampler=sampler)
         balanced_sampled_class_balance = np.zeros_like(initial_class_balance)
 
-        for k, v in get_class_frequency(balanced_dataloader).items():
+        for k, v in _get_class_frequency(balanced_dataloader).items():
             balanced_sampled_class_balance[k] = v
 
         balanced_discrepancy = balanced_sampled_class_balance.max() / balanced_sampled_class_balance.min()
