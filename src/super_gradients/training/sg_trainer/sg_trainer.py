@@ -142,16 +142,20 @@ class QATResult:
 class ExportParams:
     """
     Parameters for the export function.
+
     :param output_onnx_path: The path to save the ONNX model.
-                             If None, the ONNX filename will use current experiment dir folder
-                             and the output filename will reflect model input shape & whether it's a PTQ or QAT model.
+           If None, the ONNX filename will use current experiment dir folder
+           and the output filename will reflect model input shape & whether it's a PTQ or QAT model.
+
     :param preprocessing: If True, the preprocessing will be included in the ONNX model.
-                          This option is only available for models that support model.export() syntax.
+           This option is only available for models that support model.export() syntax.
+
     :param postprocessing: If True, the postprocessing will be included in the ONNX model.
-                           This option is only available for models that support model.export() syntax.
+           This option is only available for models that support model.export() syntax.
+
     :param confidence_threshold: The confidence threshold for object detection models.
-                                 This option is only available for models that support model.export() syntax.
-                                 If None, the default confidence threshold for a given model will be used.
+           This option is only available for models that support model.export() syntax.
+           If None, the default confidence threshold for a given model will be used.
     """
 
     output_onnx_path: Optional[str] = None
@@ -2403,7 +2407,7 @@ class Trainer:
             self.loss_logging_items_names = [criterion_name]
 
     @classmethod
-    def quantize_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
+    def quantize_from_config(cls, cfg: Union[DictConfig, dict]) -> Union[PTQResult, QATResult]:
         """
         Perform quantization aware training (QAT) according to a recipe configuration.
 
@@ -2418,7 +2422,8 @@ class Trainer:
          a train data laoder with the validation transforms is used for calibration.
 
         :param cfg: The parsed DictConfig object from yaml recipe files or a dictionary.
-        :return: A tuple containing the quantized model and the output of trainer.train() method.
+        :return: Returns an instaned of PTQResult or QATResult that contains quantized model instance, ONNX path
+                 and other relevant information.
 
         :raises ValueError: If the recipe does not have the required key `quantization_params` or
         `checkpoint_params.checkpoint_path` in it.
@@ -2436,11 +2441,13 @@ class Trainer:
         cfg = cls._trigger_cfg_modifying_callbacks(cfg)
 
         quantization_params = get_param(cfg, "quantization_params")
-
         if quantization_params is None:
             logger.warning("Your recipe does not include quantization_params. Using default quantization params.")
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             cfg.quantization_params = quantization_params
+
+        export_params = get_param(cfg, "export_params", {})
+        export_params = ExportParams(**export_params)
 
         if get_param(cfg.checkpoint_params, "checkpoint_path") is None and get_param(cfg.checkpoint_params, "pretrained_weights") is None:
             raise ValueError("Starting checkpoint / pretrained weights are a must for QAT finetuning.")
@@ -2514,6 +2521,7 @@ class Trainer:
                 quantization_params=quantization_params,
                 valid_loader=val_dataloader,
                 valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
+                export_params=export_params,
             )
         else:
             res = trainer.qat(
@@ -2524,9 +2532,10 @@ class Trainer:
                 train_loader=train_dataloader,
                 training_params=cfg.training_hyperparams,
                 additional_qat_configs_to_log=recipe_logged_cfg,
+                export_params=export_params,
             )
 
-        return model, res
+        return res
 
     def qat(
         self,
@@ -2539,7 +2548,7 @@ class Trainer:
         additional_qat_configs_to_log: Dict = None,
         valid_metrics_list: List[Metric] = None,
         export_params: ExportParams = None,
-    ):
+    ) -> QATResult:
         """
         Performs post-training quantization (PTQ), and then quantization-aware training (QAT).
         Exports the ONNX models (ckpt_best.pth of QAT and the calibrated model) to the checkpoints directory.
@@ -2588,10 +2597,8 @@ class Trainer:
         :param valid_metrics_list:  (list(torchmetrics.Metric)) metrics list for evaluation of the calibrated model.
         When None, the validation metrics from training_params are used). (default=None).
 
-        :return: Validation results of the QAT model in case quantization_params['ptq_only']=False and of the PTQ
-        model otherwise.
+        :return: An instance of QATResult containing the quantized model, the ONNX path and other relevant information.
         """
-
         if quantization_params is None:
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             logger.info(f"Using default quantization params: {quantization_params}")
@@ -2629,9 +2636,12 @@ class Trainer:
                     self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_batch_size_one))}_qat.onnx"
                 )
             self._export_quantized_model(model, export_params, input_shape_from_loader)
+            output_onnx_path = export_params.output_onnx_path
+            logger.info(f"Exported QAT ONNX to {output_onnx_path}")
+        else:
+            output_onnx_path = None
 
-            logger.info(f"Exported QAT ONNX to {export_params.output_onnx_path}")
-        return res
+        return QATResult(quantized_model=model, onnx_path=output_onnx_path, valid_metrics_dict=res)
 
     @deprecated_parameter(
         "deepcopy_model_for_export",
@@ -2776,7 +2786,16 @@ class Trainer:
         )
 
     @staticmethod
-    def _export_quantized_model(self, model, export_params: ExportParams, input_shape_from_dataloader: Tuple[int, int, int, int]):
+    def _export_quantized_model(model: nn.Module, export_params: ExportParams, input_shape_from_dataloader: Tuple[int, int, int, int]):
+        """
+        Internal method to export a quantized model to ONNX. This method used internally by PTQ & QAT steps.
+
+        :param model: Quantized model
+        :param export_params: Parameters controlling the export process.
+        :param input_shape_from_dataloader: Example shape of the batch from validation DataLoader.
+               It may be used as an example of the input shape during ONNX export.
+        :return: None
+        """
         input_shape = export_params.input_shape
         if input_shape is None:
             input_shape = infer_image_shape_from_model(model)
@@ -2795,8 +2814,10 @@ class Trainer:
                 output=export_params.output_onnx_path,
                 quantization_mode=ExportQuantizationMode.INT8,
                 input_image_shape=input_shape,
-                preprocessing=False,
-                postprocessing=True,
+                preprocessing=export_params.preprocessing,
+                postprocessing=export_params.postprocessing,
+                confidence_threshold=export_params.confidence_threshold,
+                # TODO Add more parameters to the export_params
             )
             logger.info(repr(export_result))
         else:
