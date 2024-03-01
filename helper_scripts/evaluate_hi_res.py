@@ -68,15 +68,10 @@ METRICS = [
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate hi-res model outputs.")
 
+    parser.add_argument("--output_dir", type=Path, required=True, help="Directory where JSON model outputs are stored.")
+    parser.add_argument("--labels_path", type=Path, required=True, help="JSON file containing labels for the documents.")
     parser.add_argument(
-        "--output_dir", type=Path, required=True,
-        help="Directory where JSON model outputs are stored.")
-    parser.add_argument(
-        "--labels_path", type=Path, required=True,
-        help="JSON file containing labels for the documents.")
-    parser.add_argument(
-        "--default_detection_class_prob", type=float, default=DEFAULT_DETECTION_CLASS_PROB,
-        help="Default detection class probability when not found."
+        "--default_detection_class_prob", type=float, default=DEFAULT_DETECTION_CLASS_PROB, help="Default detection class probability when not found."
     )
 
     return parser.parse_args()
