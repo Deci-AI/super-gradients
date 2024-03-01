@@ -30,6 +30,6 @@ if __name__ == "__main__":
         torch.distributed.destroy_process_group()
         sys.exit(0)
     else:
-        print(f"wrong datalaoder length, expected min_samples/(world_size*batch_size)=80/(4*4=5), got {len(dataloader)}")
+        print(f"wrong DataLoader length, expected min_samples/(world_size*batch_size)=80/(4*4=5), got {len(dataloader)}")
         torch.distributed.destroy_process_group()
         sys.exit(1)
