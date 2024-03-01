@@ -8,38 +8,38 @@ Labels can be downloaded from DVC:
 dvc-data-registry/holistic-mini-pdf-image-dataset/mini-holistic-all/ls/export_45956_project-45956-at-2024-01-10-23-16-24cfbda6.json
 
 To run the script, use the following command:
-python helper_scripts/evaluate_hi_res.py --output_dir <path_to_model_outputs> --labels_path <path_to_labels>
+python helper_scripts/evaluate_hi_res.py --output_dir <path_to_model_outputs> --labels_path <path_to_labels> [--default_detection_class_prob 1.0]
 """
 
 import argparse
-from typing import List, Dict
+import logging
+import os
+from typing import List, Dict, Tuple, Optional
+from pathlib import Path
 
 import dotenv
 import json
-import logging
-import os
-from pathlib import Path
-
 import neptune
 import numpy as np
 import torch
 
-from super_gradients.training import utils as core_utils
+from super_gradients.training.utils import detection_utils as core_utils
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics, DetectionMetrics_09
 from mappings import HI_RES_ELEMENT_TYPES
 from utils import IdentityPostPredictionCallback
 
 dotenv.load_dotenv()
-logger = logging.getLogger()
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger(__name__)
 
-# Some predictions do not have a detection class probability. This value is used as a default when the probability is
-# not found. This value should be set to 1.0 since hi-res model outputs are not filtered by detection class probability.
-DEFAULT_DETECTION_CLASS_PROB = 0.2
+DEFAULT_DETECTION_CLASS_PROB = 1.0
 
 NEPTUNE_PARAMS = {
     "name": "hi_res_evaluation",
     "tags": ["hi_res", "eval", "CORE-3977"],
 }
+
+MINIHOLISTIC_IDS = {cat["name"]: cat["id"] for cat in HI_RES_ELEMENT_TYPES}
 
 METRICS = [
     DetectionMetrics(
@@ -64,111 +64,74 @@ METRICS = [
     ),
 ]
 
-MINIHOLISTIC_IDS = {cat["name"]: cat["id"] for cat in HI_RES_ELEMENT_TYPES}
-
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Convert dataset to standard COCO format.")
+    parser = argparse.ArgumentParser(description="Evaluate hi-res model outputs.")
 
     parser.add_argument(
-        "--output_dir",
-        type=Path,
-        help="Path to directory json model outputs are stored.",
-    )
+        "--output_dir", type=Path, required=True,
+        help="Directory where JSON model outputs are stored.")
     parser.add_argument(
-        "--labels_path",
-        type=Path,
-        help="Path to json file containing labels for the documents in the output directory",
-    )
+        "--labels_path", type=Path, required=True,
+        help="JSON file containing labels for the documents.")
     parser.add_argument(
-        "--default_detection_class_prob",
-        type=float,
-        default=DEFAULT_DETECTION_CLASS_PROB,
-        help="Default detection class probability to use when the probability is not found in the predictions",
+        "--default_detection_class_prob", type=float, default=DEFAULT_DETECTION_CLASS_PROB,
+        help="Default detection class probability when not found."
     )
 
     return parser.parse_args()
 
 
-def format_predictions(predictions: List[Dict], default_detection_class_prob: float) -> torch.Tensor:
-    """
-    Format predictions to a torch tensor with shape (N, 6), where N is the number of predictions in the batch.
-    """
-    formatted_predictions = np.zeros((len(predictions), 6))
+def format_predictions(predictions: List[Dict], default_prob: float) -> torch.Tensor:
+    preds = np.zeros((len(predictions), 6))
     for i, pred in enumerate(predictions):
-        formatted_predictions[i, 0] = pred["metadata"]["coordinates"]["points"][0][0]
-        formatted_predictions[i, 1] = pred["metadata"]["coordinates"]["points"][0][1]
-        formatted_predictions[i, 2] = pred["metadata"]["coordinates"]["points"][2][0]
-        formatted_predictions[i, 3] = pred["metadata"]["coordinates"]["points"][2][1]
-        try:
-            formatted_predictions[i, 4] = pred["metadata"]["detection_class_prob"]
-        except KeyError:
-            formatted_predictions[i, 4] = default_detection_class_prob
-            logger.debug(f"Detection class probability not found for {pred['element_id']}. " f"Using default value: {default_detection_class_prob}.")
-        formatted_predictions[i, 5] = MINIHOLISTIC_IDS[pred["type"]]
-    return torch.from_numpy(formatted_predictions)
+        coords = pred["metadata"]["coordinates"]["points"]
+        preds[i, :4] = coords[0][0], coords[0][1], coords[2][0], coords[2][1]
+        preds[i, 4] = pred.get("metadata", {}).get("detection_class_prob", default_prob)
+        preds[i, 5] = MINIHOLISTIC_IDS.get(pred["type"])
+    return torch.tensor(preds, dtype=torch.float32)
 
 
 def format_labels(labels: List[Dict]) -> torch.Tensor:
-    """
-    Format labels to a torch tensor with shape (N, 6), where N is the number of annotations in the labels.
-    """
-    # labels should contain single page information
-    assert len(labels) == 1
-
-    formatted_labels = np.empty(shape=(0, 6))
-
-    for page_index, page_labels in enumerate(labels):
-        for annotation in page_labels["result"]:
-            if annotation["type"] == "labels":
-                category = annotation["value"]["labels"][0]
-                x0 = annotation["value"]["x"] / 100 * annotation["original_width"]
-                y0 = annotation["value"]["y"] / 100 * annotation["original_height"]
-                width = annotation["value"]["width"] / 100 * annotation["original_width"]
-                height = annotation["value"]["height"] / 100 * annotation["original_height"]
-                xyxy = np.array([[x0, y0, x0 + width, y0 + height]])
-                cx, cy, w, h = core_utils.detection_utils.xyxy2cxcywh(xyxy)[0]
-                category_id = MINIHOLISTIC_IDS[category]
-                labels_row = np.array([[page_index, category_id, cx, cy, w, h]])
-
-                formatted_labels = np.concatenate([formatted_labels, labels_row])
-
-    return torch.from_numpy(formatted_labels)
+    assert len(labels) == 1, "Labels should contain single page information"
+    annotations = labels[0]["result"]
+    formatted_labels = [format_single_annotation(anno) for anno in annotations if anno["type"] == "labels"]
+    if not formatted_labels:
+        return torch.tensor(np.empty(shape=(0, 6)), dtype=torch.float32)
+    return torch.tensor(formatted_labels, dtype=torch.float32)
 
 
-def get_width_height(page_predictions: List[Dict], page_labels: List[Dict], document_name: str, page_number: int) -> [int, int]:
-    """
-    Get the width and height of the image and label for a given page. If the dimensions do not match, log a warning.
-    """
+def format_single_annotation(annotation: Dict) -> List[float]:
+    category = annotation["value"]["labels"][0]
+    x0, y0 = annotation["value"]["x"] / 100 * annotation["original_width"], annotation["value"]["y"] / 100 * annotation["original_height"]
+    width, height = annotation["value"]["width"] / 100 * annotation["original_width"], annotation["value"]["height"] / 100 * annotation["original_height"]
+    xyxy = np.array([[x0, y0, x0 + width, y0 + height]])
+    cx, cy, w, h = core_utils.xyxy2cxcywh(xyxy)[0]
+    category_id = MINIHOLISTIC_IDS[category]
+    return [0, category_id, cx, cy, w, h]
+
+
+def get_width_height(page_predictions: List[Dict], page_labels: List[Dict], document_name: str, page_number: int) -> Tuple[Optional[int], Optional[int]]:
     try:
-        img_width = page_predictions[0]["metadata"]["coordinates"]["layout_width"]
-        img_height = page_predictions[0]["metadata"]["coordinates"]["layout_height"]
+        img_dimensions = page_predictions[0]["metadata"]["coordinates"]
+        img_width, img_height = img_dimensions["layout_width"], img_dimensions["layout_height"]
     except IndexError:
-        logger.info(f"No predictions found for document {document_name}; page {page_number}")
-        img_width = None
-        img_height = None
-    try:
-        label_width = page_labels[0]["result"][0]["original_width"]
-        label_height = page_labels[0]["result"][0]["original_height"]
-    except IndexError:
-        logger.info(f"No labels found for document {document_name}; page {page_number}")
-        label_width = None
-        label_height = None
+        logger.info(f"No predictions found for {document_name}, page {page_number}")
+        img_width, img_height = None, None
 
-    # if the image and label dimensions do not match, log a warning
+    try:
+        label_dims = page_labels[0]["result"][0]
+        label_width, label_height = label_dims["original_width"], label_dims["original_height"]
+    except IndexError:
+        logger.info(f"No labels found for {document_name}, page {page_number}")
+        label_width, label_height = None, None
+
     if img_width != label_width or img_height != label_height:
         if img_width and label_width and img_height and label_height:
-            logger.warning(
-                f"Image and label dimensions do not match for document {document_name}; "
-                f"page {page_number}. "
-                f"Image: {img_width}x{img_height}, Label: {label_width}x{label_height}"
-            )
+            logger.warning(f"Document {document_name}, page {page_number}: Dimension mismatch.")
             return None, None
 
-    width = img_width if img_width else label_width or 0
-    height = img_height if img_height else label_height or 0
-
-    return width, height
+    return img_width or label_width or 0, img_height or label_height or 0
 
 
 def main(output_dir: Path, labels_path: Path, default_detection_class_prob: float):
