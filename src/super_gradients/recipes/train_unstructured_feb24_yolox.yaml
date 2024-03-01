@@ -23,7 +23,7 @@ checkpoint_params:
 dataset_params:
   train_dataset_params:
     # 19
-    all_classes_list: [paragraph, page_number, image, paragraphs_in_image, paragraphs_in_table, other, table, page_header, subheading, formulas, page_footer, title, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet] # List of classes used in your dataset.
+    all_classes_list: [paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas, page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet,] # List of classes used in your dataset.
     # 17
     # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
     input_dim: [1025, 1025]
@@ -62,7 +62,7 @@ dataset_params:
 
   val_dataset_params:
     # 19
-    all_classes_list: [paragraph, page_number, image, paragraphs_in_image, paragraphs_in_table, other, table, page_header, subheading, formulas, page_footer, title, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet] # List of classes used in your dataset.
+    all_classes_list: [paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas, page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet,] # List of classes used in your dataset.
     # 17
     # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
     transforms:
@@ -77,7 +77,7 @@ resume: False
 training_hyperparams:
   neptune_logging:
     name: ${experiment_name}
-    tags: ["CORE-4010", "object detection", "training", "unstructured_feb24_3", "uncomplete FinanceBench set"]
+    tags: ["CORE-4010", "object detection", "training", "unstructured_feb24_3", "completed dataset"]
   resume: ${resume}
   max_epochs: 100
   criterion_params:

@@ -5,12 +5,12 @@ defaults:
 
 train_dataset_params:
   data_dir: /data/unstructured_feb24_3
-  images_dir: images
+  images_dir: all_images
   json_file: COCO/train.json
 
 val_dataset_params:
   data_dir: /data/unstructured_feb24_3
-  images_dir: images
+  images_dir: all_images
   json_file: COCO/val.json
 
 train_dataloader_params:
