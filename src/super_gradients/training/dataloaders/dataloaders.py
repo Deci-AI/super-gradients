@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict, Mapping
 
 import hydra
@@ -25,7 +26,7 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
 )
 from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets.rescoring_dataset import TrainRescoringDataset, ValTrainRescoringDataset
-from super_gradients.training.datasets.samplers import RepeatAugSampler
+from super_gradients.training.datasets.samplers import RepeatAugSampler, DistributedSamplerWrapper
 from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     CoCoSegmentationDataSet,
@@ -201,7 +202,20 @@ def _instantiate_sampler(dataset, dataloader_params):
         # SHUFFLE IS MUTUALLY EXCLUSIVE WITH SAMPLER ARG IN DATALOADER INIT
         dataloader_params["sampler"][sampler_name]["shuffle"] = dataloader_params.pop("shuffle")
     dataloader_params["sampler"][sampler_name]["dataset"] = dataset
-    dataloader_params["sampler"] = SamplersFactory().get(dataloader_params["sampler"])
+    dataloader_params["sampler"] = SamplersFactory().get(dataloader_params["sampler"])  # a living object
+
+    if (
+        super_gradients.is_distributed()
+        and dataloader_params.get("auto_wrap_sampler_when_ddp", True)
+        and not isinstance(dataloader_params["sampler"], torch.utils.data.distributed.DistributedSampler)
+    ):
+        warnings.warn(
+            f"You are running in a distributed setting, with {dataloader_params['sampler'].__class__.__name__} that appears not to fit into this setting.\n"
+            f"We automatically wrapped it so that it will fit into this setting, however, the behavior also depends on your implementation.\n"
+            f"In case of undesired behavior, please set the `auto_wrap_sampler_when_ddp` argument to `False` in your dataloader config.\n"
+        )
+        dataloader_params["sampler"] = DistributedSamplerWrapper(dataloader_params["sampler"])
+
     return dataloader_params
 
 
