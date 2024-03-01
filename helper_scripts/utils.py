@@ -3,6 +3,11 @@ from pathlib import Path
 from typing import Any
 
 
+def load_txt(path: Path) -> str:
+    with open(path, "r") as file:
+        return file.readlines()
+
+
 def load_json(path: Path) -> Any:
     with open(path, "r") as file:
         data = json.load(file)

@@ -15,7 +15,7 @@ from pathlib import Path
 from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list
 from PIL import Image
 from tqdm import tqdm
-from utils import dump_json, load_json, load_json_by_line
+from utils import dump_json, load_json, load_json_by_line, load_txt
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,6 +36,12 @@ def parse_args() -> argparse.Namespace:
         "--existing_coco_labels_dir",
         type=Path,
         help="Path to directory where existing COCO splits are saved.",
+    )
+    parser.add_argument(
+        "--existing_categories_file",
+        type=Path,
+        default=None,
+        help="Path to file where list of categories is stored. If None, categories will be generated based on labels.",
     )
     parser.add_argument(
         "--train_split_name",
@@ -90,13 +96,24 @@ def sort_labels(labels: list[dict]) -> list[dict]:
     return labels
 
 
-def download_images(labels: list[dict], images_dir: Path):
+def download_images_from_url(labels: list[dict], images_dir: Path):
     for label in tqdm(labels, desc="Downloading images..."):
         if not os.path.exists(f"{images_dir}/{label['file_name']}"):
             try:
-                urllib.request.urlretrieve(label["url"].replace(" ", "+").replace("®", "%C2%AE"), f"{images_dir}/{label['url'].split('/')[-1]}")
+                output_path = f"{images_dir}/{label['url'].split('/')[-1]}"
+                # Fix some unsupported chars in url
+                label_url = label["url"].replace(" ", "+").replace("®", "%C2%AE")
+                urllib.request.urlretrieve(label_url, output_path)
             except Exception as e:
-                print(f"Coudn't download image: {label['url']}.\n{e}")
+                # Some of the files from FinanceBench are not found due to new location
+                updated_url = label_url.replace(
+                    "http://utic-dev-tech-fixtures.s3.us-east-2.amazonaws.com/data_for_external_3rd_party_chinese_company/FinanceBench/",
+                    "http://utic-dev-tech-fixtures.s3.us-east-2.amazonaws.com/data_for_external_3rd_party_chinese_company/SourceImages/FinanceBench/",
+                )
+                try:
+                    urllib.request.urlretrieve(updated_url, output_path)
+                except:
+                    print(f"Coudn't download image: {label['url']}.\n{e}")
 
 
 def load_images_names_for_split(split_path: Path) -> list[str] | None:
@@ -130,6 +147,18 @@ def load_existing_splits(
             "val": None,
             "test": None,
         }
+
+
+def init_categories(existing_categories_file: Path, COCO_anno: dict, COCO_category_id: int):
+    categories_str = load_txt(existing_categories_file)
+    categories_list = categories_str[0].replace(",", "").split(" ")
+    categories_list = [element for element in categories_list if element != ""]
+    COCO_categories = []
+    for cat in categories_list:
+        COCO_categories.append({"id": COCO_category_id, "name": cat})
+        COCO_category_id += 1
+    COCO_anno["categories"] = COCO_categories
+    return COCO_anno, COCO_category_id
 
 
 def flatten_tuple(input_tuple):
@@ -178,6 +207,7 @@ def main(
     images_dir: Path,
     labels_paths: list[Path],
     existing_coco_labels_dir: Path,
+    existing_categories_file: Path,
     train_split_name: str,
     val_split_name: str,
     test_split_name: str,
@@ -202,7 +232,7 @@ def main(
     random.shuffle(documents)
 
     if download_images:
-        download_images(documents, images_dir)
+        download_images_from_url(documents, images_dir)
 
     coco_labels_path = coco_labels_dir / "all.json"
     if use_existing_COCO and coco_labels_path.exists():
@@ -221,6 +251,9 @@ def main(
         COCO_image_id = 0
         COCO_category_id = 0
         COCO_annotation_id = 0
+
+        if existing_categories_file and len(COCO_anno["categories"]) == 0:
+            COCO_anno, COCO_category_id = init_categories(existing_categories_file, COCO_anno, COCO_category_id)
 
         for document in tqdm(documents, desc="Preparing COCO annotations..."):
             document_file_name = document["url"].split("/")[-1]
@@ -343,6 +376,7 @@ if __name__ == "__main__":
         args.images_dir,
         args.labels_path,
         args.existing_coco_labels_dir,
+        args.existing_categories_file,
         args.train_split_name,
         args.val_split_name,
         args.test_split_name,
