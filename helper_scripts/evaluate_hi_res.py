@@ -11,8 +11,9 @@ To run the script, use the following command:
 python helper_scripts/evaluate_hi_res.py --output_dir <path_to_model_outputs> --labels_path <path_to_labels>
 """
 
-
 import argparse
+from typing import List, Dict
+
 import dotenv
 import json
 import logging
@@ -25,7 +26,6 @@ import torch
 
 from super_gradients.training import utils as core_utils
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics, DetectionMetrics_09
-from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from mappings import HI_RES_ELEMENT_TYPES
 from utils import IdentityPostPredictionCallback
 
@@ -50,7 +50,8 @@ METRICS = [
         include_classwise_ap=True,
         include_classwise_precision=True,
         include_classwise_recall=True,
-        class_names=[cat['name'] for cat in HI_RES_ELEMENT_TYPES]),
+        class_names=[cat["name"] for cat in HI_RES_ELEMENT_TYPES],
+    ),
     DetectionMetrics_09(
         num_cls=23,
         post_prediction_callback=IdentityPostPredictionCallback(),
@@ -59,10 +60,11 @@ METRICS = [
         include_classwise_ap=True,
         include_classwise_precision=True,
         include_classwise_recall=True,
-        class_names=[cat['name'] for cat in HI_RES_ELEMENT_TYPES])
+        class_names=[cat["name"] for cat in HI_RES_ELEMENT_TYPES],
+    ),
 ]
 
-MINIHOLISTIC_IDS = {cat['name']: cat['id'] for cat in HI_RES_ELEMENT_TYPES}
+MINIHOLISTIC_IDS = {cat["name"]: cat["id"] for cat in HI_RES_ELEMENT_TYPES}
 
 
 def parse_args() -> argparse.Namespace:
@@ -88,7 +90,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def format_predictions(predictions):
+def format_predictions(predictions: List[Dict], default_detection_class_prob: float) -> torch.Tensor:
     """
     Format predictions to a torch tensor with shape (N, 6), where N is the number of predictions in the batch.
     """
@@ -101,13 +103,13 @@ def format_predictions(predictions):
         try:
             formatted_predictions[i, 4] = pred["metadata"]["detection_class_prob"]
         except KeyError:
-            formatted_predictions[i, 4] = DEFAULT_DETECTION_CLASS_PROB
-            logger.warning(f"Detection class probability not found for {pred['element_id']}")
+            formatted_predictions[i, 4] = default_detection_class_prob
+            logger.debug(f"Detection class probability not found for {pred['element_id']}. " f"Using default value: {default_detection_class_prob}.")
         formatted_predictions[i, 5] = MINIHOLISTIC_IDS[pred["type"]]
     return torch.from_numpy(formatted_predictions)
 
 
-def format_labels(labels):
+def format_labels(labels: List[Dict]) -> torch.Tensor:
     """
     Format labels to a torch tensor with shape (N, 6), where N is the number of annotations in the labels.
     """
@@ -116,7 +118,7 @@ def format_labels(labels):
 
     formatted_labels = np.empty(shape=(0, 6))
 
-    for page_i, page_labels in enumerate(labels):
+    for page_index, page_labels in enumerate(labels):
         for annotation in page_labels["result"]:
             if annotation["type"] == "labels":
                 category = annotation["value"]["labels"][0]
@@ -127,14 +129,14 @@ def format_labels(labels):
                 xyxy = np.array([[x0, y0, x0 + width, y0 + height]])
                 cx, cy, w, h = core_utils.detection_utils.xyxy2cxcywh(xyxy)[0]
                 category_id = MINIHOLISTIC_IDS[category]
-                labels_row = np.array([[page_i, category_id, cx, cy, w, h]])
+                labels_row = np.array([[page_index, category_id, cx, cy, w, h]])
 
                 formatted_labels = np.concatenate([formatted_labels, labels_row])
 
     return torch.from_numpy(formatted_labels)
 
 
-def get_width_height(page_predictions, page_labels, document_name, page_number):
+def get_width_height(page_predictions: List[Dict], page_labels: List[Dict], document_name: str, page_number: int) -> [int, int]:
     """
     Get the width and height of the image and label for a given page. If the dimensions do not match, log a warning.
     """
@@ -156,9 +158,11 @@ def get_width_height(page_predictions, page_labels, document_name, page_number):
     # if the image and label dimensions do not match, log a warning
     if img_width != label_width or img_height != label_height:
         if img_width and label_width and img_height and label_height:
-            logger.warning(f"Image and label dimensions do not match for document {document_name}; "
-                           f"page {page_number}. "
-                           f"Image: {img_width}x{img_height}, Label: {label_width}x{label_height}")
+            logger.warning(
+                f"Image and label dimensions do not match for document {document_name}; "
+                f"page {page_number}. "
+                f"Image: {img_width}x{img_height}, Label: {label_width}x{label_height}"
+            )
             return None, None
 
     width = img_width if img_width else label_width or 0
@@ -167,15 +171,13 @@ def get_width_height(page_predictions, page_labels, document_name, page_number):
     return width, height
 
 
-def main(
-    output_dir: Path,
-    labels_path: Path
-):
+def main(output_dir: Path, labels_path: Path, default_detection_class_prob: float):
     neptune_run = neptune.init_run(**NEPTUNE_PARAMS)
+    logger.info(f"Neptune run created: {neptune_run}")
 
     device = "cpu"
 
-    with open(labels_path, 'r') as file:
+    with open(labels_path, "r") as file:
         logger.info(f"Loading labels from {labels_path}")
         labels = json.load(file)
 
@@ -183,33 +185,32 @@ def main(
 
     for document_filename in os.listdir(output_dir):
         logger.info(f"Processing {document_filename}")
-        document_name = document_filename.split('.')[0]
+        document_name = Path(document_filename).stem
         document_labels[document_name] = {}
 
-        if document_filename.endswith('.json'):
-            with open(output_dir / document_filename, 'r') as file:
+        if document_filename.endswith(".json"):
+            with open(output_dir / document_filename, "r") as file:
                 logger.info(f"Loading predictions from {document_filename}")
                 document_predictions = json.load(file)
 
             for label in labels:
-                if document_name in label['file_upload']:
-                    page_number = os.path.splitext(label['file_upload'])[0].split('_')[-1]
+                if document_name in label["file_upload"]:
+                    page_number = Path(label["file_upload"]).stem.split("_")[-1]
                     try:
                         page_number = int(page_number)
                     except ValueError:
                         page_number = 0
-                    document_labels[document_name][page_number] = label['annotations']
+                    document_labels[document_name][page_number] = label["annotations"]
 
             for page_number, page_labels in document_labels[document_name].items():
                 # labels are iterated from 0
-                page_predictions = [p for p in document_predictions if p['metadata']['page_number'] == page_number + 1]
-                formatted_predictions = format_predictions(page_predictions)
+                page_predictions = [p for p in document_predictions if p["metadata"]["page_number"] == page_number + 1]
+                formatted_predictions = format_predictions(page_predictions, default_detection_class_prob)
                 formatted_labels = format_labels(page_labels)
 
                 width, height = get_width_height(page_predictions, page_labels, document_name, page_number)
                 if width is None or height is None:
-                    logger.warning(f"Skipping page {page_number} of document {document_name} "
-                                   f"due to mismatched dimensions")
+                    logger.warning(f"Skipping page {page_number} of document {document_name} " f"due to mismatched dimensions")
                     continue
 
                 # imgs information is not used in the metric; only height and width are used
@@ -233,4 +234,4 @@ def main(
 
 if __name__ == "__main__":
     args = parse_args()
-    main(args.output_dir, args.labels_path)
+    main(args.output_dir, args.labels_path, args.default_detection_class_prob)
