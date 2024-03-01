@@ -24,7 +24,7 @@ import numpy as np
 import torch
 
 from super_gradients.training import utils as core_utils
-from super_gradients.training.metrics.detection_metrics import DetectionMetrics, DetectionMetrics_075
+from super_gradients.training.metrics.detection_metrics import DetectionMetrics, DetectionMetrics_09
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from mappings import HI_RES_ELEMENT_TYPES
 from utils import IdentityPostPredictionCallback
@@ -32,6 +32,9 @@ from utils import IdentityPostPredictionCallback
 dotenv.load_dotenv()
 logger = logging.getLogger()
 
+# Some predictions do not have a detection class probability. This value is used as a default when the probability is
+# not found. This value should be set to 1.0 since hi-res model outputs are not filtered by detection class probability.
+DEFAULT_DETECTION_CLASS_PROB = 0.2
 
 NEPTUNE_PARAMS = {
     "name": "hi_res_evaluation",
@@ -48,7 +51,7 @@ METRICS = [
         include_classwise_precision=True,
         include_classwise_recall=True,
         class_names=[cat['name'] for cat in HI_RES_ELEMENT_TYPES]),
-    DetectionMetrics_075(
+    DetectionMetrics_09(
         num_cls=23,
         post_prediction_callback=IdentityPostPredictionCallback(),
         normalize_targets=True,
@@ -75,6 +78,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="Path to json file containing labels for the documents in the output directory",
     )
+    parser.add_argument(
+        "--default_detection_class_prob",
+        type=float,
+        default=DEFAULT_DETECTION_CLASS_PROB,
+        help="Default detection class probability to use when the probability is not found in the predictions",
+    )
 
     return parser.parse_args()
 
@@ -92,7 +101,7 @@ def format_predictions(predictions):
         try:
             formatted_predictions[i, 4] = pred["metadata"]["detection_class_prob"]
         except KeyError:
-            formatted_predictions[i, 4] = 0.
+            formatted_predictions[i, 4] = DEFAULT_DETECTION_CLASS_PROB
             logger.warning(f"Detection class probability not found for {pred['element_id']}")
         formatted_predictions[i, 5] = MINIHOLISTIC_IDS[pred["type"]]
     return torch.from_numpy(formatted_predictions)
@@ -199,7 +208,8 @@ def main(
 
                 width, height = get_width_height(page_predictions, page_labels, document_name, page_number)
                 if width is None or height is None:
-                    logger.warning(f"Skipping page {page_number} of document {document_name} due to mismatched dimensions")
+                    logger.warning(f"Skipping page {page_number} of document {document_name} "
+                                   f"due to mismatched dimensions")
                     continue
 
                 # imgs information is not used in the metric; only height and width are used

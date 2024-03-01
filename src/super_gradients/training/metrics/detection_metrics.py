@@ -498,8 +498,8 @@ class DetectionMetrics_075(DetectionMetrics):
         )
 
 
-@register_metric(Metrics.DETECTION_METRICS_095)
-class DetectionMetrics_095(DetectionMetrics):
+@register_metric(Metrics.DETECTION_METRICS_09)
+class DetectionMetrics_09(DetectionMetrics):
     def __init__(
         self,
         num_cls: int,
@@ -521,7 +521,7 @@ class DetectionMetrics_095(DetectionMetrics):
             num_cls=num_cls,
             post_prediction_callback=post_prediction_callback,
             normalize_targets=normalize_targets,
-            iou_thres=0.95,
+            iou_thres=0.9,
             recall_thres=recall_thres,
             score_thres=score_thres,
             top_k_predictions=top_k_predictions,
