@@ -73,6 +73,7 @@ class Pipeline(ABC):
         device: Optional[str] = None,
         fuse_model: bool = True,
         dtype: Optional[torch.dtype] = None,
+        fp16: bool = True,
     ):
         model_device: torch.device = infer_model_device(model=model)
         if device:
@@ -89,6 +90,7 @@ class Pipeline(ABC):
         self.image_processor = image_processor
 
         self.fuse_model = fuse_model  # If True, the model will be fused in the first forward pass, to make sure it gets the right input_size
+        self.fp16 = fp16
 
     def _fuse_model(self, input_example: torch.Tensor):
         logger.info("Fusing some of the model's layers. If this takes too much memory, you can deactivate it by setting `fuse_model=False`")
@@ -205,7 +207,7 @@ class Pipeline(ABC):
                 )
 
         # Predict
-        with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast():
+        with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast(enabled=self.fp16):
             torch_inputs = torch.from_numpy(np.array(preprocessed_images)).to(self.device)
             torch_inputs = torch_inputs.to(self.dtype)
 
@@ -284,6 +286,7 @@ class DetectionPipeline(Pipeline):
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    :param fp16:                        If True, use mixed precision for inference.
     """
 
     def __init__(
@@ -294,6 +297,7 @@ class DetectionPipeline(Pipeline):
         device: Optional[str] = None,
         image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
+        fp16: bool = True,
     ):
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
@@ -308,6 +312,7 @@ class DetectionPipeline(Pipeline):
             image_processor=image_processor,
             class_names=class_names,
             fuse_model=fuse_model,
+            fp16=fp16,
         )
         self.post_prediction_callback = post_prediction_callback
 
@@ -378,6 +383,7 @@ class PoseEstimationPipeline(Pipeline):
         device: Optional[str] = None,
         image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
+        fp16: bool = True,
     ):
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
@@ -388,6 +394,7 @@ class PoseEstimationPipeline(Pipeline):
             image_processor=image_processor,
             class_names=None,
             fuse_model=fuse_model,
+            fp16=fp16,
         )
         self.post_prediction_callback = post_prediction_callback
         self.edge_links = np.asarray(edge_links, dtype=int)
@@ -408,9 +415,11 @@ class PoseEstimationPipeline(Pipeline):
                 PoseEstimationPrediction(
                     poses=image_level_predictions.poses.cpu().numpy() if torch.is_tensor(image_level_predictions.poses) else image_level_predictions.poses,
                     scores=image_level_predictions.scores.cpu().numpy() if torch.is_tensor(image_level_predictions.scores) else image_level_predictions.scores,
-                    bboxes_xyxy=image_level_predictions.bboxes_xyxy.cpu().numpy()
-                    if torch.is_tensor(image_level_predictions.bboxes_xyxy)
-                    else image_level_predictions.bboxes_xyxy,
+                    bboxes_xyxy=(
+                        image_level_predictions.bboxes_xyxy.cpu().numpy()
+                        if torch.is_tensor(image_level_predictions.bboxes_xyxy)
+                        else image_level_predictions.bboxes_xyxy
+                    ),
                     image_shape=image.shape,
                     edge_links=self.edge_links,
                     edge_colors=self.edge_colors,
@@ -450,6 +459,7 @@ class ClassificationPipeline(Pipeline):
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    :param fp16:                        If True, use mixed precision for inference.
     """
 
     def __init__(
@@ -459,6 +469,7 @@ class ClassificationPipeline(Pipeline):
         device: Optional[str] = None,
         image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
+        fp16: bool = True,
     ):
         super().__init__(
             model=model,
@@ -466,6 +477,7 @@ class ClassificationPipeline(Pipeline):
             image_processor=image_processor,
             class_names=class_names,
             fuse_model=fuse_model,
+            fp16=fp16,
         )
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[ClassificationPrediction]:
@@ -516,6 +528,7 @@ class SegmentationPipeline(Pipeline):
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    :param fp16:                        If True, use mixed precision for inference.
     """
 
     def __init__(
@@ -525,10 +538,11 @@ class SegmentationPipeline(Pipeline):
         device: Optional[str] = None,
         image_processor: Optional[Processing] = None,
         fuse_model: bool = True,
+        fp16: bool = True,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
+        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model, fp16=fp16)
 
-    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[SegmentationPrediction]:
         """Decode the model output, by applying post prediction callback. This includes NMS.
 
         :param model_output:    Direct output of the model, without any post-processing.
@@ -556,7 +570,7 @@ class SegmentationPipeline(Pipeline):
 
         return predictions
 
-    def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
+    def _instantiate_image_prediction(self, image: np.ndarray, prediction: SegmentationPrediction) -> ImagePrediction:
         return ImageSegmentationPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(

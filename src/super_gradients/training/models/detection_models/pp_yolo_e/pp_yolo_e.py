@@ -208,6 +208,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInpu
         max_predictions: Optional[int] = None,
         multi_label_per_box: Optional[bool] = None,
         class_agnostic_nms: Optional[bool] = None,
+        fp16: bool = True,
     ) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
@@ -256,6 +257,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInpu
             ),
             class_names=self._class_names,
             fuse_model=fuse_model,
+            fp16=fp16,
         )
         return pipeline
 
@@ -271,6 +273,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInpu
         max_predictions: Optional[int] = None,
         multi_label_per_box: Optional[bool] = None,
         class_agnostic_nms: Optional[bool] = None,
+        fp16: bool = True,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
@@ -287,6 +290,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInpu
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  (Optional) If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
                                     If False NMS is performed separately for each class.
+        :param fp16:                If True, the model will use mixed precision for inference.
         """
         pipeline = self._get_pipeline(
             iou=iou,
@@ -297,6 +301,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInpu
             max_predictions=max_predictions,
             multi_label_per_box=multi_label_per_box,
             class_agnostic_nms=class_agnostic_nms,
+            fp16=fp16,
         )
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
@@ -310,13 +315,13 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInpu
         max_predictions: Optional[int] = None,
         multi_label_per_box: Optional[bool] = None,
         class_agnostic_nms: Optional[bool] = None,
+        fp16: bool = True,
     ):
         """Predict using webcam.
 
         :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
                                     If None, the default value associated to the training is used.
-        :param batch_size:          Maximum number of images to process at the same time.
         :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         :param skip_image_resizing: If True, the image processor will not resize the images.
         :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS.
@@ -325,6 +330,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInpu
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  (Optional) If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
                                     If False NMS is performed separately for each class.
+        :param fp16:                If True, use mixed precision for inference.
         """
         pipeline = self._get_pipeline(
             iou=iou,
@@ -335,6 +341,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInpu
             max_predictions=max_predictions,
             multi_label_per_box=multi_label_per_box,
             class_agnostic_nms=class_agnostic_nms,
+            fp16=fp16,
         )
         pipeline.predict_webcam()
 
