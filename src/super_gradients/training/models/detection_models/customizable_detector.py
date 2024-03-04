@@ -5,6 +5,7 @@ A base for a detection network built according to the following scheme:
  * each module accepts in_channels and other parameters
  * each module defines out_channels property on construction
 """
+
 from typing import Union, Optional, List, Callable
 from functools import lru_cache
 
@@ -208,6 +209,7 @@ class CustomizableDetector(HasPredict, SgModule):
         max_predictions: Optional[int] = None,
         multi_label_per_box: Optional[bool] = None,
         class_agnostic_nms: Optional[bool] = None,
+        fp16: bool = True,
     ) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
@@ -222,6 +224,7 @@ class CustomizableDetector(HasPredict, SgModule):
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  (Optional) If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
                                     If False NMS is performed separately for each class.
+        :param fp16:                If True, use mixed precision for inference.
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
@@ -256,6 +259,7 @@ class CustomizableDetector(HasPredict, SgModule):
             ),
             class_names=self._class_names,
             fuse_model=fuse_model,
+            fp16=fp16,
         )
         return pipeline
 
@@ -271,6 +275,7 @@ class CustomizableDetector(HasPredict, SgModule):
         max_predictions: Optional[int] = None,
         multi_label_per_box: Optional[bool] = None,
         class_agnostic_nms: Optional[bool] = None,
+        fp16: bool = True,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
@@ -287,6 +292,7 @@ class CustomizableDetector(HasPredict, SgModule):
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  (Optional) If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
                                     If False NMS is performed separately for each class.
+        :param fp16:                        If True, use mixed precision for inference.
         """
         pipeline = self._get_pipeline(
             iou=iou,
@@ -297,6 +303,7 @@ class CustomizableDetector(HasPredict, SgModule):
             max_predictions=max_predictions,
             multi_label_per_box=multi_label_per_box,
             class_agnostic_nms=class_agnostic_nms,
+            fp16=fp16,
         )
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
@@ -310,6 +317,7 @@ class CustomizableDetector(HasPredict, SgModule):
         max_predictions: Optional[int] = None,
         multi_label_per_box: Optional[bool] = None,
         class_agnostic_nms: Optional[bool] = None,
+        fp16: bool = True,
     ):
         """Predict using webcam.
 
@@ -325,6 +333,7 @@ class CustomizableDetector(HasPredict, SgModule):
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  (Optional) If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
                                     If False NMS is performed separately for each class.
+        :param fp16:                If True, use mixed precision for inference.
         """
         pipeline = self._get_pipeline(
             iou=iou,
@@ -335,6 +344,7 @@ class CustomizableDetector(HasPredict, SgModule):
             max_predictions=max_predictions,
             multi_label_per_box=multi_label_per_box,
             class_agnostic_nms=class_agnostic_nms,
+            fp16=fp16,
         )
         pipeline.predict_webcam()
 
