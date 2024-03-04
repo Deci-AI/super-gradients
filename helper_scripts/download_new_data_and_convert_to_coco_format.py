@@ -2,8 +2,22 @@
 This is a helper scripts that downloads new dataset images based on annotation file,
 and converts annotations as .json file in COCO format: https://cocodataset.org/#format-data.
 
+To download image and prepare new annotations ans splits:
 >> python helper_scripts/download_new_data_and_convert_to_coco_format.py --images_dir /path/to/images/dir \
-    --labels_path /path/to/original/labels.txt  --coco_labels_dir /path/to/coco/labels.json
+    --labels_path /path/to/original/labels_first_batch.txt /path/to/original/labels_second_batch.txt \
+    --coco_labels_dir /path/to/save/coco/labels --download_images
+
+To generate annotations based on new updated labels file, but with respect to previously generated splits and categories ids
+>> python helper_scripts/download_new_data_and_convert_to_coco_format.py --images_dir /path/to/images/dir \
+    --labels_path /path/to/original/labels_first_batch.txt /path/to/original/labels_second_batch.txt \
+    --existing_categories_file, /path/to/classnames.txt --existing_coco_labels_dir /path/to/existing/coco/labels/ \
+    --coco_labels_dir /path/to/save/coco/labels --download_images
+
+To prepare new random splits based on previously downloaded images and generated COCO labels:
+>> python helper_scripts/download_new_data_and_convert_to_coco_format.py --images_dir /path/to/images/dir \
+    --labels_path /path/to/original/labels_first_batch.txt /path/to/original/labels_second_batch.txt \
+    --existing_categories_file, /path/to/classnames.txt --coco_labels_dir /path/to/save/coco/labels \
+    --only_split_existing_COCO
 """
 import argparse
 import os
@@ -33,33 +47,33 @@ def parse_args() -> argparse.Namespace:
         help="Paths to Label Studio json annotation file.",
     )
     parser.add_argument(
-        "--existing_coco_labels_dir",
-        type=Path,
-        help="Path to directory where existing COCO splits are saved.",
-    )
-    parser.add_argument(
         "--existing_categories_file",
         type=Path,
         default=None,
         help="Path to file where list of categories is stored. If None, categories will be generated based on labels.",
     )
     parser.add_argument(
+        "--existing_coco_labels_dir",
+        type=Path,
+        help="Path to directory where existing COCO splits are saved.",
+    )
+    parser.add_argument(
         "--train_split_name",
         default="train.json",
         type=str,
-        help="Path to directory where existing COCO splits are saved.",
+        help="Name of existing train split.",
     )
     parser.add_argument(
         "--val_split_name",
         default="val.json",
         type=str,
-        help="Path to directory where existing COCO splits are saved.",
+        help="Name of existing val split.",
     )
     parser.add_argument(
         "--test_split_name",
         default="test.json",
         type=str,
-        help="Path to directory where existing COCO splits are saved.",
+        help="Name of existing test split.",
     )
     parser.add_argument(
         "--coco_labels_dir",
@@ -76,7 +90,7 @@ def parse_args() -> argparse.Namespace:
         "--val_split_size",
         default=0.2,
         type=float,
-        help="What fraction of documents should be included in the validatio split.",
+        help="What fraction of documents should be included in the validation split.",
     )
     parser.add_argument(
         "--test_split_size",
@@ -85,7 +99,7 @@ def parse_args() -> argparse.Namespace:
         help="What fraction of documents should be included in the testing split.",
     )
     parser.add_argument("--download_images", action="store_true", help="Flag indicating images should be downloaded from S3 bucket.")
-    parser.add_argument("--use_existing_COCO", action="store_true", help="Flag indicating the previously converted annotations should be used to split.")
+    parser.add_argument("--only_split_existing_COCO", action="store_true", help="Flag indicating the previously converted annotations should be used to split.")
     return parser.parse_args()
 
 
@@ -104,7 +118,7 @@ def download_images_from_url(labels: list[dict], images_dir: Path):
                 # Fix some unsupported chars in url
                 label_url = label["url"].replace(" ", "+").replace("®", "%C2%AE")
                 urllib.request.urlretrieve(label_url, output_path)
-            except Exception as e:
+            except urllib.error.HTTPError:
                 # Some of the files from FinanceBench are not found due to new location
                 updated_url = label_url.replace(
                     "http://utic-dev-tech-fixtures.s3.us-east-2.amazonaws.com/data_for_external_3rd_party_chinese_company/FinanceBench/",
@@ -112,8 +126,8 @@ def download_images_from_url(labels: list[dict], images_dir: Path):
                 )
                 try:
                     urllib.request.urlretrieve(updated_url, output_path)
-                except:
-                    print(f"Coudn't download image: {label['url']}.\n{e}")
+                except Exception as e:
+                    print(f"Couldn't download image: {label['url']}.\n{e}")
 
 
 def load_images_names_for_split(split_path: Path) -> list[str] | None:
@@ -136,16 +150,16 @@ def load_existing_splits(
         test_split_path = existing_coco_labels_dir / test_split_name
 
         splits = {
-            "train": load_images_names_for_split(train_split_path),
-            "val": load_images_names_for_split(val_split_path),
-            "test": load_images_names_for_split(test_split_path),
+            train_split_name: load_images_names_for_split(train_split_path),
+            val_split_name: load_images_names_for_split(val_split_path),
+            test_split_name: load_images_names_for_split(test_split_path),
         }
         return splits
     else:
         return {
-            "train": None,
-            "val": None,
-            "test": None,
+            train_split_name: None,
+            val_split_name: None,
+            test_split_name: None,
         }
 
 
@@ -216,7 +230,7 @@ def main(
     val_split_size: float,
     test_split_size: float,
     download_images: bool,
-    use_existing_COCO: bool,
+    only_split_existing_COCO: bool,
     seed: int = 42,
 ) -> None:
     images_dir.mkdir(parents=True, exist_ok=True)
@@ -235,7 +249,7 @@ def main(
         download_images_from_url(documents, images_dir)
 
     coco_labels_path = coco_labels_dir / "all.json"
-    if use_existing_COCO and coco_labels_path.exists():
+    if only_split_existing_COCO and coco_labels_path.exists():
         COCO_anno = load_json(coco_labels_path)
     else:
         COCO_anno = {
@@ -322,7 +336,7 @@ def main(
         print(f"Annotation saved in {coco_labels_path}")
 
     print("Preparing train/val/test splits...")
-    splits = {"train": train_split_size, "val": val_split_size, "test": test_split_size}
+    splits = {train_split_name: train_split_size, val_split_name: val_split_size, test_split_name: test_split_size}
     existing_splits = load_existing_splits(existing_coco_labels_dir, train_split_name, val_split_name, test_split_name)
     all_COCO_anno_splits = {}
 
@@ -349,7 +363,6 @@ def main(
         if number_of_remaining_documents:
             number_of_samples = ceil(splits[split] * number_of_remaining_documents)
 
-            # if number_of_samples > len(COCO_anno_split["images"]):
             stop = start + number_of_samples
             if stop > number_of_remaining_documents:
                 stop = number_of_remaining_documents
@@ -385,5 +398,5 @@ if __name__ == "__main__":
         args.val_split_size,
         args.test_split_size,
         args.download_images,
-        args.use_existing_COCO,
+        args.only_split_existing_COCO,
     )
