@@ -103,7 +103,7 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
-from super_gradients.module_interfaces import ExportableObjectDetectionModel, SupportsInputShapeCheck
+from super_gradients.module_interfaces import ExportableObjectDetectionModel, SupportsInputShapeCheck, ExportTargetBackend, DetectionOutputFormatMode
 from super_gradients.conversion import ExportQuantizationMode
 from super_gradients.common.deprecate import deprecated_parameter
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
@@ -141,14 +141,17 @@ class QATResult:
 @dataclasses.dataclass
 class ExportParams:
     """
-    Parameters for the export function.
+    Parameters for exporting a model to ONNX format in PTQ/QAT methods of Trainer.
+    Most of the parameters are related ot ExportableObjectDetectionModel.export method.
 
     :param output_onnx_path: The path to save the ONNX model.
            If None, the ONNX filename will use current experiment dir folder
            and the output filename will reflect model input shape & whether it's a PTQ or QAT model.
 
+    :param batch_size: The batch size for the ONNX model. Default is 1.
+
     :param input_image_shape: The input image shape (rows, cols) for the ONNX model.
-           If None, the input shape will be inferred from the validation dataloader.
+           If None, the input shape will be inferred from the model or validation dataloader.
 
     :param preprocessing: If True, the preprocessing will be included in the ONNX model.
            This option is only available for models that support model.export() syntax.
@@ -159,14 +162,50 @@ class ExportParams:
     :param confidence_threshold: The confidence threshold for object detection models.
            This option is only available for models that support model.export() syntax.
            If None, the default confidence threshold for a given model will be used.
+    :param onnx_export_kwargs: (dict) Optional keyword arguments for torch.onnx.export() function.
+    :param onnx_simplify: (bool) If True, apply onnx-simplifier to the exported model.
+
+    :param detection_nms_iou_threshold: (float) A IoU threshold for the NMS step.
+           Relevant only for object detection models and only if postprocessing is True.
+           Default to None, which means the default value for a given model will be used.
+
+    :param detection_max_predictions_per_image: (int) Maximum number of predictions per image.
+           Relevant only for object detection models and only if postprocessing is True.
+
+    :param detection_num_pre_nms_predictions: (int) Number of predictions to keep before NMS.
+           Relevant only for object detection models and only if postprocessing is True.
+
+    :param detection_predictions_format: (DetectionOutputFormatMode) Format of the output predictions of detection models.
+           Possible values:
+           DetectionOutputFormatMode.BATCH_FORMAT - A tuple of 4 tensors will be returned
+           (num_detections, detection_boxes, detection_scores, detection_classes)
+           - A tensor of [batch_size, 1] containing the image indices for each detection.
+           - A tensor of [batch_size, max_output_boxes, 4] containing the bounding box coordinates for each detection in [x1, y1, x2, y2] format.
+           - A tensor of [batch_size, max_output_boxes] containing the confidence scores for each detection.
+           - A tensor of [batch_size, max_output_boxes] containing the class indices for each detection.
+
+           DetectionOutputFormatMode.FLAT_FORMAT - Tensor of shape [N, 7], where N is the total number of
+           predictions in the entire batch.
+           Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
+           Relevant only for object detection models and only if postprocessing is True.
     """
 
     output_onnx_path: Optional[str] = None
+    engine: Optional[ExportTargetBackend] = (None,)
     batch_size: int = 1
     input_image_shape: Optional[Tuple[int, int]] = None
     preprocessing: bool = True
     postprocessing: bool = True
     confidence_threshold: Optional[float] = None
+
+    onnx_export_kwargs: Optional[dict] = None
+    onnx_simplify: bool = True
+
+    # These are only relevant for object detection models
+    detection_nms_iou_threshold: Optional[float] = None
+    detection_max_predictions_per_image: Optional[int] = None
+    detection_predictions_format: DetectionOutputFormatMode = DetectionOutputFormatMode.BATCH_FORMAT
+    detection_num_pre_nms_predictions: int = 1000
 
 
 class Trainer:
@@ -2640,13 +2679,15 @@ class Trainer:
 
         os.makedirs(output_dir_path, exist_ok=True)
 
-        res = self.train(
+        self.train(
             model=model,
             train_loader=train_loader,
             valid_loader=valid_loader,
             training_params=training_params,
             additional_configs_to_log=additional_qat_configs_to_log,
         )
+
+        valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
 
         # EXPORT QUANTIZED MODEL TO ONNX
         os.makedirs(self.checkpoints_dir_path, exist_ok=True)
@@ -2664,7 +2705,7 @@ class Trainer:
         else:
             output_onnx_path = None
 
-        return QATResult(quantized_model=model, output_onnx_path=output_onnx_path, valid_metrics_dict=res)
+        return QATResult(quantized_model=model, output_onnx_path=output_onnx_path, valid_metrics_dict=valid_metrics_dict)
 
     @deprecated_parameter(
         "deepcopy_model_for_export",
@@ -2837,12 +2878,18 @@ class Trainer:
             model: ExportableObjectDetectionModel = typing.cast(ExportableObjectDetectionModel, model)
             export_result = model.export(
                 output=export_params.output_onnx_path,
+                engine=export_params.engine,
                 quantization_mode=ExportQuantizationMode.INT8,
                 input_image_shape=input_image_shape,
                 preprocessing=export_params.preprocessing,
                 postprocessing=export_params.postprocessing,
                 confidence_threshold=export_params.confidence_threshold,
-                # TODO Add more parameters to the export_params
+                nms_threshold=export_params.detection_nms_iou_threshold,
+                onnx_simplify=export_params.onnx_simplify,
+                onnx_export_kwargs=export_params.onnx_export_kwargs,
+                num_pre_nms_predictions=export_params.detection_num_pre_nms_predictions,
+                max_predictions_per_image=export_params.detection_max_predictions_per_image,
+                output_predictions_format=export_params.detection_predictions_format,
             )
             logger.info(repr(export_result))
         else:
