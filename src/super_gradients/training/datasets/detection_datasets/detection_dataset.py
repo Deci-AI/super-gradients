@@ -505,7 +505,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
                 if image.shape[0] in (1, 3):  # (C, H, W) -> (H, W, C)
                     image = image.transpose((1, 2, 0))
 
-                image = self._standardize_image()
+                image = self._standardize_image(image)
                 image = image.astype(np.uint8)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Detection dataset works with BGR images, so we have to convert to RGB
 
