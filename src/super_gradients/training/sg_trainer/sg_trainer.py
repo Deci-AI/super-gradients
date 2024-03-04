@@ -147,6 +147,9 @@ class ExportParams:
            If None, the ONNX filename will use current experiment dir folder
            and the output filename will reflect model input shape & whether it's a PTQ or QAT model.
 
+    :param input_image_shape: The input image shape (rows, cols) for the ONNX model.
+           If None, the input shape will be inferred from the validation dataloader.
+
     :param preprocessing: If True, the preprocessing will be included in the ONNX model.
            This option is only available for models that support model.export() syntax.
 
@@ -160,6 +163,7 @@ class ExportParams:
 
     output_onnx_path: Optional[str] = None
     batch_size: int = 1
+    input_image_shape: Optional[Tuple[int, int]] = None
     preprocessing: bool = True
     postprocessing: bool = True
     confidence_threshold: Optional[float] = None
@@ -1748,7 +1752,9 @@ class Trainer:
 
     @resolve_param("test_metrics_list", ListFactory(MetricsFactory()))
     def _set_test_metrics(self, test_metrics_list):
-        self.test_metrics = MetricCollection(test_metrics_list)
+        if not isinstance(test_metrics_list, MetricCollection):
+            test_metrics_list = MetricCollection(test_metrics_list)
+        self.test_metrics = test_metrics_list
 
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
         if mixed_precision_enabled and not device_config.is_cuda:
@@ -2109,14 +2115,23 @@ class Trainer:
          is ran on self.test_loader with self.test_metrics.
         """
 
-        self.net = model or self.net
+        keep_model = self.net
 
-        # IN CASE TRAINING WAS PERFROMED BEFORE TEST- MAKE SURE TO TEST THE EMA MODEL (UNLESS SPECIFIED OTHERWISE BY
-        # use_ema_net)
+        if model is not None:
+            self.net = model
+        else:
+            existing_model = self.net
+            # IN CASE TRAINING WAS PERFROMED BEFORE TEST- MAKE SURE TO TEST THE EMA MODEL
+            # (UNLESS SPECIFIED OTHERWISE BY use_ema_net)
+            if use_ema_net and self.ema_model is not None:
+                existing_model = self.ema_model.ema
 
-        if use_ema_net and self.ema_model is not None:
-            keep_model = self.net
-            self.net = self.ema_model.ema
+            if existing_model is None:
+                raise ValueError(
+                    "Model is not defined. You should either train some model using trainer.train(...) or "
+                    "pass a model to test explicitly: trainer.test(model=...)"
+                )
+            self.net = existing_model
 
         self._prep_for_test(
             test_loader=test_loader,
@@ -2148,8 +2163,7 @@ class Trainer:
         self.phase_callback_handler.on_test_loader_end(context)
 
         # SWITCH BACK BETWEEN NETS SO AN ADDITIONAL TRAINING CAN BE DONE AFTER TEST
-        if use_ema_net and self.ema_model is not None:
-            self.net = keep_model
+        self.net = keep_model
 
         self._first_backward = True
 
@@ -2529,6 +2543,7 @@ class Trainer:
                 quantization_params=quantization_params,
                 calib_loader=calib_dataloader,
                 valid_loader=val_dataloader,
+                valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
                 train_loader=train_dataloader,
                 training_params=cfg.training_hyperparams,
                 additional_qat_configs_to_log=recipe_logged_cfg,
@@ -2617,6 +2632,14 @@ class Trainer:
         model.train()
         torch.cuda.empty_cache()
 
+        run_id = core_utils.get_param(self.training_params, "run_id", None)
+        logger.debug(f"Experiment run id {run_id}")
+
+        output_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
+        logger.debug(f"Output directory {output_dir_path}")
+
+        os.makedirs(output_dir_path, exist_ok=True)
+
         res = self.train(
             model=model,
             train_loader=train_loader,
@@ -2629,11 +2652,11 @@ class Trainer:
         os.makedirs(self.checkpoints_dir_path, exist_ok=True)
         if export_params is not None:
             input_shape_from_loader = tuple(map(int, next(iter(valid_loader))[0].shape))
-            input_shape_with_batch_size_one = (1,) + input_shape_from_loader[1:]
+            input_shape_with_export_batch_size = (export_params.batch_size,) + input_shape_from_loader[1:]
 
             if export_params.output_onnx_path is None:
                 export_params.output_onnx_path = os.path.join(
-                    self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_batch_size_one))}_qat.onnx"
+                    output_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_export_batch_size))}_qat.onnx"
                 )
             self._export_quantized_model(model, export_params, input_shape_from_loader)
             output_onnx_path = export_params.output_onnx_path
@@ -2641,7 +2664,7 @@ class Trainer:
         else:
             output_onnx_path = None
 
-        return QATResult(quantized_model=model, onnx_path=output_onnx_path, valid_metrics_dict=res)
+        return QATResult(quantized_model=model, output_onnx_path=output_onnx_path, valid_metrics_dict=res)
 
     @deprecated_parameter(
         "deepcopy_model_for_export",
@@ -2654,7 +2677,7 @@ class Trainer:
         calib_loader: DataLoader,
         model: nn.Module,
         valid_loader: DataLoader,
-        valid_metrics_list: List[torchmetrics.Metric],
+        valid_metrics_list: List[torchmetrics.Metric] = None,
         quantization_params: Dict = None,
         export_params: ExportParams = None,
         deepcopy_model_for_export=None,
@@ -2708,16 +2731,18 @@ class Trainer:
                 "If you need an acess to the quantized model object use `quantized_model` attribute of the return value of the ptq() call."
             )
 
+        valid_metrics_list = valid_metrics_list or self.valid_metrics
+
         logger.debug("Performing post-training quantization (PTQ)...")
         logger.debug(f"Experiment name {self.experiment_name}")
 
         run_id = core_utils.get_param(self.training_params, "run_id", None)
         logger.debug(f"Experiment run id {run_id}")
 
-        self.checkpoints_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
-        logger.debug(f"Checkpoints directory {self.checkpoints_dir_path}")
+        output_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
+        logger.debug(f"Output directory {output_dir_path}")
 
-        os.makedirs(self.checkpoints_dir_path, exist_ok=True)
+        os.makedirs(output_dir_path, exist_ok=True)
 
         from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
 
@@ -2767,11 +2792,11 @@ class Trainer:
 
         if export_params is not None:
             input_shape_from_loader = tuple(map(int, next(iter(valid_loader))[0].shape))
-            input_shape_with_batch_size_one = (1,) + input_shape_from_loader[1:]
+            input_shape_with_export_batch_size = (export_params.batch_size,) + input_shape_from_loader[1:]
 
             if export_params.output_onnx_path is None:
                 export_params.output_onnx_path = os.path.join(
-                    self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_batch_size_one))}_ptq.onnx"
+                    output_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_export_batch_size))}_ptq.onnx"
                 )
             logger.debug(f"Output ONNX file path {export_params.output_onnx_path}")
             self._export_quantized_model(model, export_params, input_shape_from_loader)
@@ -2781,8 +2806,8 @@ class Trainer:
 
         return PTQResult(
             quantized_model=model,
-            onnx_path=output_onnx_path,
-            validation_results=valid_metrics_dict,
+            output_onnx_path=output_onnx_path,
+            valid_metrics_dict=valid_metrics_dict,
         )
 
     @staticmethod
@@ -2796,24 +2821,24 @@ class Trainer:
                It may be used as an example of the input shape during ONNX export.
         :return: None
         """
-        input_shape = export_params.input_shape
-        if input_shape is None:
-            input_shape = infer_image_shape_from_model(model)
-        if input_shape is None:
-            input_shape = input_shape_from_dataloader[2:]
+        input_image_shape = export_params.input_image_shape
+        if input_image_shape is None:
+            input_image_shape = infer_image_shape_from_model(model)
+        if input_image_shape is None:
+            input_image_shape = input_shape_from_dataloader[2:]
 
         input_channels = infer_image_input_channels(model)
         if input_channels is not None and input_channels != input_shape_from_dataloader[1]:
             logger.warning("Infered input channels does not match with the number of channels from the dataloader")
 
-        input_shape_with_explicit_batch = tuple([export_params.batch_size] + list(input_shape[1:]))
+        input_shape_with_explicit_batch = tuple([export_params.batch_size] + list(input_image_shape[1:]))
 
         if isinstance(model, ExportableObjectDetectionModel):
             model: ExportableObjectDetectionModel = typing.cast(ExportableObjectDetectionModel, model)
             export_result = model.export(
                 output=export_params.output_onnx_path,
                 quantization_mode=ExportQuantizationMode.INT8,
-                input_image_shape=input_shape,
+                input_image_shape=input_image_shape,
                 preprocessing=export_params.preprocessing,
                 postprocessing=export_params.postprocessing,
                 confidence_threshold=export_params.confidence_threshold,
