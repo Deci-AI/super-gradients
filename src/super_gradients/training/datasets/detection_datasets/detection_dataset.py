@@ -454,7 +454,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         # Normalize the image to have minimum of 0 and maximum of 1
         image_min = image.min()
         image_max = image.max()
-        normalized_image = (image - image_min) / (image_max - image_min)
+        normalized_image = (image - image_min) / (image_max - image_min + 1e-8)
 
         # Rescale the normalized image to 0-255
         standardized_image = (normalized_image * 255).astype(np.uint8)
