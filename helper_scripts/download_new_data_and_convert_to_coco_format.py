@@ -104,8 +104,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def sort_labels(labels: list[dict]) -> list[dict]:
-    for indice in range(len(labels)):
-        labels[indice]["file_name"] = labels[indice]["url"].split("/")[-1]
+    for index in range(len(labels)):
+        labels[index]["file_name"] = labels[index]["url"].split("/")[-1]
     labels = sorted(labels, key=lambda x: x["file_name"])
     return labels
 
