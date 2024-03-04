@@ -15,7 +15,7 @@ from pathlib import Path
 from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list
 from PIL import Image
 from tqdm import tqdm
-from utils import dump_json, load_json, load_json_by_line, load_txt
+from utils import dump_json, load_json, load_txt_with_json, load_txt, load_csv_with_json
 
 
 def parse_args() -> argparse.Namespace:
@@ -98,9 +98,9 @@ def sort_labels(labels: list[dict]) -> list[dict]:
 
 def download_images_from_url(labels: list[dict], images_dir: Path):
     for label in tqdm(labels, desc="Downloading images..."):
-        if not os.path.exists(f"{images_dir}/{label['file_name']}"):
+        output_path = f"{images_dir}/{label['url'].split('/')[-1]}"
+        if not Path(output_path).exists():
             try:
-                output_path = f"{images_dir}/{label['url'].split('/')[-1]}"
                 # Fix some unsupported chars in url
                 label_url = label["url"].replace(" ", "+").replace("®", "%C2%AE")
                 urllib.request.urlretrieve(label_url, output_path)
@@ -112,7 +112,7 @@ def download_images_from_url(labels: list[dict], images_dir: Path):
                 )
                 try:
                     urllib.request.urlretrieve(updated_url, output_path)
-                except:
+                except:  # noqa: E722
                     print(f"Coudn't download image: {label['url']}.\n{e}")
 
 
@@ -175,11 +175,11 @@ def flatten_tuple(input_tuple):
     return tuple(flattened_list)
 
 
-def filter_dicts_by_keys(input_list, keys_to_check):
+def filter_dicts_by_keys(input_dicts, keys_to_check):
     seen_values = set()
     result = []
 
-    for item in input_list:
+    for item in input_dicts:
         values_to_check = tuple(item[key] for key in keys_to_check)
         values_to_check = flatten_tuple(values_to_check)
 
@@ -224,15 +224,19 @@ def main(
 
     documents = []
     for path in labels_paths:
-        documents.extend(load_json_by_line(path))
+        if path.suffix == ".csv":
+            documents.extend(load_csv_with_json(path))
+        elif path.suffix == ".txt":
+            documents.extend(load_txt_with_json(path))
+
+    # Download missing images
+    if download_images:
+        download_images_from_url(documents, images_dir)
 
     # Ensure reproducibility between different label files
     documents = sort_labels(documents)
     random.seed(seed)
     random.shuffle(documents)
-
-    if download_images:
-        download_images_from_url(documents, images_dir)
 
     coco_labels_path = coco_labels_dir / "all.json"
     if use_existing_COCO and coco_labels_path.exists():
