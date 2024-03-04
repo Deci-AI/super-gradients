@@ -23,7 +23,7 @@ checkpoint_params:
 dataset_params:
   train_dataset_params:
     # 19
-    all_classes_list: [paraprgaph, formulas, other, page_number, page_header, subheading, page_footer, title, table, paragraphs_in_table, image, paraprgaphs_in_image, code_snippet, checkbox, paraprgaphs_in_form, form, checkbox_checked, radio_button, radio_button_checked] # List of classes used in your dataset.
+    all_classes_list: [paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas, page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet,] # List of classes used in your dataset.
     # 17
     # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
     input_dim: [1025, 1025]
@@ -57,13 +57,12 @@ dataset_params:
       - DetectionRandomPaddedRescale:
           input_dim: [[544,544],[576,576],[608,608],[640,640],[672,672],[704,704],[736,736]] # Add more different training resolutions (multiplications of 32)
       - DetectionTargetsFormatTransform:
-          input_dim: [512, 512] 
           output_format: LABEL_CXCYWH
 
 
   val_dataset_params:
     # 19
-    all_classes_list: [paraprgaph, formulas, other, page_number, page_header, subheading, page_footer, title, table, paragraphs_in_table, image, paraprgaphs_in_image, code_snippet, checkbox, paraprgaphs_in_form, form, checkbox_checked, radio_button, radio_button_checked] # List of classes used in your dataset.
+    all_classes_list: [paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas, page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet,] # List of classes used in your dataset.
     # 17
     # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
     transforms:

@@ -27,12 +27,12 @@ from utils import load_json, dump_json
 #       * NASA-SNA-8-D-027III-Rev2-CsmLmSpacecraftOperationalDataBook-Volume3-MassProperties-Pg54.pdf
 #       * NASA-SNA-8-D-027III-Rev2-CsmLmSpacecraftOperationalDataBook-Volume3-MassProperties-pg856.pdf
 # No information how to match anno with documents
-# 
+#
 # There are multiple annotation entries for: Huang_Improving_Table_Structure_Recognition_With_Visual-Alignment_Sequential_Coordinate_Modeling_CVPR_2023_paper-p6.pdf
 # pdf2img library can not open this file.
 #
 # pdf2img library can not open: intel-extension-for-transformers intel_extension_for_transformers llm runtime graph docs infinite_in.pdf
-#pdf2img library can not open: intel_intel-extension-for-transformers_ Build your chatbot within minutes on your favorite device.pdf
+# pdf2img library can not open: intel_intel-extension-for-transformers_ Build your chatbot within minutes on your favorite device.pdf
 
 FP_MAPPING = {
     "wisconsin-sample-license.pdf": "wisconsin-sample-license.jpeg",
@@ -58,9 +58,8 @@ FP_MAPPING = {
     "cashflow-18445494_2.pdf": "cashflow-18445494_2.jpg",
     "balance-18460658_57.pdf": "balance-18460658_57.jpg",
     "intel-extension-for-transformers_intel_extension_for_transformers_llm_runt.pdf": "intel-extension-for-transformers intel_extension_for_transformers llm runtime graph docs infinite_in.pdf",
-    'intel_intel-extension-for-transformers__Build_your_chatbot_within_minutes_.pdf': "intel_intel-extension-for-transformers_ Build your chatbot within minutes on your favorite device.pdf",
-    'Huang_Improving_Table_Structure_Recognition_With_Visual-Alignment_Sequenti.pdf': "Huang_Improving_Table_Structure_Recognition_With_Visual-Alignment_Sequential_Coordinate_Modeling_CVPR_2023_paper-p6.pdf",
-    
+    "intel_intel-extension-for-transformers__Build_your_chatbot_within_minutes_.pdf": "intel_intel-extension-for-transformers_ Build your chatbot within minutes on your favorite device.pdf",
+    "Huang_Improving_Table_Structure_Recognition_With_Visual-Alignment_Sequenti.pdf": "Huang_Improving_Table_Structure_Recognition_With_Visual-Alignment_Sequential_Coordinate_Modeling_CVPR_2023_paper-p6.pdf",
 }
 
 
@@ -94,7 +93,7 @@ def get_id_from_dict_list(dict_list: list[dict], key: any, value: any) -> any:
     for dict_ in dict_list:
         if dict_[key] == value:
             return dict_["id"]
-        
+
 
 def check_and_add_image(img_name, img, COCO_image_id, file_id, COCO_anno):
     if img_name not in [image["file_name"] for image in COCO_anno["images"]]:
@@ -105,6 +104,7 @@ def check_and_add_image(img_name, img, COCO_image_id, file_id, COCO_anno):
 
 
 def check_and_add_category(category, COCO_anno, COCO_category_id):
+    category.replace("paraprgaph", "paragraph")
     if category not in [cat["name"] for cat in COCO_anno["categories"]]:
         COCO_anno["categories"].append({"id": COCO_category_id, "name": category})
         COCO_category_id += 1
