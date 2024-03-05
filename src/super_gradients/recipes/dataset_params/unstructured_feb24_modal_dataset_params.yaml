@@ -4,12 +4,12 @@ defaults:
   - coco_detection_dataset_params
 
 train_dataset_params:
-  data_dir: /data/unstructured_feb24_3
+  data_dir: /data/unstructured_feb24_4
   images_dir: all_images
   json_file: COCO/train.json
 
 val_dataset_params:
-  data_dir: /data/unstructured_feb24_3
+  data_dir: /data/unstructured_feb24_4
   images_dir: all_images
   json_file: COCO/val.json
 
