@@ -103,8 +103,8 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
-from super_gradients.module_interfaces import ExportableObjectDetectionModel, SupportsInputShapeCheck, ExportTargetBackend, DetectionOutputFormatMode
-from super_gradients.conversion import ExportQuantizationMode
+from super_gradients.module_interfaces import ExportableObjectDetectionModel, SupportsInputShapeCheck
+from super_gradients.conversion import ExportQuantizationMode, ExportTargetBackend, DetectionOutputFormatMode
 from super_gradients.common.deprecate import deprecated_parameter
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 
@@ -191,7 +191,7 @@ class ExportParams:
     """
 
     output_onnx_path: Optional[str] = None
-    engine: Optional[ExportTargetBackend] = (None,)
+    engine: Optional[ExportTargetBackend] = None
     batch_size: int = 1
     input_image_shape: Optional[Tuple[int, int]] = None
     preprocessing: bool = True
@@ -2170,7 +2170,6 @@ class Trainer:
                     "Model is not defined. You should either train some model using trainer.train(...) or "
                     "pass a model to test explicitly: trainer.test(model=...)"
                 )
-            self.net = existing_model
 
         self._prep_for_test(
             test_loader=test_loader,
@@ -2184,11 +2183,11 @@ class Trainer:
             criterion=self.criterion,
             device=self.device,
             sg_logger=self.sg_logger,
+            net=self.net,
         )
         if test_metrics_list:
             context.update_context(test_metrics=self.test_metrics)
         if test_phase_callbacks:
-            context.update_context(net=self.net)
             context.update_context(test_loader=test_loader)
 
         self.phase_callback_handler.on_test_loader_start(context)
@@ -2353,11 +2352,6 @@ class Trainer:
                 pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
                 progress_bar_data_loader.set_postfix(**pbar_message_dict)
-
-            # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
-            #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
-            #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
-            #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
 
             if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                 logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
@@ -2666,6 +2660,7 @@ class Trainer:
             valid_metrics_list=valid_metrics_list,
             export_params=None,  # Do not export PTQ model
         )
+        print("PTQ", ptq_result.valid_metrics_dict)
         # TRAIN
         model = ptq_result.quantized_model
         model.train()
@@ -2690,7 +2685,6 @@ class Trainer:
         valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
 
         # EXPORT QUANTIZED MODEL TO ONNX
-        os.makedirs(self.checkpoints_dir_path, exist_ok=True)
         if export_params is not None:
             input_shape_from_loader = tuple(map(int, next(iter(valid_loader))[0].shape))
             input_shape_with_export_batch_size = (export_params.batch_size,) + input_shape_from_loader[1:]
