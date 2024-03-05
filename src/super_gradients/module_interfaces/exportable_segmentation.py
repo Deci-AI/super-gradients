@@ -75,6 +75,14 @@ class BinarySegmentationDecodingModule(AbstractSegmentationDecodingModule):
         self.threshold = threshold
 
     def forward(self, predictions: Any) -> Tensor:
+        """
+        Convert raw predictions to binary mask.
+
+        :param predictions: Predicted logits from the model.
+               Can be a single tensor of tuple of tensors where first tensor is the predicted logits.
+        :return: A tensor of long dtype with binary labels (0 or 1) of shape [B, H, W]
+        """
+
         if isinstance(predictions, (list, tuple)):
             predictions = predictions[0]
 
@@ -185,8 +193,8 @@ class ExportableSegmentationModel:
         :param quantization_mode: (QuantizationMode) Sets the quantization mode for the exported model.
             If None, the model is exported as-is without any changes to mode weights.
             If QuantizationMode.FP16, the model is exported with weights converted to half precision.
-            If QuantizationMode.INT8, the model is exported with weights quantized to INT8. For this mode you can use calibration_loader
-            to specify a data loader for calibrating the model.
+            If QuantizationMode.INT8, the model is exported with weights quantized to INT8 (Using PTQ).
+            For this mode you can use calibration_loader to specify a data loader for calibrating the model.
         :param selective_quantizer: (SelectiveQuantizer) An optional quantizer for selectively quantizing model weights.
         :param calibration_loader: (torch.utils.data.DataLoader) An optional data loader for calibrating a quantized model.
         :param calibration_method: (str) Calibration method for quantized models. See QuantizationCalibrator for details.
