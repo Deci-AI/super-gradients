@@ -88,7 +88,7 @@ class SegmentationModule(SgModule, ABC, HasPredict, SupportsInputShapeCheck):
         self._image_processor = image_processor or self._image_processor
 
     @lru_cache(maxsize=1)
-    def _get_pipeline(self, fuse_model: bool = True) -> SegmentationPipeline:
+    def _get_pipeline(self, fuse_model: bool = True, fp16: bool = True) -> SegmentationPipeline:
         """Instantiate the segmentation pipeline of this model.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
@@ -102,23 +102,26 @@ class SegmentationModule(SgModule, ABC, HasPredict, SupportsInputShapeCheck):
             image_processor=self._image_processor,
             class_names=self._class_names,
             fuse_model=fuse_model,
+            fp16=fp16,
         )
         return pipeline
 
-    def predict(self, images: ImageSource, batch_size: int = 32, fuse_model: bool = True) -> ImagesSegmentationPrediction:
+    def predict(self, images: ImageSource, batch_size: int = 32, fuse_model: bool = True, fp16: bool = True) -> ImagesSegmentationPrediction:
         """Predict an image or a list of images.
         :param images:  Images to predict.
         :param batch_size:  Maximum number of images to process at the same time.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fp16:                        If True, use mixed precision for inference.
         """
-        pipeline = self._get_pipeline(fuse_model=fuse_model)
+        pipeline = self._get_pipeline(fuse_model=fuse_model, fp16=fp16)
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
-    def predict_webcam(self, fuse_model: bool = True):
+    def predict_webcam(self, fuse_model: bool = True, fp16: bool = True):
         """Predict using webcam.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fp16:       If True, use mixed precision for inference.
         """
-        pipeline = self._get_pipeline(fuse_model=fuse_model)
+        pipeline = self._get_pipeline(fuse_model=fuse_model, fp16=fp16)
         pipeline.predict_webcam()
 
     def get_input_shape_steps(self) -> Tuple[int, int]:
