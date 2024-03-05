@@ -1,5 +1,4 @@
 import copy
-import dataclasses
 import inspect
 import os
 import typing
@@ -103,8 +102,14 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
-from super_gradients.module_interfaces import ExportableObjectDetectionModel, SupportsInputShapeCheck
-from super_gradients.conversion import ExportQuantizationMode, ExportTargetBackend, DetectionOutputFormatMode
+from super_gradients.module_interfaces import (
+    ExportableObjectDetectionModel,
+    ExportablePoseEstimationModel,
+    SupportsInputShapeCheck,
+    QuantizationResult,
+    ExportParams,
+)
+from super_gradients.conversion import ExportQuantizationMode
 from super_gradients.common.deprecate import deprecated_parameter
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 
@@ -122,90 +127,6 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.debug("Failed to import pytorch_quantization:")
     logger.debug(import_err)
     _imported_pytorch_quantization_failure = import_err
-
-
-@dataclasses.dataclass
-class PTQResult:
-    quantized_model: nn.Module
-    output_onnx_path: str
-    valid_metrics_dict: Dict[str, float]
-
-
-@dataclasses.dataclass
-class QATResult:
-    quantized_model: nn.Module
-    output_onnx_path: str
-    valid_metrics_dict: Dict[str, float]
-
-
-@dataclasses.dataclass
-class ExportParams:
-    """
-    Parameters for exporting a model to ONNX format in PTQ/QAT methods of Trainer.
-    Most of the parameters are related ot ExportableObjectDetectionModel.export method.
-
-    :param output_onnx_path: The path to save the ONNX model.
-           If None, the ONNX filename will use current experiment dir folder
-           and the output filename will reflect model input shape & whether it's a PTQ or QAT model.
-
-    :param batch_size: The batch size for the ONNX model. Default is 1.
-
-    :param input_image_shape: The input image shape (rows, cols) for the ONNX model.
-           If None, the input shape will be inferred from the model or validation dataloader.
-
-    :param preprocessing: If True, the preprocessing will be included in the ONNX model.
-           This option is only available for models that support model.export() syntax.
-
-    :param postprocessing: If True, the postprocessing will be included in the ONNX model.
-           This option is only available for models that support model.export() syntax.
-
-    :param confidence_threshold: The confidence threshold for object detection models.
-           This option is only available for models that support model.export() syntax.
-           If None, the default confidence threshold for a given model will be used.
-    :param onnx_export_kwargs: (dict) Optional keyword arguments for torch.onnx.export() function.
-    :param onnx_simplify: (bool) If True, apply onnx-simplifier to the exported model.
-
-    :param detection_nms_iou_threshold: (float) A IoU threshold for the NMS step.
-           Relevant only for object detection models and only if postprocessing is True.
-           Default to None, which means the default value for a given model will be used.
-
-    :param detection_max_predictions_per_image: (int) Maximum number of predictions per image.
-           Relevant only for object detection models and only if postprocessing is True.
-
-    :param detection_num_pre_nms_predictions: (int) Number of predictions to keep before NMS.
-           Relevant only for object detection models and only if postprocessing is True.
-
-    :param detection_predictions_format: (DetectionOutputFormatMode) Format of the output predictions of detection models.
-           Possible values:
-           DetectionOutputFormatMode.BATCH_FORMAT - A tuple of 4 tensors will be returned
-           (num_detections, detection_boxes, detection_scores, detection_classes)
-           - A tensor of [batch_size, 1] containing the image indices for each detection.
-           - A tensor of [batch_size, max_output_boxes, 4] containing the bounding box coordinates for each detection in [x1, y1, x2, y2] format.
-           - A tensor of [batch_size, max_output_boxes] containing the confidence scores for each detection.
-           - A tensor of [batch_size, max_output_boxes] containing the class indices for each detection.
-
-           DetectionOutputFormatMode.FLAT_FORMAT - Tensor of shape [N, 7], where N is the total number of
-           predictions in the entire batch.
-           Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
-           Relevant only for object detection models and only if postprocessing is True.
-    """
-
-    output_onnx_path: Optional[str] = None
-    engine: Optional[ExportTargetBackend] = None
-    batch_size: int = 1
-    input_image_shape: Optional[Tuple[int, int]] = None
-    preprocessing: bool = True
-    postprocessing: bool = True
-    confidence_threshold: Optional[float] = None
-
-    onnx_export_kwargs: Optional[dict] = None
-    onnx_simplify: bool = True
-
-    # These are only relevant for object detection models
-    detection_nms_iou_threshold: Optional[float] = None
-    detection_max_predictions_per_image: Optional[int] = None
-    detection_predictions_format: DetectionOutputFormatMode = DetectionOutputFormatMode.BATCH_FORMAT
-    detection_num_pre_nms_predictions: int = 1000
 
 
 class Trainer:
@@ -2454,7 +2375,7 @@ class Trainer:
             self.loss_logging_items_names = [criterion_name]
 
     @classmethod
-    def quantize_from_config(cls, cfg: Union[DictConfig, dict]) -> Union[PTQResult, QATResult]:
+    def quantize_from_config(cls, cfg: Union[DictConfig, dict]) -> QuantizationResult:
         """
         Perform quantization aware training (QAT) according to a recipe configuration.
 
@@ -2597,7 +2518,7 @@ class Trainer:
         additional_qat_configs_to_log: Dict = None,
         valid_metrics_list: List[Metric] = None,
         export_params: ExportParams = None,
-    ) -> QATResult:
+    ) -> QuantizationResult:
         """
         Performs post-training quantization (PTQ), and then quantization-aware training (QAT).
         Exports the ONNX models (ckpt_best.pth of QAT and the calibrated model) to the checkpoints directory.
@@ -2693,13 +2614,14 @@ class Trainer:
                 export_params.output_onnx_path = os.path.join(
                     output_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_export_batch_size))}_qat.onnx"
                 )
-            self._export_quantized_model(model, export_params, input_shape_from_loader)
+            export_result = self._export_quantized_model(model, export_params, input_shape_from_loader)
             output_onnx_path = export_params.output_onnx_path
             logger.info(f"Exported QAT ONNX to {output_onnx_path}")
         else:
             output_onnx_path = None
+            export_result = None
 
-        return QATResult(quantized_model=model, output_onnx_path=output_onnx_path, valid_metrics_dict=valid_metrics_dict)
+        return QuantizationResult(quantized_model=model, output_onnx_path=output_onnx_path, valid_metrics_dict=valid_metrics_dict, export_result=export_result)
 
     @deprecated_parameter(
         "deepcopy_model_for_export",
@@ -2717,7 +2639,7 @@ class Trainer:
         quantization_params: Dict = None,
         export_params: ExportParams = None,
         deepcopy_model_for_export=None,
-    ) -> PTQResult:
+    ) -> QuantizationResult:
         """
         Performs post-training quantization (calibration of the model)..
 
@@ -2835,19 +2757,16 @@ class Trainer:
                     output_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_export_batch_size))}_ptq.onnx"
                 )
             logger.debug(f"Output ONNX file path {export_params.output_onnx_path}")
-            self._export_quantized_model(model, export_params, input_shape_from_loader)
+            export_result = self._export_quantized_model(model, export_params, input_shape_from_loader)
             output_onnx_path = export_params.output_onnx_path
         else:
             output_onnx_path = None
+            export_result = None
 
-        return PTQResult(
-            quantized_model=model,
-            output_onnx_path=output_onnx_path,
-            valid_metrics_dict=valid_metrics_dict,
-        )
+        return QuantizationResult(quantized_model=model, output_onnx_path=output_onnx_path, valid_metrics_dict=valid_metrics_dict, export_result=export_result)
 
     @staticmethod
-    def _export_quantized_model(model: nn.Module, export_params: ExportParams, input_shape_from_dataloader: Tuple[int, int, int, int]):
+    def _export_quantized_model(model: nn.Module, export_params: ExportParams, input_shape_from_dataloader: Tuple[int, int, int, int]) -> Optional[Any]:
         """
         Internal method to export a quantized model to ONNX. This method used internally by PTQ & QAT steps.
 
@@ -2855,7 +2774,7 @@ class Trainer:
         :param export_params: Parameters controlling the export process.
         :param input_shape_from_dataloader: Example shape of the batch from validation DataLoader.
                It may be used as an example of the input shape during ONNX export.
-        :return: None
+        :return: An instance of export result object if model supports `model.export()` or None of it's a regular model
         """
         input_image_shape = export_params.input_image_shape
         if input_image_shape is None:
@@ -2869,7 +2788,9 @@ class Trainer:
 
         input_shape_with_explicit_batch = tuple([export_params.batch_size] + list(input_image_shape[1:]))
 
-        if isinstance(model, ExportableObjectDetectionModel):
+        export_result = None
+        # A signatures of these two protocols are the same so we can use the same method and set of parameters for both
+        if isinstance(model, (ExportableObjectDetectionModel, ExportablePoseEstimationModel)):
             model: ExportableObjectDetectionModel = typing.cast(ExportableObjectDetectionModel, model)
             export_result = model.export(
                 output=export_params.output_onnx_path,
@@ -2886,7 +2807,6 @@ class Trainer:
                 max_predictions_per_image=export_params.detection_max_predictions_per_image,
                 output_predictions_format=export_params.detection_predictions_format,
             )
-            logger.info(repr(export_result))
         else:
             # TODO: modify SG's convert_to_onnx for quantized models and use it instead
             export_quantized_module_to_onnx(
@@ -2897,3 +2817,5 @@ class Trainer:
                 train=False,
                 deepcopy_model=False,
             )
+
+        return export_result
