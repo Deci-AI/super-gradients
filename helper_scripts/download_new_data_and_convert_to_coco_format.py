@@ -284,6 +284,10 @@ def main(
                     print(f"Can't open image {document_file_pth}: {e}")
                     continue
 
+                if not document["sd_result"]:
+                    print(f"Corrupted labels for {document_file_pth}")
+                    continue
+
                 COCO_anno, COCO_image_id = check_and_add_image(document_file_name, target_image, COCO_image_id, document["sd_result"]["id"], COCO_anno)
 
                 for item in document["sd_result"]["items"]:
@@ -380,7 +384,7 @@ def main(
             if anno["image_id"] in img_ids:
                 COCO_anno_split["annotations"].append(anno)
 
-        coco_labels_path = coco_labels_dir / f"{split}.json"
+        coco_labels_path = coco_labels_dir / split
         dump_json(coco_labels_path, COCO_anno_split)
         print(f"{split} finished. Annotation saved in {coco_labels_path}")
 
