@@ -2587,10 +2587,11 @@ class Trainer:
 
     def qat(
         self,
-        calib_loader: DataLoader,
+        *,
         model: torch.nn.Module,
-        valid_loader: DataLoader,
         train_loader: DataLoader,
+        valid_loader: DataLoader,
+        calib_loader: DataLoader = None,
         training_params: Mapping = None,
         quantization_params: Mapping = None,
         additional_qat_configs_to_log: Dict = None,
@@ -2653,14 +2654,13 @@ class Trainer:
         valid_metrics_list = valid_metrics_list or get_param(training_params, "valid_metrics_list")
 
         ptq_result = self.ptq(
-            calib_loader=calib_loader,
             model=model,
-            quantization_params=quantization_params,
             valid_loader=valid_loader,
             valid_metrics_list=valid_metrics_list,
+            calib_loader=calib_loader,
+            quantization_params=quantization_params,
             export_params=None,  # Do not export PTQ model
         )
-        print("PTQ", ptq_result.valid_metrics_dict)
         # TRAIN
         model = ptq_result.quantized_model
         model.train()
@@ -2709,10 +2709,11 @@ class Trainer:
     )
     def ptq(
         self,
-        calib_loader: DataLoader,
+        *,
         model: nn.Module,
         valid_loader: DataLoader,
         valid_metrics_list: List[torchmetrics.Metric] = None,
+        calib_loader: DataLoader = None,
         quantization_params: Dict = None,
         export_params: ExportParams = None,
         deepcopy_model_for_export=None,
@@ -2720,13 +2721,12 @@ class Trainer:
         """
         Performs post-training quantization (calibration of the model)..
 
-        :param calib_loader: DataLoader, data loader for calibration.
+        :param model: (torch.nn.Module) Model to perform calibration on. When None, will try to use self.net which is
+                      set in previous self.train(..) call (default=None).
 
-        :param model: torch.nn.Module, Model to perform calibration on. When None, will try to use self.net which is
-        set in previous self.train(..) call (default=None).
+        :param valid_loader: DataLoader, data loader for validation. Used for validating the calibrated model.
 
-        :param valid_loader: DataLoader, data loader for validation. Used both for validating the calibrated model.
-            When None, will try to use self.valid_loader if it was set in previous self.train(..) call (default=None).
+        :param calib_loader: DataLoader, data loader for calibration. If None will use valid_loader for calibration.
 
         :param quantization_params: Mapping, with the following entries:defaults-
             selective_quantizer_params:
@@ -2767,6 +2767,7 @@ class Trainer:
             )
 
         valid_metrics_list = valid_metrics_list or self.valid_metrics
+        calib_loader = calib_loader or valid_loader
 
         logger.debug("Performing post-training quantization (PTQ)...")
         logger.debug(f"Experiment name {self.experiment_name}")
