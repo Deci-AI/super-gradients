@@ -71,17 +71,19 @@ dataset_params:
       - DetectionTargetsFormatTransform:
           output_format: LABEL_CXCYWH
 
-experiment_name: <task_id>_<task_description>
+experiment_name: CORE_4043_customly_configured_loss
 
 resume: False
 training_hyperparams:
   neptune_logging:
     name: ${experiment_name}
-    tags: ["task_id", "tag1", "tag2"]
+    tags: ["CORE_4043", "object detection", "training", "customly configured loss", "iou_type: GIOU", "iou_weight: 7", "unstructured_feb24_3"]
   resume: ${resume}
   max_epochs: 100
   criterion_params:
     num_classes: ${arch_params.num_classes}
+    iou_type: giou
+    iou_weight: 7.0
   valid_metrics_list:
     - DetectionMetrics:
         normalize_targets: True
