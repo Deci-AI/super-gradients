@@ -103,8 +103,12 @@ def check_and_add_image(img_name, img, COCO_image_id, file_id, COCO_anno):
     return COCO_anno, COCO_image_id
 
 
+def clean_category_name(category: str) -> str:
+    return category.replace("paraprgaph", "paragraph")
+
+
 def check_and_add_category(category, COCO_anno, COCO_category_id):
-    category.replace("paraprgaph", "paragraph")
+    category = clean_category_name(category)
     if category not in [cat["name"] for cat in COCO_anno["categories"]]:
         COCO_anno["categories"].append({"id": COCO_category_id, "name": category})
         COCO_category_id += 1

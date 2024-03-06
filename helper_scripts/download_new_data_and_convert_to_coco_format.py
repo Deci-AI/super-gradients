@@ -26,7 +26,7 @@ import urllib.request
 from math import ceil
 from pathlib import Path
 
-from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list
+from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list, clean_category_name
 from PIL import Image
 from tqdm import tqdm
 from utils import dump_json, load_json, load_txt_with_json, load_txt, load_csv_with_json
@@ -171,7 +171,7 @@ def init_categories(existing_categories_file: Path, COCO_anno: dict, COCO_catego
     for cat in categories_list:
         COCO_categories.append({"id": COCO_category_id, "name": cat})
         COCO_category_id += 1
-    COCO_anno["categories"] = COCO_categories
+    COCO_anno["categories"] = clean_categories(COCO_categories)
     return COCO_anno, COCO_category_id
 
 
@@ -207,8 +207,8 @@ def filter_dicts_by_keys(input_dicts, keys_to_check):
 def clean_categories(categories: list[dict]) -> list[dict]:
     # Replace "paraprgaph" with "paragraph"
     for category in categories:
-        category["name"] = category["name"].replace("paraprgaph", "paragraph")
-    return sorted(categories, key=lambda x: x["id"])
+        category["name"] = clean_category_name(category["name"])
+    return categories
 
 
 def save_list_to_txt_file(path: Path, data: list[str]):
@@ -292,12 +292,15 @@ def main(
 
                 for item in document["sd_result"]["items"]:
                     bbox = item["meta"]["geometry"]
-                    label = item["labels"]["entity"].lower()
+                    label = clean_category_name(item["labels"]["entity"].lower())
 
                     COCO_anno, COCO_category_id = check_and_add_category(label, COCO_anno, COCO_category_id)
 
                     image_id = get_id_from_dict_list(COCO_anno["images"], "file_name", document_file_name)
                     category_id = get_id_from_dict_list(COCO_anno["categories"], "name", label)
+
+                    if category_id not in range(COCO_category_id):
+                        raise ValueError(f"Invalid category id: {category_id} for {label} extracted from annotation.")
 
                     if item["meta"]["type"] == "POLYGON":
                         X = []
