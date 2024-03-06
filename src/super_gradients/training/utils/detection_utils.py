@@ -1246,9 +1246,9 @@ def compute_img_detection_matching(
         targets_cls = targets[:, 0].to(device=device)
         return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
 
-    preds_matched = torch.zeros(len(preds), num_thresholds, dtype=torch.bool, device=device)
-    targets_matched = torch.zeros(len(targets), num_thresholds, dtype=torch.bool, device=device)
-    preds_to_ignore = torch.zeros(len(preds), num_thresholds, dtype=torch.bool, device=device)
+    preds_matched = torch.zeros(len(preds), num_thresholds, dtype=torch.bool, device=preds.device)
+    targets_matched = torch.zeros(len(targets), num_thresholds, dtype=torch.bool, device=preds.device)
+    preds_to_ignore = torch.zeros(len(preds), num_thresholds, dtype=torch.bool, device=preds.device)
 
     preds_cls, preds_box, preds_scores = preds[:, -1], preds[:, 0:4], preds[:, 4]
     targets_cls, targets_box = targets[:, 0], targets[:, 1:5]
