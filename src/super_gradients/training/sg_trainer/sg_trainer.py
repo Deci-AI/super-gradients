@@ -105,6 +105,7 @@ from super_gradients.training.params import TrainingParams
 from super_gradients.module_interfaces import (
     ExportableObjectDetectionModel,
     ExportablePoseEstimationModel,
+    ExportableSegmentationModel,
     SupportsInputShapeCheck,
     QuantizationResult,
 )
@@ -2805,6 +2806,19 @@ class Trainer:
                 num_pre_nms_predictions=export_params.detection_num_pre_nms_predictions,
                 max_predictions_per_image=export_params.detection_max_predictions_per_image,
                 output_predictions_format=export_params.detection_predictions_format,
+            )
+        elif isinstance(model, ExportableSegmentationModel):
+            model: ExportableSegmentationModel = typing.cast(ExportableSegmentationModel, model)
+            export_result = model.export(
+                output=export_params.output_onnx_path,
+                engine=export_params.engine,
+                quantization_mode=ExportQuantizationMode.INT8,
+                input_image_shape=input_image_shape,
+                preprocessing=export_params.preprocessing,
+                postprocessing=export_params.postprocessing,
+                confidence_threshold=export_params.confidence_threshold,
+                onnx_simplify=export_params.onnx_simplify,
+                onnx_export_kwargs=export_params.onnx_export_kwargs,
             )
         else:
             # TODO: modify SG's convert_to_onnx for quantized models and use it instead
