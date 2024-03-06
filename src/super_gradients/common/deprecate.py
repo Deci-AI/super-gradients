@@ -109,7 +109,12 @@ def deprecated_parameter(parameter_name: str, deprecated_since: str, removed_fro
 
     def decorator(func: callable) -> callable:
         argspec = inspect.getfullargspec(func)
-        argument_index = argspec.args.index(parameter_name)
+        # This check is necessary for methods with star-signature foo(*, a,b,c)
+        # For such methods argspec.args is actually empty and argspec.kwonlyargs contains the parameter names
+        if "parameter_name" in argspec.args:
+            argument_index = argspec.args.index(parameter_name)
+        else:
+            argument_index = None
 
         default_value = None
         sig = inspect.signature(func)
@@ -126,9 +131,13 @@ def deprecated_parameter(parameter_name: str, deprecated_since: str, removed_fro
 
             # Try to get the actual value from the arguments
             # Have to check both positional and keyword arguments
-            try:
-                value = args[argument_index]
-            except IndexError:
+            if argument_index is not None:
+                try:
+                    value = args[argument_index]
+                except IndexError:
+                    if parameter_name in kwargs:
+                        value = kwargs[parameter_name]
+            else:
                 if parameter_name in kwargs:
                     value = kwargs[parameter_name]
 
