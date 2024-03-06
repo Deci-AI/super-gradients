@@ -318,9 +318,9 @@ def parse_coco_into_detection_annotations(
             image_path=image_path,
             image_width=image_width,
             image_height=image_height,
-            ann_boxes_xyxy=np.asarray(img_id2ann_box_xyxy[img_id]),
-            ann_is_crowd=np.asarray(img_id2ann_iscrowd[img_id]),
-            ann_labels=np.asarray(img_id2ann_category_id[img_id]),
+            ann_boxes_xyxy=np.asarray(img_id2ann_box_xyxy[img_id], dtype=np.float32).reshape(-1, 4),
+            ann_is_crowd=np.asarray(img_id2ann_iscrowd[img_id], dtype=bool).reshape(-1),
+            ann_labels=np.asarray(img_id2ann_category_id[img_id], dtype=int).reshape(-1),
         )
         annotations.append(ann)
 
