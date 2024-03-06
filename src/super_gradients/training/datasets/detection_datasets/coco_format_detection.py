@@ -209,11 +209,11 @@ def parse_coco_into_detection_annotations(
     category_names = np.array([category["name"] for category in coco["categories"]], dtype=str)
 
     # Extract box annotations
-    ann_box_xyxy = xywh_to_xyxy_inplace(np.array([annotation["bbox"] for annotation in coco["annotations"]], dtype=np.float32), image_shape=None)
+    ann_box_xyxy = xywh_to_xyxy_inplace(np.array([annotation["bbox"] for annotation in coco["annotations"]], dtype=np.float32).reshape(-1, 4), image_shape=None)
 
-    ann_category_id = np.array([annotation["category_id"] for annotation in coco["annotations"]], dtype=int)
-    ann_iscrowd = np.array([annotation["iscrowd"] for annotation in coco["annotations"]], dtype=bool)
-    ann_image_ids = np.array([annotation["image_id"] for annotation in coco["annotations"]], dtype=int)
+    ann_category_id = np.array([annotation["category_id"] for annotation in coco["annotations"]], dtype=int).reshape(-1)
+    ann_iscrowd = np.array([annotation["iscrowd"] for annotation in coco["annotations"]], dtype=bool).reshape(-1)
+    ann_image_ids = np.array([annotation["image_id"] for annotation in coco["annotations"]], dtype=int).reshape(-1)
 
     # Extract image stuff
     img_ids = [img["id"] for img in coco["images"]]
