@@ -107,9 +107,8 @@ from super_gradients.module_interfaces import (
     ExportablePoseEstimationModel,
     SupportsInputShapeCheck,
     QuantizationResult,
-    ExportParams,
 )
-from super_gradients.conversion import ExportQuantizationMode
+from super_gradients.conversion import ExportQuantizationMode, ExportParams
 from super_gradients.common.deprecate import deprecated_parameter
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 

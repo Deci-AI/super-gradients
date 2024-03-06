@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Optional, Tuple
 
-from super_gradients.conversion import ExportTargetBackend, DetectionOutputFormatMode
+from super_gradients.conversion.conversion_enums import ExportTargetBackend, DetectionOutputFormatMode
 
 
 @dataclasses.dataclass
