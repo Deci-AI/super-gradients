@@ -149,16 +149,18 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel, SupportsI
         batch_size: int = 32,
         fuse_model: bool = True,
         skip_image_resizing: bool = False,
+        fp16: bool = True,
     ) -> PoseEstimationPrediction:
         """Predict an image or a list of images.
 
-        :param images:              Images to predict.
-        :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
-                                    If None, the default value associated to the training is used.
-        :param batch_size:          Maximum number of images to process at the same time.
-        :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param images:     Images to predict.
+        :param iou:        (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:       (Optional) Below the confidence threshold, prediction are discarded.
+                           If None, the default value associated to the training is used.
+        :param batch_size: Maximum number of images to process at the same time.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         :param skip_image_resizing: If True, the image processor will not resize the images.
+        :param fp16:       If True, use mixed precision for inference.
         """
         pipeline = self._get_pipeline(
             iou=iou,
@@ -167,8 +169,42 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel, SupportsI
             post_nms_max_predictions=post_nms_max_predictions,
             fuse_model=fuse_model,
             skip_image_resizing=skip_image_resizing,
+            fp16=fp16,
         )
         return pipeline(images, batch_size=batch_size)  # type: ignore
+
+    def predict_webcam(
+        self,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+        pre_nms_max_predictions: Optional[int] = None,
+        post_nms_max_predictions: Optional[int] = None,
+        batch_size: int = 32,
+        fuse_model: bool = True,
+        skip_image_resizing: bool = False,
+        fp16: bool = True,
+    ):
+        """Predict using webcam.
+
+        :param iou:        (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:       (Optional) Below the confidence threshold, prediction are discarded.
+                           If None, the default value associated to the training is used.
+        :param batch_size: Maximum number of images to process at the same time.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
+        :param fp16:       If True, use mixed precision for inference.
+
+        """
+        pipeline = self._get_pipeline(
+            iou=iou,
+            conf=conf,
+            pre_nms_max_predictions=pre_nms_max_predictions,
+            post_nms_max_predictions=post_nms_max_predictions,
+            fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
+            fp16=fp16,
+        )
+        pipeline.predict_webcam()
 
     @lru_cache(maxsize=1)
     def _get_pipeline(
@@ -179,14 +215,16 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel, SupportsI
         post_nms_max_predictions: Optional[int] = None,
         fuse_model: bool = True,
         skip_image_resizing: bool = False,
+        fp16: bool = True,
     ) -> PoseEstimationPipeline:
         """Instantiate the prediction pipeline of this model.
 
-        :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
-                                    If None, the default value associated to the training is used.
-        :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param iou:        (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:       (Optional) Below the confidence threshold, prediction are discarded.
+                           If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         :param skip_image_resizing: If True, the image processor will not resize the images.
+        :param fp16:       If True, use mixed precision for inference.
         """
         if None in (self._image_processor, self._default_nms_iou, self._default_nms_conf, self._edge_links):
             raise RuntimeError(
@@ -219,6 +257,7 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel, SupportsI
             edge_links=self._edge_links,
             edge_colors=self._edge_colors,
             keypoint_colors=self._keypoint_colors,
+            fp16=fp16,
         )
         return pipeline
 
