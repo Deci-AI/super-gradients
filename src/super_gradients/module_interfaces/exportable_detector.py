@@ -23,7 +23,13 @@ from torch.utils.data import DataLoader
 
 logger = get_logger(__name__)
 
-__all__ = ["ExportableObjectDetectionModel", "AbstractObjectDetectionDecodingModule", "ModelExportResult", "ModelHasNoPreprocessingParamsException"]
+__all__ = [
+    "ExportableObjectDetectionModel",
+    "AbstractObjectDetectionDecodingModule",
+    "ModelExportResult",
+    "ModelHasNoPreprocessingParamsException",
+    "ObjectDetectionModelExportResult",
+]
 
 
 class AbstractObjectDetectionDecodingModule(nn.Module):
@@ -85,7 +91,7 @@ class AbstractObjectDetectionDecodingModule(nn.Module):
 
 
 @dataclasses.dataclass
-class ModelExportResult:
+class ObjectDetectionModelExportResult:
     """
     A dataclass that holds the result of model export.
     """
@@ -104,6 +110,9 @@ class ModelExportResult:
 
     def __repr__(self):
         return self.usage_instructions
+
+
+ModelExportResult = ObjectDetectionModelExportResult  # Alias for backward compatibility
 
 
 class ExportableObjectDetectionModel:

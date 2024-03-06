@@ -1,9 +1,10 @@
 from .module_interfaces import HasPredict, HasPreprocessingParams, SupportsReplaceNumClasses, SupportsReplaceInputChannels, SupportsFineTune
 from .exceptions import ModelHasNoPreprocessingParamsException
-from .exportable_detector import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule
+from .exportable_detector import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule, ObjectDetectionModelExportResult
 from .exportable_pose_estimation import ExportablePoseEstimationModel, PoseEstimationModelExportResult, AbstractPoseEstimationDecodingModule
 from .pose_estimation_post_prediction_callback import AbstractPoseEstimationPostPredictionCallback, PoseEstimationPredictions
 from .supports_input_shape_check import SupportsInputShapeCheck
+from .quantization_result import QuantizationResult
 from .exportable_segmentation import (
     SegmentationModelExportResult,
     ExportableSegmentationModel,
@@ -27,6 +28,8 @@ __all__ = [
     "AbstractPoseEstimationDecodingModule",
     "SupportsFineTune",
     "SupportsInputShapeCheck",
+    "ObjectDetectionModelExportResult",
+    "QuantizationResult",
     "SegmentationModelExportResult",
     "ExportableSegmentationModel",
     "AbstractSegmentationDecodingModule",
