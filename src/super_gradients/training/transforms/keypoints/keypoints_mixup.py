@@ -16,6 +16,8 @@ class KeypointsMixup(AbstractKeypointTransform):
     Images are averaged with equal weights. Targets are concatenated without any changes.
     This transform requires both samples have the same image size. The easiest way to achieve this is to use resize + padding before this transform:
 
+    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `additional_samples_count`
+
     ```yaml
     # This will apply KeypointsLongestMaxSize and KeypointsPadIfNeeded to two samples individually
     # and then apply KeypointsMixup to get a single sample.
@@ -47,6 +49,15 @@ class KeypointsMixup(AbstractKeypointTransform):
         super().__init__(additional_samples_count=1)
         self.prob = prob
 
+    @property
+    def additional_samples_count(self) -> int:
+        do_mixup = random.random() < self.prob
+        return int(do_mixup)
+
+    @additional_samples_count.setter
+    def additional_samples_count(self, value):
+        pass  # ignored
+
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """
         Apply the transform to a single sample.
@@ -54,7 +65,7 @@ class KeypointsMixup(AbstractKeypointTransform):
         :param sample: An input sample. It should have one additional sample in `additional_samples` field.
         :return:       A new pose estimation sample that represents the mixup sample.
         """
-        if random.random() < self.prob:
+        if sample.additional_samples is not None and len(sample.additional_samples) > 0:
             other = sample.additional_samples[0]
             if sample.image.shape != other.image.shape:
                 raise RuntimeError(

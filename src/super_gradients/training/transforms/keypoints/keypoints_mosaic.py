@@ -22,6 +22,8 @@ class KeypointsMosaic(AbstractKeypointTransform):
     The location of mosaic transform in the transforms list matter.
     It affects what transforms will be applied to all 4 samples.
 
+    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `additional_samples_count`
+
     In the example below, KeypointsMosaic goes after KeypointsRandomAffineTransform and KeypointsBrightnessContrast.
     This means that all 4 samples will be transformed with KeypointsRandomAffineTransform and KeypointsBrightnessContrast.
 
@@ -75,6 +77,15 @@ class KeypointsMosaic(AbstractKeypointTransform):
         self.prob = prob
         self.pad_value = tuple(pad_value)
 
+    @property
+    def additional_samples_count(self) -> int:
+        do_mosaic = random.random() < self.prob
+        return 3 if do_mosaic else 0
+
+    @additional_samples_count.setter
+    def additional_samples_count(self, value):
+        pass  # ignored
+
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """
         Apply transformation to given estimation sample
@@ -82,7 +93,7 @@ class KeypointsMosaic(AbstractKeypointTransform):
         :param sample: A pose estimation sample. The sample must have 3 additional samples in it.
         :return:       A new pose estimation sample that represents the final mosaic.
         """
-        if random.random() < self.prob:
+        if sample.additional_samples is not None and len(sample.additional_samples) > 0:
             samples = [sample] + sample.additional_samples
             sample = self._apply_mosaic(samples)
         return sample
