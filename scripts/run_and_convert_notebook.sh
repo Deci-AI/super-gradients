@@ -24,7 +24,7 @@ source "${ENV_NAME}/bin/activate"
 
 # Convert the notebook
 # An --stdout flag is used to print the output to the console (Helpful for debugging if notebook conversion fails)
-jupyter nbconvert --to markdown --execute --output-dir="$OUTPUT_DIR" "$NOTEBOOK_PATH" --stdout
+jupyter nbconvert --to markdown --execute --output-dir="$OUTPUT_DIR" "$NOTEBOOK_PATH" --stdout --ExecutePreprocessor.kernel_name="$ENV_NAME"
 
 # Check for errors
 if [ $? -ne 0 ]; then
