@@ -73,7 +73,7 @@ class KeypointsMosaic(AbstractKeypointTransform):
         :param prob:     Probability to apply the transform.
         :param pad_value Value to pad the image if size of samples does not match.
         """
-        super().__init__(additional_samples_count=3)
+        super().__init__()
         self.prob = prob
         self.pad_value = tuple(pad_value)
 

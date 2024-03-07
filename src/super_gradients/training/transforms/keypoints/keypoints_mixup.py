@@ -46,7 +46,7 @@ class KeypointsMixup(AbstractKeypointTransform):
 
         :param prob:            Probability to apply the transform.
         """
-        super().__init__(additional_samples_count=1)
+        super().__init__()
         self.prob = prob
 
     @property
