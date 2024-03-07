@@ -35,6 +35,16 @@ You can also start from our tutorial on [Detection](ObjectDetection.md), [Segmen
 ## What's New
 
 __________________________________________________________________________________________________________
+Version 3.6.1 (March 6, 2024)
+
+* A dependency from `pycocotools` has been removed from SG, we don't rely anymore on this package to parse COCO dataset json. 
+* A `Trainer.ptq` and `Trainer.qat` methods now allow granular control on for the model should be exported (with or without pre-/post-processing).
+* A `model.predict` now has `fp16` argument (Default is `True`) which one can use to disable mixed precision feature (Addressing issues on GTX 16XX series)
+* Fixed a bug in missing min-max image normalization in `plot()` method for detection dataset.
+* Removed `deci-common` from `[pro]` requirements.
+* Updated [YoloNAS-Pose fine-tunining for Animals Pose Dataset](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/YoloNAS_Pose_Fine_Tuning_Animals_Pose_Dataset.ipynb) notebook.
+* 
+__________________________________________________________________________________________________________
 Version 3.6.0 (Jan 25, 2024)
 
 * Added segmentation samples and support for albumentation transforms for segmentation

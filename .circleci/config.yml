@@ -663,18 +663,12 @@ jobs:
             # Install your project (if it's a package)
             pip install .
 
-            # Install PyTorch, torchvision, and torchaudio
-            pip install torch torchvision torchaudio
-
             # Install additional specific dependencies
             pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
             pip install onnx_graphsurgeon==0.3.27 --extra-index-url https://pypi.ngc.nvidia.com
 
-            # Install Jupyter and nbconvert for notebook execution
-            pip install jupyter nbconvert
-
             # Install the IPython kernel
-            python -m ipykernel install --name myenv --user
+            python -m ipykernel install --name << parameters.sg_new_env_name >> --user
 
       - run:
           name: Find and Run Notebooks
