@@ -450,6 +450,18 @@ class DetectionDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
                 target_format = transform.output_format
         return target_format
 
+    @staticmethod
+    def _standardize_image(image):
+        # Normalize the image to have minimum of 0 and maximum of 1
+        image_min = image.min()
+        image_max = image.max()
+        normalized_image = (image - image_min) / (image_max - image_min + 1e-8)
+
+        # Rescale the normalized image to 0-255
+        standardized_image = (normalized_image * 255).astype(np.uint8)
+
+        return standardized_image
+
     def plot(
         self,
         max_samples_per_plot: int = 16,
@@ -494,6 +506,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
                 if image.shape[0] in (1, 3):  # (C, H, W) -> (H, W, C)
                     image = image.transpose((1, 2, 0))
 
+                image = self._standardize_image(image)
                 image = image.astype(np.uint8)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Detection dataset works with BGR images, so we have to convert to RGB
 

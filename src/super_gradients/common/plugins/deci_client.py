@@ -33,7 +33,6 @@ try:
         HardwareType,
         QuantizationLevel,
     )
-    from deci_common.data_interfaces.files_data_interface import FileDownloadFailedException
     from deci_platform_client.models import AutoNACFileName
     from deci_platform_client.exceptions import ApiException, ApiTypeError
 
@@ -51,10 +50,7 @@ class DeciClient:
 
     def __init__(self):
         if not client_enabled:
-            logger.error(
-                "deci-platform-client or deci-common are not installed. Model cannot be loaded from deci lab."
-                "Please install deci-platform-client>=5.0.0 and deci-common>=12.0.0"
-            )
+            logger.error("deci-platform-client is not installed. Model cannot be loaded from deci lab." "Please install deci-platform-client>=5.0.0")
             return
 
         self.lab_client = DeciPlatformClient()
@@ -111,7 +107,7 @@ class DeciClient:
         try:
             urlretrieve(file_url, file_path)
         except urllib.error.ContentTooShortError as ex:
-            raise FileDownloadFailedException("File download did not finish correctly " + str(ex))
+            raise RuntimeError("File download did not finish correctly " + str(ex))
         return file_path
 
     def get_model_arch_params(self, model_name: str) -> Optional[DictConfig]:
