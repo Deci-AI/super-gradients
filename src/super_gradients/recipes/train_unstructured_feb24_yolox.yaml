@@ -71,13 +71,13 @@ dataset_params:
       - DetectionTargetsFormatTransform:
           output_format: LABEL_CXCYWH
 
-experiment_name: CORE-4026_retrain_on_next_set_of_data
+experiment_name: <task_id>_<task_description>
 
 resume: False
 training_hyperparams:
   neptune_logging:
     name: ${experiment_name}
-    tags: ["CORE-4026", "object detection", "training", "unstructured_feb24_4", "data 20K"]
+    tags: ["task_id", "tag1", "tag2"]
   resume: ${resume}
   max_epochs: 100
   criterion_params:
