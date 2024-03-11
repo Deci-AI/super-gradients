@@ -77,11 +77,13 @@ resume: False
 training_hyperparams:
   neptune_logging:
     name: ${experiment_name}
-    tags: ["task_id", "tag1", "tag2"]
+    tags: ["task_id", "tag1", "tag2",]
   resume: ${resume}
   max_epochs: 100
   criterion_params:
     num_classes: ${arch_params.num_classes}
+    iou_type: giou  # iou
+    iou_weight: 5.0  # 7.0
   valid_metrics_list:
     - DetectionMetrics:
         normalize_targets: True
