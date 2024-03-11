@@ -2,7 +2,7 @@ import unittest
 
 from omegaconf import OmegaConf
 
-from super_gradients.common.environment.ddp_utils import register_hydra_resolvers
+from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 
 
 class HydraResolversTest(unittest.TestCase):
