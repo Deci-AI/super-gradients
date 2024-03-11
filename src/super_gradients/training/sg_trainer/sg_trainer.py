@@ -338,7 +338,7 @@ class Trainer:
         return cls.train_from_config(cfg)
 
     @classmethod
-    def evaluate_from_recipe(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
+    def evaluate_from_config(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
         """
         Evaluate according to a cfg recipe configuration.
 
@@ -406,6 +406,11 @@ class Trainer:
         logger.info("\n".join(results))
 
         return model, valid_metrics_dict
+
+    @classmethod
+    def evaluate_from_recipe(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
+        warnings.warn("This method is deprecated and will be removed in the future. Please use `Trainer.evaluate_from_config` instead.", DeprecationWarning)
+        return cls.evaluate_from_config(cfg)
 
     @classmethod
     def evaluate_checkpoint(
