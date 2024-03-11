@@ -2811,7 +2811,6 @@ class Trainer:
             model: ExportableSegmentationModel = typing.cast(ExportableSegmentationModel, model)
             export_result = model.export(
                 output=export_params.output_onnx_path,
-                engine=export_params.engine,
                 quantization_mode=ExportQuantizationMode.INT8,
                 input_image_shape=input_image_shape,
                 preprocessing=export_params.preprocessing,
