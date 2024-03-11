@@ -56,7 +56,7 @@ class KeypointsMixup(AbstractKeypointTransform):
 
     @additional_samples_count.setter
     def additional_samples_count(self, value):
-        pass  # ignored
+        raise AttributeError("Cannot use the setter of `additional_samples_count`. This is because the value (getter) is non-deterministic.")
 
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """

@@ -518,7 +518,7 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
 
     @additional_samples_count.setter
     def additional_samples_count(self, value):
-        pass  # ignored
+        raise AttributeError("Cannot use the setter of `additional_samples_count`. This is because the value (getter) is non-deterministic.")
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if sample.additional_samples is None or len(sample.additional_samples) == 0 or not self.enable_mosaic:
@@ -712,7 +712,7 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
 
     @additional_samples_count.setter
     def additional_samples_count(self, value):
-        pass  # ignored
+        raise AttributeError("Cannot use the setter of `additional_samples_count`. This is because the value (getter) is non-deterministic.")
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if sample.additional_samples is None or len(sample.additional_samples) == 0 or not self.enable_mixup:
