@@ -208,7 +208,7 @@ def clean_categories(categories: list[dict]) -> list[dict]:
     # Replace "paraprgaph" with "paragraph"
     for category in categories:
         category["name"] = clean_category_name(category["name"])
-    return categories
+    return sorted(categories, key=lambda x: x["id"])
 
 
 def save_list_to_txt_file(path: Path, data: list[str]):
