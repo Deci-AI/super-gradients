@@ -2,7 +2,7 @@
 Find the best confidence score threshold for each class in object detection tasks
 Use this script when you have a trained model and want to analyze / optimize its performance
 The thresholds can be used later when performing NMS
-Usage is similar to src/super_gradients/evaluate_from_recipe.py
+Usage is similar to src/super_gradients/evaluate_from_config.py
 
 Notes:
     This script does NOT run TRAINING, so make sure in the recipe that you load a PRETRAINED MODEL
@@ -27,7 +27,7 @@ from super_gradients import Trainer, init_trainer
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
 def main(cfg: DictConfig) -> None:
     add_params_to_cfg(cfg.training_hyperparams.valid_metrics_list[0].DetectionMetrics, params=["calc_best_score_thresholds=True"])
-    _, valid_metrics_dict = Trainer.evaluate_from_recipe(cfg)
+    _, valid_metrics_dict = Trainer.evaluate_from_config(cfg)
 
     # INSTANTIATE DATA LOADERS
     val_dataloader = dataloaders.get(name=cfg.val_dataloader, dataset_params={}, dataloader_params={"num_workers": 2})

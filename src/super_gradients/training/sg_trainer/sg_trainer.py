@@ -446,7 +446,7 @@ class Trainer:
         cfg = load_experiment_cfg(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)
 
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
-        cls.evaluate_from_recipe(cfg)
+        cls.evaluate_from_config(cfg)
 
     def _net_to_device(self):
         """
