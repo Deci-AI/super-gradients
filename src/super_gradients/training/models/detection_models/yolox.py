@@ -1,6 +1,6 @@
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.training.models.detection_models.yolo_base import YoloBase, YoloDarknetBackbone
+from super_gradients.training.models.detection_models.yolo_base import YoloBase, YoloDarknetBackbone, YoloX_MAR24_1_1
 from super_gradients.training.utils.utils import HpmStruct
 
 
@@ -64,3 +64,13 @@ class CustomYoloX(YoloBase):
     def __init__(self, arch_params: HpmStruct):
         arch_params.yolo_type = "yoloX"
         super().__init__(backbone=arch_params.backbone, arch_params=arch_params)
+
+
+# It's YoloX-L with post-processing callback hardcoded for best parameters identified in CORE-4051
+@register_model(Models.YOLOX_MAR24_1_1)
+class YoloX_L_MAR24_1_1(YoloX_MAR24_1_1):
+    def __init__(self, arch_params: HpmStruct):
+        arch_params.depth_mult_factor = 1.0
+        arch_params.width_mult_factor = 1.0
+        arch_params.yolo_type = "yoloX"
+        super().__init__(backbone=YoloDarknetBackbone, arch_params=arch_params)

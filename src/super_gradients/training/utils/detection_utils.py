@@ -4,7 +4,7 @@ import pathlib
 import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, List, Union, Tuple, Optional
+from typing import Callable, Dict, List, Union, Tuple, Optional
 
 import cv2
 
@@ -307,6 +307,65 @@ def non_max_suppression(
     return output
 
 
+def non_max_suppression_class_thresholded(
+        prediction, 
+        conf_thres=0.1, 
+        iou_thres=0.6, 
+        multi_label_per_box: bool = True, 
+        with_confidence: bool = False, 
+        class_agnostic_nms: bool = False,
+        class_thresholds: List[float] = None
+):
+    """
+    This is a copy of the non_max_suppression function with the addition of class_thresholds parameter.
+    We avoid modifying source functions to keep the original behavior of SG library and to avoid breaking other parts of the code.
+    """
+    candidates_above_thres = prediction[..., 4] > conf_thres  # filter by confidence
+    output = [None] * prediction.shape[0]
+
+    for image_idx, pred in enumerate(prediction):
+        pred = pred[candidates_above_thres[image_idx]]  # confident
+
+        if not pred.shape[0]:  # If none remain process next image
+            continue
+
+        if with_confidence:
+            pred[:, 5:] *= pred[:, 4:5]  # multiply objectness score with class score
+
+        box = convert_cxcywh_bbox_to_xyxy(pred[:, :4])  # cxcywh to xyxy
+
+        # Detections matrix nx6 (xyxy, conf, cls)
+        if multi_label_per_box:  # try for all good confidence classes
+            i, j = (pred[:, 5:] > conf_thres).nonzero(as_tuple=False).T
+            pred = torch.cat((box[i], pred[i, j + 5, None], j[:, None].float()), 1)
+
+        else:  # best class only
+            conf, j = pred[:, 5:].max(1, keepdim=True)
+            pred = torch.cat((box, conf, j.float()), 1)[conf.view(-1) > conf_thres]
+
+        if not pred.shape[0]:  # If none remain process next image
+            continue
+
+        # Apply torch batched NMS algorithm
+        boxes, scores, cls_idx = pred[:, :4], pred[:, 4], pred[:, 5]
+
+        if class_thresholds is not None:
+            thresholds_tensor = torch.tensor(class_thresholds).to(cls_idx.device)
+            gathered_thresholds = thresholds_tensor[cls_idx.long()]
+            idx_to_keep = scores > gathered_thresholds
+            pred = pred[idx_to_keep]
+            boxes, scores, cls_idx = boxes[idx_to_keep], scores[idx_to_keep], cls_idx[idx_to_keep]
+
+        if class_agnostic_nms:
+            idx_to_keep = torchvision.ops.boxes.nms(boxes, scores, iou_thres)
+        else:
+            idx_to_keep = torchvision.ops.boxes.batched_nms(boxes, scores, cls_idx, iou_thres)
+        output[image_idx] = pred[idx_to_keep]
+
+    return output
+        
+
+
 def matrix_non_max_suppression(
     pred, conf_thres: float = 0.1, kernel: str = "gaussian", sigma: float = 3.0, max_num_of_detections: int = 500, class_agnostic_nms: bool = False
 ) -> List[torch.Tensor]:
@@ -370,6 +429,7 @@ class NMS_Type(str, Enum):
 
     ITERATIVE = "iterative"
     MATRIX = "matrix"
+    CLASS_THRESHOLDED = "class_thresholded"
 
 
 def undo_image_preprocessing(im_tensor: torch.Tensor) -> np.ndarray:

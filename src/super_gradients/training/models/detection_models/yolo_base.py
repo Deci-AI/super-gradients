@@ -19,6 +19,7 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import (
     non_max_suppression,
+    non_max_suppression_class_thresholded,
     matrix_non_max_suppression,
     NMS_Type,
     DetectionPostPredictionCallback,
@@ -86,6 +87,7 @@ class YoloXPostPredictionCallback(DetectionPostPredictionCallback):
         with_confidence: bool = True,
         class_agnostic_nms: bool = False,
         multi_label_per_box: bool = True,
+        class_thresholds: List[float] = None,
     ):
         """
         :param conf: confidence threshold
@@ -113,6 +115,7 @@ class YoloXPostPredictionCallback(DetectionPostPredictionCallback):
         self.with_confidence = with_confidence
         self.class_agnostic_nms = class_agnostic_nms
         self.multi_label_per_box = multi_label_per_box
+        self.class_thresholds = class_thresholds
 
     def forward(self, x: Union[torch.Tensor, Tuple[torch.Tensor, List[torch.Tensor]]], device: str = None):
         """Apply NMS to the raw output of the model and keep only top `max_predictions` results.
@@ -133,8 +136,20 @@ class YoloXPostPredictionCallback(DetectionPostPredictionCallback):
                 multi_label_per_box=self.multi_label_per_box,
                 class_agnostic_nms=self.class_agnostic_nms,
             )
-        else:
+        elif self.nms_type == NMS_Type.MATRIX:
             nms_result = matrix_non_max_suppression(x, conf_thres=self.conf, max_num_of_detections=self.max_pred, class_agnostic_nms=self.class_agnostic_nms)
+        elif self.nms_type == NMS_Type.CLASS_THRESHOLDED:
+            nms_result = non_max_suppression_class_thresholded(
+                x,
+                conf_thres=self.conf,
+                iou_thres=self.iou,
+                with_confidence=self.with_confidence,
+                multi_label_per_box=self.multi_label_per_box,
+                class_agnostic_nms=self.class_agnostic_nms,
+                class_thresholds=self.class_thresholds,
+            )
+        else:
+            raise ValueError(f"Unsupported NMS type: {self.nms_type}")
 
         return self._filter_max_predictions(nms_result)
 
@@ -757,6 +772,28 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict, SupportsInp
 
     def get_minimum_input_shape_size(self) -> Tuple[int, int]:
         return 32, 32
+
+
+class YoloX_MAR24_1_1(YoloBase):
+    """
+    This class is a wrapper around the YoloX model with posprocessing designed to a specific checkpoint: MAR24_1.
+    We're going to follow similar approach for other checkpoints that are selected for a release.
+    """
+    def __init__(self, backbone: YoloDarknetBackbone, arch_params: HpmStruct = None, initialize_module: bool = True):
+        super().__init__(backbone=backbone, arch_params=arch_params, initialize_module=initialize_module)
+
+    @staticmethod
+    def get_post_prediction_callback(
+        *args, **kwargs
+    ) -> DetectionPostPredictionCallback:
+        # post-prediction callback is hardcoded
+        return YoloXPostPredictionCallback(
+            conf=0.01,
+            iou=0.65,
+            class_agnostic_nms=True,
+            nms_type=NMS_Type.CLASS_THRESHOLDED,
+            # paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas, page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet
+            class_thresholds=[0.49, 0.27, 0.28, 0.47, 0.49, 0.65, 0.44, 0.18, 0.49, 0.46, 0.6, 0.46, 0.36, 0.49, 0.28, 0.45, 0.05, 0.37, 0.41])
 
 
 class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):

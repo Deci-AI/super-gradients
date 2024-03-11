@@ -4,14 +4,14 @@ defaults:
   - coco_detection_dataset_params
 
 train_dataset_params:
-  data_dir: /mnt/ml-team/unstructured/DATA/unstructured_feb24_3/
-  images_dir: all_images
-  json_file: COCO/train.json
+  data_dir: /mnt/ml-team/unstructured/DATA/mini-holistic/mini-holistic_feb24_3
+  images_dir: images
+  json_file: 
 
 val_dataset_params:
-  data_dir: /mnt/ml-team/unstructured/DATA/unstructured_feb24_3/
-  images_dir: all_images
-  json_file: COCO/val.json
+  data_dir: /mnt/ml-team/unstructured/DATA/mini-holistic/mini-holistic_feb24_3
+  images_dir: images
+  json_file: COCO/all.json
 
 train_dataloader_params:
   dataset: DocLayNetDetectionDataset

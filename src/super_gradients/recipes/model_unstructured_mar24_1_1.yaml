@@ -1,4 +1,4 @@
-# Custom recipe to train YoloX on NewData dataset
+# Custom recipe containing configurations of MAR24_1_1 model
 
 defaults:
   - training_hyperparams: coco2017_yolox_train_params
@@ -12,7 +12,7 @@ arch_params:
 
 checkpoint_params:
   load_checkpoint: True
-  # checkpoint_path: /path/to/pretrained/weights/ckpt_best.pth
+  checkpoint_path: /mnt/ml-team/unstructured/adam/checkpoints/UN-174/checkpoint_best.pth
   pretrained_weights: coco
   # num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
   # Used when num_classes != checkpoint_num_class.
@@ -24,8 +24,6 @@ dataset_params:
   train_dataset_params:
     # 19
     all_classes_list: [paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas, page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet,] # List of classes used in your dataset.
-    # 17
-    # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
     input_dim: [1025, 1025]
     transforms:
       - DetectionGaussianBlur:
@@ -63,35 +61,35 @@ dataset_params:
   val_dataset_params:
     # 19
     all_classes_list: [paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas, page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet,] # List of classes used in your dataset.
-    # 17
-    # class_inclusion_list: [image, page_number, paraprgaph, subheading, page_header, formulas, other, table, page_footer, title, form, checkbox_checked, checkbox, radio_button, radio_button_checked]
     transforms:
       - DetectionPaddedRescale:
           input_dim: [640, 640] 
       - DetectionTargetsFormatTransform:
           output_format: LABEL_CXCYWH
 
-experiment_name: <task_id>_<task_description>
+experiment_name: <experiment_name>
 
 resume: False
 training_hyperparams:
   neptune_logging:
     name: ${experiment_name}
-    tags: ["task_id", "tag1", "tag2",]
+    tags: ["<task_id>", <tag_1>"]
   resume: ${resume}
   max_epochs: 100
   criterion_params:
     num_classes: ${arch_params.num_classes}
-    iou_type: giou  # iou
-    iou_weight: 5.0  # 7.0
   valid_metrics_list:
     - DetectionMetrics:
         normalize_targets: True
         post_prediction_callback:
           _target_: super_gradients.training.models.detection_models.yolo_base.YoloXPostPredictionCallback
+          nms_type: class_thresholded
           iou: 0.65
           conf: 0.01
           class_agnostic_nms: True
+          # order of class_thresholds must match the order of id's in data json.
+          # paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas, page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet
+          class_thresholds: [0.49, 0.27, 0.28, 0.47, 0.49, 0.65, 0.44, 0.18, 0.49, 0.46, 0.6, 0.46, 0.36, 0.49, 0.28, 0.45, 0.05, 0.37, 0.41]
         num_cls: ${arch_params.num_classes}
         include_classwise_ap: true
         include_classwise_precision: true

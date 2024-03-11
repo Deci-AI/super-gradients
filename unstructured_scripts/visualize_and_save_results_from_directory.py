@@ -117,19 +117,7 @@ def main(
                 continue
 
         for image_array in images:
-            if res:
-                image_input, r = _rescale_and_pad_to_size(image_array, (res, res))  # yolox only resizes images, no other transforms
-                # todo: support for other backbones
-            else:
-                image_input = image_array
-                r = None
-
-            output = model.predict(image_input, iou=iou, conf=conf)
-
-            if r:
-                output.image = image_array
-                bboxes = output.prediction.bboxes_xyxy
-                output.prediction.bboxes_xyxy = _rescale_xyxy_bboxes(bboxes, 1 / r)
+            output = model.predict(image_array, iou=iou, conf=conf)
 
             image_output = output.draw()
 
@@ -146,7 +134,7 @@ def main(
                     "labels": output.prediction.labels.tolist(),
                     "image_shape": output.prediction.image_shape,
                 }
-                out_json_path = output_path.with_suffix(".json")
+                out_json_path = Path(output_path).with_suffix(".json")
                 with open(out_json_path, "w") as file:
                     json.dump(dict_output, file)
 
