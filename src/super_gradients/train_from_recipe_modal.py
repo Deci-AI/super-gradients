@@ -9,7 +9,7 @@ import hydra
 import modal
 import subprocess
 
-from super_gradients import Trainer, init_trainer
+from super_gradients import init_trainer
 
 dotenv.load_dotenv()
 
@@ -32,14 +32,13 @@ modal_timeout = 86400  # 24 hours - maximum timeout for modal run
 
 # double copy of recipes is a workaround for the issue with paths placement in the modal environment
 # probably it can be handled in a better way
-image = modal.Image.from_dockerfile("Dockerfile", force_build=force_build) \
-    .copy_local_dir("./src/super_gradients/recipes", "/root/recipes") \
-    .copy_local_dir("./src/super_gradients/recipes", "/root/super_gradients/recipes") \
-    .copy_local_file("./src/super_gradients/launch_workaround_modal.py", "root/launch_workaround_modal.py") \
-    .pip_install_private_repos(
-        repository_url, 
-        git_user=os.getenv("GITHUB_USERNAME"), 
-        secrets=[dotenv_secrets])
+image = (
+    modal.Image.from_dockerfile("Dockerfile", force_build=force_build)
+    .copy_local_dir("./src/super_gradients/recipes", "/root/recipes")
+    .copy_local_dir("./src/super_gradients/recipes", "/root/super_gradients/recipes")
+    .copy_local_file("./src/super_gradients/launch_workaround_modal.py", "root/launch_workaround_modal.py")
+    .pip_install_private_repos(repository_url, git_user=os.getenv("GITHUB_USERNAME"), secrets=[dotenv_secrets])
+)
 
 
 def _validate_gpu_count(modal_gpu_count, config_name):
@@ -54,12 +53,13 @@ def _validate_gpu_count(modal_gpu_count, config_name):
 
 
 @stub.function(
-        image=image, 
-        gpu=gpu, 
-        volumes={"/data": data_volume, "/root/modal_checkpoints": checkpoints_volume}, 
-        timeout=modal_timeout,
-        _allow_background_volume_commits=True,
-        secrets=[dotenv_secrets])
+    image=image,
+    gpu=gpu,
+    volumes={"/data": data_volume, "/root/modal_checkpoints": checkpoints_volume},
+    timeout=modal_timeout,
+    _allow_background_volume_commits=True,
+    secrets=[dotenv_secrets],
+)
 def _main(config_name) -> None:
     if exit_code := subprocess.call(["python", "launch_workaround_modal.py", config_name]):
         exit(exit_code)

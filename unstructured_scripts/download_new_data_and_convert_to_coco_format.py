@@ -26,10 +26,10 @@ import urllib.request
 from math import ceil
 from pathlib import Path
 
-from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list
+from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list, clean_category_name
 from PIL import Image
 from tqdm import tqdm
-from utils import dump_json, load_json, load_json_by_line, load_txt
+from utils import dump_json, load_json, load_txt_with_json, load_txt, load_csv_with_json
 
 
 def parse_args() -> argparse.Namespace:
@@ -112,9 +112,9 @@ def sort_labels(labels: list[dict]) -> list[dict]:
 
 def download_images_from_url(labels: list[dict], images_dir: Path):
     for label in tqdm(labels, desc="Downloading images..."):
-        if not os.path.exists(f"{images_dir}/{label['file_name']}"):
+        output_path = f"{images_dir}/{label['url'].split('/')[-1]}"
+        if not Path(output_path).exists():
             try:
-                output_path = f"{images_dir}/{label['url'].split('/')[-1]}"
                 # Fix some unsupported chars in url
                 label_url = label["url"].replace(" ", "+").replace("®", "%C2%AE")
                 urllib.request.urlretrieve(label_url, output_path)
@@ -127,7 +127,7 @@ def download_images_from_url(labels: list[dict], images_dir: Path):
                 try:
                     urllib.request.urlretrieve(updated_url, output_path)
                 except Exception as e:
-                    print(f"Couldn't download image: {label['url']}.\n{e}")
+                    print(f"Couldn't download image: {label_url}.\n{e}")
 
 
 def load_images_names_for_split(split_path: Path) -> list[str] | None:
@@ -171,7 +171,7 @@ def init_categories(existing_categories_file: Path, COCO_anno: dict, COCO_catego
     for cat in categories_list:
         COCO_categories.append({"id": COCO_category_id, "name": cat})
         COCO_category_id += 1
-    COCO_anno["categories"] = COCO_categories
+    COCO_anno["categories"] = clean_categories(COCO_categories)
     return COCO_anno, COCO_category_id
 
 
@@ -189,11 +189,11 @@ def flatten_tuple(input_tuple):
     return tuple(flattened_list)
 
 
-def filter_dicts_by_keys(input_list, keys_to_check):
+def filter_dicts_by_keys(input_dicts, keys_to_check):
     seen_values = set()
     result = []
 
-    for item in input_list:
+    for item in input_dicts:
         values_to_check = tuple(item[key] for key in keys_to_check)
         values_to_check = flatten_tuple(values_to_check)
 
@@ -207,7 +207,7 @@ def filter_dicts_by_keys(input_list, keys_to_check):
 def clean_categories(categories: list[dict]) -> list[dict]:
     # Replace "paraprgaph" with "paragraph"
     for category in categories:
-        category["name"] = category["name"].replace("paraprgaph", "paragraph")
+        category["name"] = clean_category_name(category["name"])
     return sorted(categories, key=lambda x: x["id"])
 
 
@@ -238,15 +238,19 @@ def main(
 
     documents = []
     for path in labels_paths:
-        documents.extend(load_json_by_line(path))
+        if path.suffix == ".csv":
+            documents.extend(load_csv_with_json(path))
+        elif path.suffix == ".txt":
+            documents.extend(load_txt_with_json(path))
+
+    # Download missing images
+    if download_images:
+        download_images_from_url(documents, images_dir)
 
     # Ensure reproducibility between different label files
     documents = sort_labels(documents)
     random.seed(seed)
     random.shuffle(documents)
-
-    if download_images:
-        download_images_from_url(documents, images_dir)
 
     coco_labels_path = coco_labels_dir / "all.json"
     if only_split_existing_COCO and coco_labels_path.exists():
@@ -280,16 +284,23 @@ def main(
                     print(f"Can't open image {document_file_pth}: {e}")
                     continue
 
+                if not document["sd_result"]:
+                    print(f"Corrupted labels for {document_file_pth}")
+                    continue
+
                 COCO_anno, COCO_image_id = check_and_add_image(document_file_name, target_image, COCO_image_id, document["sd_result"]["id"], COCO_anno)
 
                 for item in document["sd_result"]["items"]:
                     bbox = item["meta"]["geometry"]
-                    label = item["labels"]["entity"].lower()
+                    label = clean_category_name(item["labels"]["entity"].lower())
 
                     COCO_anno, COCO_category_id = check_and_add_category(label, COCO_anno, COCO_category_id)
 
                     image_id = get_id_from_dict_list(COCO_anno["images"], "file_name", document_file_name)
                     category_id = get_id_from_dict_list(COCO_anno["categories"], "name", label)
+
+                    if category_id not in range(COCO_category_id):
+                        raise ValueError(f"Invalid category id: {category_id} for {label} extracted from annotation.")
 
                     if item["meta"]["type"] == "POLYGON":
                         X = []
@@ -376,7 +387,7 @@ def main(
             if anno["image_id"] in img_ids:
                 COCO_anno_split["annotations"].append(anno)
 
-        coco_labels_path = coco_labels_dir / f"{split}.json"
+        coco_labels_path = coco_labels_dir / split
         dump_json(coco_labels_path, COCO_anno_split)
         print(f"{split} finished. Annotation saved in {coco_labels_path}")
 
