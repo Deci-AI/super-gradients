@@ -198,6 +198,7 @@ class Samplers:
     SUBSET_RANDOM = "SubsetRandomSampler"
     RANDOM = "RandomSampler"
     WEIGHTED_RANDOM = "WeightedRandomSampler"
+    CLASS_BALANCED = "ClassBalancedSampler"
 
 
 class ContextModules:
