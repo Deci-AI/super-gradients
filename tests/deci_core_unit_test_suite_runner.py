@@ -88,6 +88,8 @@ from tests.unit_tests.dekr_loss_test import DEKRLossTest
 from tests.unit_tests.pose_estimation_metrics_test import TestPoseEstimationMetrics
 from tests.unit_tests.forward_with_sliding_window_test import SlidingWindowTest
 from tests.unit_tests.detection_metrics_distance_based_test import TestDetectionMetricsDistanceBased
+from tests.unit_tests.class_balancer_test import ClassBalancerTest
+from tests.unit_tests.class_balanced_sampler_test import ClassBalancedSamplerTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -187,6 +189,8 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDepthEstimationMetrics))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DepthEstimationDatasetTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSupportsInputShapeCheck))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ClassBalancerTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ClassBalancedSamplerTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationModelExport))
 
     def _add_modules_to_end_to_end_tests_suite(self):
