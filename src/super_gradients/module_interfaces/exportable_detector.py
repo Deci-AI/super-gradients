@@ -407,8 +407,6 @@ class ExportableObjectDetectionModel:
         contains_quantized_modules = check_model_contains_quantized_modules(model)
 
         if quantization_mode == ExportQuantizationMode.INT8:
-            from pytorch_quantization import nn as quant_nn
-
             from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
             from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 
@@ -470,6 +468,8 @@ class ExportableObjectDetectionModel:
             onnx_export_kwargs = onnx_export_kwargs or {}
 
             if quantization_mode == ExportQuantizationMode.INT8:
+                from pytorch_quantization import nn as quant_nn
+
                 use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
                 quant_nn.TensorQuantizer.use_fb_fake_quant = True
 
