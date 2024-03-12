@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 from xml.etree import ElementTree
 
 from torch.utils.data import ConcatDataset
@@ -85,18 +85,26 @@ class PascalVOCDetectionDataset(PascalVOCFormatDetectionDataset):
     )
     def __init__(
         self,
+        data_dir: str,
         images_sub_directory: Optional[str] = None,
         images_dir: Optional[str] = None,
         labels_dir: Optional[str] = None,
         download: bool = False,
-        *args,
-        **kwargs,
+        max_num_samples: int = None,
+        cache_annotations: bool = True,
+        input_dim: Union[int, Tuple[int, int], None] = None,
+        transforms: List[AbstractDetectionTransform] = [],
+        class_inclusion_list: Optional[List[str]] = None,
+        ignore_empty_annotations: bool = True,
+        verbose: bool = True,
+        show_all_warnings: bool = False,
+        cache=None,
+        cache_dir=None,
     ):
         """
         Initialize the Pascal VOC Detection Dataset.
 
         """
-        data_dir = kwargs.get("data_dir")
 
         # Adding a check for deprecated usage alongside new parameters
         if images_sub_directory is not None and (images_dir is not None or labels_dir is not None):
@@ -115,8 +123,22 @@ class PascalVOCDetectionDataset(PascalVOCFormatDetectionDataset):
         if download:
             self.download(data_dir)
 
-        kwargs["all_classes_list"] = PASCAL_VOC_2012_CLASSES_LIST
-        super().__init__(images_dir=images_dir, labels_dir=labels_dir, *args, **kwargs)
+        super().__init__(
+            data_dir=data_dir,
+            images_dir=images_dir,
+            labels_dir=labels_dir,
+            max_num_samples=max_num_samples,
+            cache_annotations=cache_annotations,
+            input_dim=input_dim,
+            transforms=transforms,
+            class_inclusion_list=class_inclusion_list,
+            ignore_empty_annotations=ignore_empty_annotations,
+            verbose=verbose,
+            show_all_warnings=show_all_warnings,
+            cache=cache,
+            cache_dir=cache_dir,
+            all_classes_list=PASCAL_VOC_2012_CLASSES_LIST,
+        )
 
     @staticmethod
     def download(data_dir: str) -> None:

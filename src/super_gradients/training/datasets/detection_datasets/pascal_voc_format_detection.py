@@ -1,12 +1,13 @@
 import os
 import glob
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union, List, Tuple
 
 import numpy as np
 
 from super_gradients.common.deprecate import deprecated_parameter
 from super_gradients.common.registry.registry import register_dataset
+from super_gradients.training.transforms import AbstractDetectionTransform
 from super_gradients.training.utils.utils import get_image_size_from_path
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
@@ -19,10 +20,44 @@ logger = get_logger(__name__)
 class PascalVOCFormatDetectionDataset(DetectionDataset):
     """Dataset for Pascal VOC object detection
 
-        Parameters:
-            data_dir (str): Base directory where the dataset is stored.
-            images_dir (str): Directory containing all the images, relative to `data_dir`. Defaults to None.
-            labels_dir (str): Directory containing all the labels, relative to `data_dir`. Defaults to None.
+    Parameters:
+        data_dir (str): Base directory where the dataset is stored.
+
+        images_dir (Optional[str]): Directory containing all the images, relative to `data_dir`. Defaults to None.
+
+        labels_dir (Optional[str]): Directory containing all the labels, relative to `data_dir`. Defaults to None.
+
+        max_num_samples (Optional[int]): If not None, sets the maximum size of the dataset by only indexing the first
+         n annotations/images. Defaults to None.
+
+        cache_annotations (bool): Whether to cache annotations. Reduces training time by pre-loading all annotations
+         but requires more RAM. Defaults to True.
+
+        input_dim (Optional[Union[int, Tuple[int, int]]]): Image size when loaded, before transforms. Can be None, a scalar,
+         or a tuple (height, width). Defaults to None.
+
+        transforms (List[AbstractDetectionTransform]): List of transforms to apply sequentially on each sample.
+         Defaults to an empty list.
+
+        all_classes_list (Optional[List[str]]): All class names in the dataset. Defaults to an empty list.
+
+        class_inclusion_list (Optional[List[str]]): Subset of classes to include. Classes not in this list will be excluded.
+         Adjust the number of model classes accordingly. Defaults to None.
+
+        ignore_empty_annotations (bool): If True and class_inclusion_list is not None, images without any target will be
+         ignored. Defaults to True.
+
+        verbose (bool): If True, displays additional information (does not include warnings). Defaults to True.
+
+        show_all_warnings (bool): If True, displays all warnings. Defaults to False.
+
+        cache (Optional): Deprecated. This parameter is not used and setting it has no effect. Will be removed in a
+         future version.
+
+        cache_dir (Optional): Deprecated. This parameter is not used and setting it has no effect. Will be removed in
+         a future version.
+
+
 
         Dataset structure:
 
@@ -78,24 +113,46 @@ class PascalVOCFormatDetectionDataset(DetectionDataset):
     )
     def __init__(
         self,
-        images_dir: Optional[str],
-        labels_dir: Optional[str],
-        *args,
-        **kwargs,
+        data_dir: str,
+        images_dir: str,
+        labels_dir: str,
+        max_num_samples: int = None,
+        cache_annotations: bool = True,
+        input_dim: Union[int, Tuple[int, int], None] = None,
+        transforms: List[AbstractDetectionTransform] = [],
+        all_classes_list: Optional[List[str]] = [],
+        class_inclusion_list: Optional[List[str]] = None,
+        ignore_empty_annotations: bool = True,
+        verbose: bool = True,
+        show_all_warnings: bool = False,
+        cache=None,
+        cache_dir=None,
     ):
         """
         Initialize the Pascal VOC Detection Dataset.
 
         """
-        data_dir = kwargs.get("data_dir")
 
         self.data_dir = data_dir
 
         self.images_dir = os.path.join(data_dir, images_dir)
         self.labels_dir = os.path.join(data_dir, labels_dir)
 
-        kwargs["original_target_format"] = XYXY_LABEL
-        super().__init__(*args, **kwargs)
+        super(PascalVOCFormatDetectionDataset, self).__init__(
+            data_dir=data_dir,
+            original_target_format=XYXY_LABEL,
+            max_num_samples=max_num_samples,
+            cache_annotations=cache_annotations,
+            input_dim=input_dim,
+            transforms=transforms,
+            all_classes_list=all_classes_list,
+            class_inclusion_list=class_inclusion_list,
+            ignore_empty_annotations=ignore_empty_annotations,
+            verbose=verbose,
+            show_all_warnings=show_all_warnings,
+            cache=cache,
+            cache_dir=cache_dir,
+        )
 
     def _setup_data_source(self) -> int:
         """Initialize img_and_target_path_list and warn if label file is missing
