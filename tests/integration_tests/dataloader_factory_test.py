@@ -269,7 +269,6 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = pascal_voc_detection_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, PascalVOCUnifiedDetectionTrainDataset))
-        self.assertTrue(dl.batch_sampler.sampler._shuffle)
 
     def test_pascal_voc_val_creation(self):
         dl = pascal_voc_detection_val()

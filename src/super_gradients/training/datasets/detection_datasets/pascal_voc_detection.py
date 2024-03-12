@@ -98,8 +98,6 @@ class PascalVOCDetectionDataset(PascalVOCFormatDetectionDataset):
         """
         data_dir = kwargs.get("data_dir")
 
-        self.data_dir = data_dir
-
         # Adding a check for deprecated usage alongside new parameters
         if images_sub_directory is not None and (images_dir is not None or labels_dir is not None):
             logger.warning(
@@ -109,16 +107,16 @@ class PascalVOCDetectionDataset(PascalVOCFormatDetectionDataset):
             )
 
         elif images_sub_directory is not None:
-            self.images_dir = os.path.join(data_dir, images_sub_directory)
-            self.labels_dir = os.path.join(data_dir, images_sub_directory.replace("images", "labels"))
-        else:
+            images_dir = images_sub_directory
+            labels_dir = images_sub_directory.replace("images", "labels")
+        elif images_dir is None or labels_dir is None:
             raise ValueError("You must provide either 'images_dir' and 'labels_dir', or the deprecated 'images_sub_directory'.")
 
         if download:
             self.download(data_dir)
 
         kwargs["all_classes_list"] = PASCAL_VOC_2012_CLASSES_LIST
-        super().__init__(*args, **kwargs)
+        super().__init__(images_dir=images_dir, labels_dir=labels_dir, *args, **kwargs)
 
     @staticmethod
     def download(data_dir: str) -> None:
@@ -291,12 +289,10 @@ class PascalVOCUnifiedDetectionTrainDataset(ConcatDataset):
                 dataset_kwargs["images_dir"] = os.path.join(images_dir, trainset_name)
                 dataset_kwargs["labels_dir"] = os.path.join(labels_dir, trainset_name)
             elif images_sub_directory is not None:
-                # Assuming the structure within `data_dir` for the deprecated parameter
-                # This is an example adjustment. You might need to tailor this based on your actual deprecated structure usage
                 deprecated_images_path = os.path.join("images", trainset_name)
                 deprecated_labels_path = os.path.join("labels", trainset_name)
-                dataset_kwargs["images_dir"] = os.path.join(data_dir, deprecated_images_path)
-                dataset_kwargs["labels_dir"] = os.path.join(data_dir, deprecated_labels_path)
+                dataset_kwargs["images_dir"] = deprecated_images_path
+                dataset_kwargs["labels_dir"] = deprecated_labels_path
             else:
                 raise ValueError("You must provide either 'images_dir' and 'labels_dir', or the deprecated 'images_sub_directory'.")
 
