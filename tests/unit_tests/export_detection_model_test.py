@@ -11,8 +11,8 @@ import onnxruntime
 import torch
 from matplotlib import pyplot as plt
 
-from super_gradients.import_utils import import_onnx_graphsurgeon_or_fail_with_instructions
-from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
+from super_gradients.import_utils import import_onnx_graphsurgeon_or_fail_with_instructions, import_pytorch_quantization_or_install
+
 from torch import nn
 from torch.utils.data import DataLoader
 
@@ -521,6 +521,9 @@ class TestDetectionModelExport(unittest.TestCase):
         return result
 
     def test_export_already_quantized_model(self):
+        import_pytorch_quantization_or_install()
+        from super_gradients.training.utils.quantization import SelectiveQuantizer
+
         model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
         q_util = SelectiveQuantizer(
             default_quant_modules_calibrator_weights="max",
