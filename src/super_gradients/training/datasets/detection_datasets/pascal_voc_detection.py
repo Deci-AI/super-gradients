@@ -24,7 +24,60 @@ logger = get_logger(__name__)
 
 @register_dataset(Datasets.PASCAL_VOC_DETECTION_DATASET)
 class PascalVOCDetectionDataset(DetectionDataset):
-    """Dataset for Pascal VOC object detection with deprecated images_sub_directory parameter."""
+    """Dataset for Pascal VOC object detection
+
+        Args:
+            data_dir (str): Base directory where the dataset is stored.
+            images_dir (str, optional): Directory containing all the images, relative to `data_dir`. Defaults to None.
+            labels_dir (str, optional): Directory containing all the labels, relative to `data_dir`. Defaults to None.
+            images_sub_directory (str, optional): Deprecated. Subdirectory within data_dir that includes images. Defaults to None.
+            download (bool, optional): If True, download the dataset to `data_dir`. Defaults to False.
+
+        Dataset structure:
+
+        ./data/pascal_voc
+        ├─images
+        │   ├─ train2012
+        │   ├─ val2012
+        │   ├─ VOCdevkit
+        │   │    ├─ VOC2007
+        │   │    │  ├──JPEGImages
+        │   │    │  ├──SegmentationClass
+        │   │    │  ├──ImageSets
+        │   │    │  ├──ImageSets/Segmentation
+        │   │    │  ├──ImageSets/Main
+        │   │    │  ├──ImageSets/Layout
+        │   │    │  ├──Annotations
+        │   │    │  └──SegmentationObject
+        │   │    └──VOC2012
+        │   │       ├──JPEGImages
+        │   │       ├──SegmentationClass
+        │   │       ├──ImageSets
+        │   │       ├──ImageSets/Segmentation
+        │   │       ├──ImageSets/Main
+        │   │       ├──ImageSets/Action
+        │   │       ├──ImageSets/Layout
+        │   │       ├──Annotations
+        │   │       └──SegmentationObject
+        │   ├─train2007
+        │   ├─test2007
+        │   └─val2007
+        └─labels
+            ├─train2012
+            ├─val2012
+            ├─train2007
+            ├─test2007
+            └─val2007
+
+    Note:
+        If both 'images_sub_directory' and ('images_dir', 'labels_dir') are provided, a warning will be raised.
+
+    Usage:
+        voc_2012_train = PascalVOCDetectionDataset(data_dir="./data/pascal_voc",
+                                            images_dir="images/train2012/JPEGImages",
+                                            labels_dir="labels/train2012/Annotations",
+                                            download=True)
+    """
 
     @deprecated_parameter(
         "images_sub_directory",
@@ -45,19 +98,21 @@ class PascalVOCDetectionDataset(DetectionDataset):
         """
         Initialize the Pascal VOC Detection Dataset.
 
-        Args:
-            data_dir (str): Base directory where the dataset is stored.
-            images_dir (str, optional): Directory containing all the images, relative to `data_dir`. Defaults to None.
-            labels_dir (str, optional): Directory containing all the labels, relative to `data_dir`. Defaults to None.
-            images_sub_directory (str, optional): Deprecated. Subdirectory within data_dir that includes images. Defaults to None.
-            download (bool, optional): If True, download the dataset to `data_dir`. Defaults to False.
         """
         self.data_dir = data_dir
+
+        # Adding a check for deprecated usage alongside new parameters
+        if images_sub_directory is not None and (images_dir is not None or labels_dir is not None):
+            logger.warning(
+                "Both 'images_sub_directory' (deprecated) and 'images_dir'/'labels_dir' are provided. "
+                "Prefer using 'images_dir' and 'labels_dir' for future compatibility.",
+                DeprecationWarning,
+            )
+
         if images_dir is not None and labels_dir is not None:
             self.images_dir = os.path.join(data_dir, images_dir)
             self.labels_dir = os.path.join(data_dir, labels_dir)
         elif images_sub_directory is not None:
-            logger.warning("The 'images_sub_directory' parameter is deprecated. Please use 'images_dir' and 'labels_dir' instead.")
             self.images_dir = os.path.join(data_dir, images_sub_directory)
             self.labels_dir = os.path.join(data_dir, images_sub_directory.replace("images", "labels"))
         else:
@@ -170,46 +225,76 @@ class PascalVOCDetectionDataset(DetectionDataset):
 
 
 class PascalVOCUnifiedDetectionTrainDataset(ConcatDataset):
-    """Unified Dataset for Pascal VOC object detection
+    """Unified Dataset for Pascal VOC object detection.
 
-    To use this Dataset you need to:
-        >> train_set = PascalVOCUnifiedDetectionTrainDataset(download=True, ...)
+    Unified Dataset class for training on Pascal VOC object detection datasets.
 
-    Dataset structure:
-        ├─images
-        │   ├─ train2012
-        │   ├─ val2012
-        │   ├─ VOCdevkit
-        │   │    ├─ VOC2007
-        │   │    │  ├──JPEGImages
-        │   │    │  ├──SegmentationClass
-        │   │    │  ├──ImageSets
-        │   │    │  ├──ImageSets/Segmentation
-        │   │    │  ├──ImageSets/Main
-        │   │    │  ├──ImageSets/Layout
-        │   │    │  ├──Annotations
-        │   │    │  └──SegmentationObject
-        │   │    └──VOC2012
-        │   │       ├──JPEGImages
-        │   │       ├──SegmentationClass
-        │   │       ├──ImageSets
-        │   │       ├──ImageSets/Segmentation
-        │   │       ├──ImageSets/Main
-        │   │       ├──ImageSets/Action
-        │   │       ├──ImageSets/Layout
-        │   │       ├──Annotations
-        │   │       └──SegmentationObject
-        │   ├─train2007
-        │   ├─test2007
-        │   └─val2007
-        └─labels
-            ├─train2012
-            ├─val2012
-            ├─train2007
-            ├─test2007
-            └─val2007
+    This class combines datasets from multiple years (e.g., 2007, 2012) into a single dataset for training purposes.
+
+    Parameters:
+        data_dir (str): Base directory where the dataset is stored.
+        input_dim (tuple): Input dimension that the images should be resized to.
+        cache (optional): Cache configuration.
+        cache_dir (optional): Directory for cache.
+        transforms (List[AbstractDetectionTransform], optional): List of transforms to apply.
+        class_inclusion_list (Optional[List[str]], optional): List of classes to include.
+        max_num_samples (int, optional): Maximum number of samples to include from each dataset part.
+        download (bool, optional): If True, downloads the dataset parts to `data_dir`. Defaults to False.
+        images_dir (Optional[str], optional): Directory containing all the images, relative to `data_dir`. Should only be used without 'images_sub_directory'.
+        labels_dir (Optional[str], optional): Directory containing all the labels, relative to `data_dir`. Should only be used without 'images_sub_directory'.
+        images_sub_directory (Optional[str], optional): Deprecated. Use 'images_dir' and 'labels_dir' instead for future compatibility.
+
+
+        Example Dataset structure:
+
+            ./data/pascal_voc/
+            ├─images
+            │   ├─ train2012
+            │   ├─ val2012
+            │   ├─ VOCdevkit
+            │   │    ├─ VOC2007
+            │   │    │  ├──JPEGImages
+            │   │    │  ├──SegmentationClass
+            │   │    │  ├──ImageSets
+            │   │    │  ├──ImageSets/Segmentation
+            │   │    │  ├──ImageSets/Main
+            │   │    │  ├──ImageSets/Layout
+            │   │    │  ├──Annotations
+            │   │    │  └──SegmentationObject
+            │   │    └──VOC2012
+            │   │       ├──JPEGImages
+            │   │       ├──SegmentationClass
+            │   │       ├──ImageSets
+            │   │       ├──ImageSets/Segmentation
+            │   │       ├──ImageSets/Main
+            │   │       ├──ImageSets/Action
+            │   │       ├──ImageSets/Layout
+            │   │       ├──Annotations
+            │   │       └──SegmentationObject
+            │   ├─train2007
+            │   ├─test2007
+            │   └─val2007
+            └─labels
+                ├─train2012
+                ├─val2012
+                ├─train2007
+                ├─test2007
+                └─val2007
+            Usage:
+        unified_dataset = PascalVOCUnifiedDetectionTrainDataset(data_dir="./data/pascal_voc",
+                                                                input_dim=(512, 512),
+                                                                download=True,
+                                                                images_dir="images",
+                                                                labels_dir="labels")
+
     """
 
+    @deprecated_parameter(
+        "images_sub_directory",
+        deprecated_since="3.7.0",
+        removed_from="3.8.0",
+        reason="Support of `images_sub_directory` is removed since it allows less flexibility. Please use " "'images_dir' and 'labels_dir' instead.",
+    )
     def __init__(
         self,
         data_dir: str,
@@ -220,27 +305,47 @@ class PascalVOCUnifiedDetectionTrainDataset(ConcatDataset):
         class_inclusion_list: Optional[List[str]] = None,
         max_num_samples: int = None,
         download: bool = False,
+        images_dir: Optional[str] = None,
+        labels_dir: Optional[str] = None,
+        images_sub_directory: Optional[str] = None,  # Marked for deprecation.
     ):
+        if images_sub_directory is not None and (images_dir is not None or labels_dir is not None):
+            logger.warning(
+                "Both 'images_sub_directory' (deprecated) and 'images_dir'/'labels_dir' are provided. "
+                "Prefer using 'images_dir' and 'labels_dir' for future compatibility.",
+                DeprecationWarning,
+            )
         if download:
             PascalVOCDetectionDataset.download(data_dir=data_dir)
 
         train_dataset_names = ["train2007", "val2007", "train2012", "val2012"]
-        # We divide train_max_num_samples between the datasets
         if max_num_samples:
             max_num_samples_per_train_dataset = [len(segment) for segment in np.array_split(range(max_num_samples), len(train_dataset_names))]
         else:
             max_num_samples_per_train_dataset = [None] * len(train_dataset_names)
-        train_sets = [
-            PascalVOCDetectionDataset(
-                data_dir=data_dir,
-                input_dim=input_dim,
-                cache=cache,
-                cache_dir=cache_dir,
-                transforms=transforms,
-                images_sub_directory="images/" + trainset_name + "/",
-                class_inclusion_list=class_inclusion_list,
-                max_num_samples=max_num_samples_per_train_dataset[i],
-            )
-            for i, trainset_name in enumerate(train_dataset_names)
-        ]
-        super(PascalVOCUnifiedDetectionTrainDataset, self).__init__(train_sets)
+
+        train_sets = []
+        for i, trainset_name in enumerate(train_dataset_names):
+            dataset_kwargs = {
+                "data_dir": data_dir,
+                "input_dim": input_dim,
+                "cache": cache,
+                "cache_dir": cache_dir,
+                "transforms": transforms,
+                "class_inclusion_list": class_inclusion_list,
+                "max_num_samples": max_num_samples_per_train_dataset[i],
+            }
+            if images_dir is not None and labels_dir is not None:
+                dataset_kwargs["images_dir"] = os.path.join(images_dir, trainset_name)
+                dataset_kwargs["labels_dir"] = os.path.join(labels_dir, trainset_name)
+            elif images_sub_directory is not None:
+                # Assuming the structure within `data_dir` for the deprecated parameter
+                # This is an example adjustment. You might need to tailor this based on your actual deprecated structure usage
+                deprecated_images_path = os.path.join("images", trainset_name)
+                deprecated_labels_path = os.path.join("labels", trainset_name)
+                dataset_kwargs["images_dir"] = os.path.join(data_dir, deprecated_images_path)
+                dataset_kwargs["labels_dir"] = os.path.join(data_dir, deprecated_labels_path)
+            else:
+                raise ValueError("You must provide either 'images_dir' and 'labels_dir', or the deprecated 'images_sub_directory'.")
+
+            train_sets.append(PascalVOCDetectionDataset(**dataset_kwargs))
