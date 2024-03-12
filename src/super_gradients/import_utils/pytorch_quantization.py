@@ -55,7 +55,7 @@ def import_pytorch_quantization_or_fail_with_instructions() -> None:
     except ImportError:
         raise ImportError(
             "pytorch_quantization package is not installed. "
-            "Please install it via `pip install pytorch-quantization==2.1.2 --index-url https://pypi.ngc.nvidia.com`"
+            "Please install it via `pip install pytorch_quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com`"
         )
 
 
@@ -69,6 +69,6 @@ def import_pytorch_quantization_or_install() -> None:
     except ImportError:
         import pip
 
-        pip.main(["install", "pytorch-quantization==2.1.2", "--index-url", "https://pypi.ngc.nvidia.com"])
+        pip.main(["install", "pytorch_quantization==2.1.2", "--extra-index-url", "https://pypi.ngc.nvidia.com"])
 
         return import_pytorch_quantization_or_fail_with_instructions()
