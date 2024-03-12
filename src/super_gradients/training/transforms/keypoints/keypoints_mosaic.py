@@ -22,7 +22,7 @@ class KeypointsMosaic(AbstractKeypointTransform):
     The location of mosaic transform in the transforms list matter.
     It affects what transforms will be applied to all 4 samples.
 
-    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `additional_samples_count`
+    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `get_number_of_additional_samples`
 
     In the example below, KeypointsMosaic goes after KeypointsRandomAffineTransform and KeypointsBrightnessContrast.
     This means that all 4 samples will be transformed with KeypointsRandomAffineTransform and KeypointsBrightnessContrast.

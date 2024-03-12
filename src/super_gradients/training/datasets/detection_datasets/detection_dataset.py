@@ -424,7 +424,9 @@ class DetectionDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
 
     def _get_additional_inputs_for_transform(self, transform: AbstractDetectionTransform) -> List[Dict[str, Union[np.ndarray, Any]]]:
         """Add additional inputs required by a transform to the sample"""
-        additional_samples_count = transform.additional_samples_count if hasattr(transform, "additional_samples_count") else 0
+        additional_samples_count = 0
+        if transform.may_require_additional_samples:
+            additional_samples_count = transform.get_number_of_additional_samples()
         non_empty_annotations = transform.non_empty_annotations if hasattr(transform, "non_empty_annotations") else False
         return self.get_random_samples(count=additional_samples_count, ignore_empty_annotations=non_empty_annotations)
 

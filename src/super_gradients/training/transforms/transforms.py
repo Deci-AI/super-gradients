@@ -463,7 +463,7 @@ class DetectionTransform:
     @property
     def additional_samples_count(self) -> int:
         warnings.warn(
-            "This property is deprecated and will be removed in the future." "Please use `get_number_of_additional_samples` instead.", DeprecationWarning
+            "This property is deprecated and will be removed in the future. Please use `get_number_of_additional_samples` instead.", DeprecationWarning
         )
         return self.get_number_of_additional_samples()
 
@@ -515,7 +515,7 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
     """
     DetectionMosaic detection transform
 
-    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `additional_samples_count`
+    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `get_number_of_additional_samples`
 
     :param input_dim:       Input dimension.
     :param prob:            Probability of applying mosaic.
@@ -694,7 +694,7 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Mixup detection transform
 
-    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `additional_samples_count`
+    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `get_number_of_additional_samples`
 
     :param input_dim:        Input dimension.
     :param mixup_scale:      Scale range for the additional loaded image for mixup.

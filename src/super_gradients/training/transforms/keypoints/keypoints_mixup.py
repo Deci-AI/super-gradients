@@ -16,7 +16,7 @@ class KeypointsMixup(AbstractKeypointTransform):
     Images are averaged with equal weights. Targets are concatenated without any changes.
     This transform requires both samples have the same image size. The easiest way to achieve this is to use resize + padding before this transform:
 
-    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `additional_samples_count`
+    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `get_number_of_additional_samples`
 
     ```yaml
     # This will apply KeypointsLongestMaxSize and KeypointsPadIfNeeded to two samples individually
