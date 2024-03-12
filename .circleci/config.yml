@@ -631,7 +631,7 @@ jobs:
 
 
   run_and_convert_notebooks_to_docs:
-    parallelism: 11  # Adjust based on your needs and available resources
+    parallelism: 12  # Adjust based on your needs and available resources
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
