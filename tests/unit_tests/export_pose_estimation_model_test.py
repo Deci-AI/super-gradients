@@ -12,7 +12,7 @@ from torch import nn
 
 from super_gradients.common.object_names import Models
 from super_gradients.conversion.conversion_enums import ExportTargetBackend, DetectionOutputFormatMode
-from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
+from super_gradients.import_utils import import_onnx_graphsurgeon_or_fail_with_instructions
 from super_gradients.module_interfaces import ExportablePoseEstimationModel, PoseEstimationModelExportResult
 from super_gradients.training import models
 from super_gradients.training.dataloaders import coco2017_val  # noqa

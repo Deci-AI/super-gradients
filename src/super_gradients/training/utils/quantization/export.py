@@ -5,15 +5,10 @@ from torch.onnx import TrainingMode
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
+
+from pytorch_quantization import nn as quant_nn
+
 logger = get_logger(__name__)
-
-try:
-    from pytorch_quantization import nn as quant_nn
-
-    _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warning("Failed to import pytorch_quantization")
-    _imported_pytorch_quantization_failure = import_err
 
 
 def export_quantized_module_to_onnx(
@@ -30,9 +25,6 @@ def export_quantized_module_to_onnx(
     :param deepcopy_model: Whether to export deepcopy(model). Necessary in case further training is performed and
      prep_model_for_conversion makes the network un-trainable (i.e RepVGG blocks).
     """
-    if _imported_pytorch_quantization_failure is not None:
-        raise _imported_pytorch_quantization_failure
-
     if deepcopy_model:
         model = deepcopy(model)
 

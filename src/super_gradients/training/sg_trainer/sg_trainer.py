@@ -30,7 +30,7 @@ from super_gradients.common.environment.checkpoints_dir_utils import (
 )
 from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
-
+from super_gradients.import_utils import import_pytorch_quantization_or_install
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.training.utils.callbacks.callbacks import create_lr_scheduler_callback, LRSchedulerCallback
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -2398,8 +2398,7 @@ class Trainer:
         :raises ImportError: If pytorch-quantization import was unsuccessful
 
         """
-        if _imported_pytorch_quantization_failure is not None:
-            raise _imported_pytorch_quantization_failure
+        import_pytorch_quantization_or_install()
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -2568,6 +2567,8 @@ class Trainer:
 
         :return: An instance of QATResult containing the quantized model, the ONNX path and other relevant information.
         """
+        import_pytorch_quantization_or_install()
+
         if quantization_params is None:
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             logger.info(f"Using default quantization params: {quantization_params}")
@@ -2680,6 +2681,8 @@ class Trainer:
 
         :return: Validation results of the calibrated model.
         """
+        import_pytorch_quantization_or_install()
+
         if deepcopy_model_for_export is False:
             raise RuntimeError(
                 "deepcopy_model_for_export=False is not supported. "

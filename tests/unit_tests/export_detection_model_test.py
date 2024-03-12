@@ -11,7 +11,7 @@ import onnxruntime
 import torch
 from matplotlib import pyplot as plt
 
-from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
+from super_gradients.import_utils import import_onnx_graphsurgeon_or_fail_with_instructions
 from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 from torch import nn
 from torch.utils.data import DataLoader

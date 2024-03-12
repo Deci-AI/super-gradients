@@ -9,20 +9,12 @@ from super_gradients.training.models.segmentation_models.stdc import (
     ContextPath,
 )
 
-try:
-    from super_gradients.training.utils.quantization.core import SGQuantMixin, QuantizedMetadata
-    from super_gradients.training.utils.quantization.selective_quantization_utils import register_quantized_module
-
-    _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    _imported_pytorch_quantization_failure = import_err
+from super_gradients.training.utils.quantization.core import SGQuantMixin, QuantizedMetadata
+from super_gradients.training.utils.quantization.selective_quantization_utils import register_quantized_module
 
 
 @register_quantized_module(float_source=STDCBlock, action=QuantizedMetadata.ReplacementAction.REPLACE_AND_RECURE)
 class QuantSTDCBlock(SGQuantMixin, STDCBlock):
-    if _imported_pytorch_quantization_failure is not None:
-        raise _imported_pytorch_quantization_failure
-
     def __init__(self, in_channels: int, out_channels: int, steps: int, stdc_downsample_mode: str, stride: int):
         super(QuantSTDCBlock, self).__init__(
             in_channels=in_channels, out_channels=out_channels, steps=steps, stdc_downsample_mode=stdc_downsample_mode, stride=stride
