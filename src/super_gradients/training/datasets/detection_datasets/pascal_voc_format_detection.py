@@ -6,7 +6,6 @@ from typing import Optional
 import numpy as np
 
 from super_gradients.common.deprecate import deprecated_parameter
-from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.utils.utils import get_image_size_from_path
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
@@ -16,7 +15,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
-@register_dataset(Datasets.PASCAL_VOC_DETECTION_DATASET)
+@register_dataset("PascalVOCFormatDetectionDataset")
 class PascalVOCFormatDetectionDataset(DetectionDataset):
     """Dataset for Pascal VOC object detection
 
