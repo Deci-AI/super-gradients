@@ -1,4 +1,5 @@
 import torch.nn.functional as F
+import importlib
 
 __all__ = ["import_pytorch_quantization_or_fail_with_instructions", "import_pytorch_quantization_or_install", "patch_pytorch_quantization_modules_if_needed"]
 
@@ -45,12 +46,12 @@ def patch_pytorch_quantization_modules_if_needed():
         pytorch_quantization.nn.modules.quant_conv.QuantConvTranspose2d.forward = __fixed_conv_transpose_2d_forward
 
 
-def import_pytorch_quantization_or_fail_with_instructions():
+def import_pytorch_quantization_or_fail_with_instructions() -> None:
+    package = "pytorch_quantization"
     try:
-        import pytorch_quantization as pq
-
+        importlib.import_module(package)
+        globals()[package] = importlib.import_module(package)
         patch_pytorch_quantization_modules_if_needed()
-        return pq
     except ImportError:
         raise ImportError(
             "pytorch_quantization package is not installed. "
@@ -58,12 +59,13 @@ def import_pytorch_quantization_or_fail_with_instructions():
         )
 
 
-def import_pytorch_quantization_or_install():
+def import_pytorch_quantization_or_install() -> None:
+    package = "pytorch_quantization"
+
     try:
-        import pytorch_quantization as pq
+        importlib.import_module(package)
 
         patch_pytorch_quantization_modules_if_needed()
-        return pq
     except ImportError:
         import pip
 

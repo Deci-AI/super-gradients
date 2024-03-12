@@ -27,6 +27,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 gs = import_onnx_graphsurgeon_or_install()
+import_pytorch_quantization_or_install()
 
 
 class TestDetectionModelExport(unittest.TestCase):
@@ -517,7 +518,7 @@ class TestDetectionModelExport(unittest.TestCase):
         return result
 
     def test_export_already_quantized_model(self):
-        import_pytorch_quantization_or_install()
+
         from super_gradients.training.utils.quantization import SelectiveQuantizer
 
         model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
