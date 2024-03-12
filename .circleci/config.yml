@@ -600,7 +600,6 @@ jobs:
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install -r requirements.dev.txt
             python3.8 -m pip install .
-            # python3.8 -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
 
             python3.8 tests/verify_min_samples_ddp.py
             python3.8 tests/verify_distributed_sampler_wrapper.py
