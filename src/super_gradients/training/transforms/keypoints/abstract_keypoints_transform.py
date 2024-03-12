@@ -76,7 +76,7 @@ class AbstractKeypointTransform(abc.ABC):
         Indicates whether additional samples are required. The default implementation assumes that this indicator is fixed and deterministic.
         Override in case this is not the case, e.g., you randomly choose to apply MixUp, etc
         """
-        return False
+        return self._additional_samples_count > 0
 
     @abstractmethod
     def get_equivalent_preprocessing(self) -> List:
