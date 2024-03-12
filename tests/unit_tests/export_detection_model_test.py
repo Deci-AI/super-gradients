@@ -10,16 +10,11 @@ import onnx
 import onnxruntime
 import torch
 from matplotlib import pyplot as plt
-
-from super_gradients.import_utils import import_onnx_graphsurgeon_or_fail_with_instructions, import_pytorch_quantization_or_install
-
-from torch import nn
-from torch.utils.data import DataLoader
-
 from super_gradients.common.object_names import Models
 from super_gradients.conversion.conversion_enums import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
 from super_gradients.conversion.onnx.nms import PickNMSPredictionsAndReturnAsFlatResult, PickNMSPredictionsAndReturnAsBatchedResult
 from super_gradients.conversion.tensorrt.nms import ConvertTRTFormatToFlatTensor
+from super_gradients.import_utils import import_pytorch_quantization_or_install, import_onnx_graphsurgeon_or_install
 from super_gradients.module_interfaces import ExportableObjectDetectionModel
 from super_gradients.module_interfaces.exportable_detector import ModelExportResult
 from super_gradients.training import models
@@ -28,9 +23,10 @@ from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASS
 from super_gradients.training.utils.detection_utils import DetectionVisualization
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.media.image import load_image
+from torch import nn
+from torch.utils.data import DataLoader
 
-
-gs = import_onnx_graphsurgeon_or_fail_with_instructions()
+gs = import_onnx_graphsurgeon_or_install()
 
 
 class TestDetectionModelExport(unittest.TestCase):
