@@ -419,7 +419,7 @@ class Trainer:
         ckpt_name: str = "ckpt_latest.pth",
         ckpt_root_dir: Optional[str] = None,
         run_id: Optional[str] = None,
-    ) -> None:
+    ) -> Tuple[nn.Module, Tuple]:
         """
         Evaluate a checkpoint resulting from one of your previous experiment, using the same parameters (dataset, valid_metrics,...)
         as used during the training of the experiment
@@ -446,7 +446,7 @@ class Trainer:
         cfg = load_experiment_cfg(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)
 
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
-        cls.evaluate_from_config(cfg)
+        return cls.evaluate_from_config(cfg)
 
     def _net_to_device(self):
         """
