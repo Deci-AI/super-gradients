@@ -115,19 +115,6 @@ from super_gradients.training.utils.export_utils import infer_image_shape_from_m
 logger = get_logger(__name__)
 
 
-try:
-    from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
-    from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
-    from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
-
-    _imported_pytorch_quantization_failure = None
-
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.debug("Failed to import pytorch_quantization:")
-    logger.debug(import_err)
-    _imported_pytorch_quantization_failure = import_err
-
-
 class Trainer:
     """
     SuperGradient Model - Base Class for Sg Models
@@ -2682,6 +2669,7 @@ class Trainer:
         :return: Validation results of the calibrated model.
         """
         import_pytorch_quantization_or_install()
+        from super_gradients.training.utils.quantization import SelectiveQuantizer, QuantizationCalibrator
 
         if deepcopy_model_for_export is False:
             raise RuntimeError(
@@ -2778,6 +2766,8 @@ class Trainer:
                It may be used as an example of the input shape during ONNX export.
         :return: An instance of export result object if model supports `model.export()` or None of it's a regular model
         """
+        from super_gradients.training.utils.quantization import export_quantized_module_to_onnx
+
         input_image_shape = export_params.input_image_shape
         if input_image_shape is None:
             input_image_shape = infer_image_shape_from_model(model)
