@@ -12,6 +12,13 @@ from super_gradients.training.models.segmentation_models.stdc import (
 from super_gradients.training.utils.quantization.core import SGQuantMixin, QuantizedMetadata
 from super_gradients.training.utils.quantization.selective_quantization_utils import register_quantized_module
 
+__all__ = [
+    "QuantSTDCBlock",
+    "QuantAttentionRefinementModule",
+    "QuantFeatureFusionModule",
+    "QuantContextPath",
+]
+
 
 @register_quantized_module(float_source=STDCBlock, action=QuantizedMetadata.ReplacementAction.REPLACE_AND_RECURE)
 class QuantSTDCBlock(SGQuantMixin, STDCBlock):

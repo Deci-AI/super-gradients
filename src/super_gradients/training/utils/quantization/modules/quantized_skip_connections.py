@@ -4,6 +4,14 @@ from super_gradients.modules import Residual, SkipConnection, BackboneInternalSk
 from super_gradients.training.utils.quantization.core import SGQuantMixin
 from super_gradients.training.utils.quantization.selective_quantization_utils import register_quantized_module
 
+__all__ = [
+    "QuantSkipConnection",
+    "QuantResidual",
+    "QuantCrossModelSkipConnection",
+    "QuantBackboneInternalSkipConnection",
+    "QuantHeadInternalSkipConnection",
+]
+
 
 @register_quantized_module(float_source=Residual)
 class QuantResidual(SGQuantMixin):
