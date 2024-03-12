@@ -78,13 +78,12 @@ class KeypointsMosaic(AbstractKeypointTransform):
         self.pad_value = tuple(pad_value)
 
     @property
-    def additional_samples_count(self) -> int:
+    def get_number_of_additional_samples(self) -> int:
         do_mosaic = random.random() < self.prob
         return 3 if do_mosaic else 0
 
-    @additional_samples_count.setter
-    def additional_samples_count(self, value):
-        raise AttributeError("Cannot use the setter of `additional_samples_count`. This is because the value (getter) is non-deterministic.")
+    def may_require_additional_samples(self) -> bool:
+        return True
 
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """

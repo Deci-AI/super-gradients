@@ -462,11 +462,25 @@ class DetectionTransform:
 
     @property
     def additional_samples_count(self) -> int:
+        warnings.warn(
+            "This property is deprecated and will be removed in the future." "Please use `get_number_of_additional_samples` instead.", DeprecationWarning
+        )
+        return self.get_number_of_additional_samples()
+
+    def get_number_of_additional_samples(self) -> int:
+        """
+        Returns number of additional samples required. The default implementation assumes that this number is fixed and deterministic.
+        Override in case this is not the case, e.g., you randomly choose to apply MixUp, etc
+        """
         return self._additional_samples_count
 
-    @additional_samples_count.setter
-    def additional_samples_count(self, value):
-        self._additional_samples_count = value
+    @property
+    def may_require_additional_samples(self) -> bool:
+        """
+        Indicates whether additional samples are required. The default implementation assumes that this indicator is fixed and deterministic.
+        Override in case this is not the case, e.g., you randomly choose to apply MixUp, etc
+        """
+        return False
 
     def get_equivalent_preprocessing(self) -> List:
         raise NotImplementedError
@@ -574,13 +588,12 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
         return sample
 
     @property
-    def additional_samples_count(self) -> int:
+    def get_number_of_additional_samples(self) -> int:
         do_mosaic = self.enable_mosaic and random.random() < self.prob
         return 3 if do_mosaic else 0
 
-    @additional_samples_count.setter
-    def additional_samples_count(self, value):
-        raise AttributeError("Cannot use the setter of `additional_samples_count`. This is because the value (getter) is non-deterministic.")
+    def may_require_additional_samples(self):
+        return self.enable_mosaic
 
     def get_equivalent_preprocessing(self):
         raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
@@ -784,13 +797,12 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
         return sample
 
     @property
-    def additional_samples_count(self) -> int:
+    def get_number_of_additional_samples(self) -> int:
         do_mixup = self.enable_mixup and random.random() < self.prob
         return int(do_mixup)
 
-    @additional_samples_count.setter
-    def additional_samples_count(self, value):
-        raise AttributeError("Cannot use the setter of `additional_samples_count`. This is because the value (getter) is non-deterministic.")
+    def may_require_additional_samples(self):
+        return self.enable_mixup
 
     def get_equivalent_preprocessing(self):
         raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")

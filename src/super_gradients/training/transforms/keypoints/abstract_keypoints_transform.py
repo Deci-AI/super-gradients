@@ -1,4 +1,5 @@
 import abc
+import warnings
 from abc import abstractmethod
 from typing import List, Optional, Tuple
 
@@ -57,11 +58,25 @@ class AbstractKeypointTransform(abc.ABC):
 
     @property
     def additional_samples_count(self) -> int:
+        warnings.warn(
+            "This property is deprecated and will be removed in the future." "Please use `get_number_of_additional_samples` instead.", DeprecationWarning
+        )
+        return self.get_number_of_additional_samples()
+
+    def get_number_of_additional_samples(self) -> int:
+        """
+        Returns number of additional samples required. The default implementation assumes that this number is fixed and deterministic.
+        Override in case this is not the case, e.g., you randomly choose to apply MixUp, etc
+        """
         return self._additional_samples_count
 
-    @additional_samples_count.setter
-    def additional_samples_count(self, value):
-        self._additional_samples_count = value
+    @property
+    def may_require_additional_samples(self) -> bool:
+        """
+        Indicates whether additional samples are required. The default implementation assumes that this indicator is fixed and deterministic.
+        Override in case this is not the case, e.g., you randomly choose to apply MixUp, etc
+        """
+        return False
 
     @abstractmethod
     def get_equivalent_preprocessing(self) -> List:

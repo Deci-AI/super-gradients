@@ -49,14 +49,12 @@ class KeypointsMixup(AbstractKeypointTransform):
         super().__init__()
         self.prob = prob
 
-    @property
-    def additional_samples_count(self) -> int:
+    def get_number_of_additional_samples(self) -> int:
         do_mixup = random.random() < self.prob
         return int(do_mixup)
 
-    @additional_samples_count.setter
-    def additional_samples_count(self, value):
-        raise AttributeError("Cannot use the setter of `additional_samples_count`. This is because the value (getter) is non-deterministic.")
+    def may_require_additional_samples(self) -> bool:
+        return True
 
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """
