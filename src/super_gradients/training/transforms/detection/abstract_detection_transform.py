@@ -16,7 +16,7 @@ class AbstractDetectionTransform(abc.ABC):
         """
         :param additional_samples_count: (int) number of samples that must be extra samples from dataset. Default value is 0.
         """
-        self.additional_samples_count = additional_samples_count
+        self._additional_samples_count = additional_samples_count
 
     @abstractmethod
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
@@ -30,6 +30,14 @@ class AbstractDetectionTransform(abc.ABC):
         :return:       Modified sample (It can be the same instance as input or a new object).
         """
         raise NotImplementedError
+
+    @property
+    def additional_samples_count(self) -> int:
+        return self._additional_samples_count
+
+    @additional_samples_count.setter
+    def additional_samples_count(self, value):
+        self._additional_samples_count = value
 
     @abstractmethod
     def get_equivalent_preprocessing(self) -> List:

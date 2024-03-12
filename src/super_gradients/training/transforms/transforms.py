@@ -422,7 +422,7 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
 class DetectionTransform:
     """
     Detection transform base class.
-    Complex transforms that require extra data loading can use the the additional_samples_count attribute in a
+    Complex transforms that require extra data loading can use the additional_samples_count attribute in a
      similar fashion to what's been done in COCODetectionDataset:
     self._load_additional_inputs_for_transform(sample, transform)
     # after the above call, sample["additional_samples"] holds a list of additional inputs and targets.
@@ -432,7 +432,7 @@ class DetectionTransform:
     """
 
     def __init__(self, additional_samples_count: int = 0, non_empty_targets: bool = False):
-        self.additional_samples_count = additional_samples_count
+        self._additional_samples_count = additional_samples_count
         self.non_empty_targets = non_empty_targets
         warnings.warn(
             "Inheriting from DetectionTransform is deprecated. "
@@ -459,6 +459,14 @@ class DetectionTransform:
 
     def __repr__(self):
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
+
+    @property
+    def additional_samples_count(self) -> int:
+        return self._additional_samples_count
+
+    @additional_samples_count.setter
+    def additional_samples_count(self, value):
+        self._additional_samples_count = value
 
     def get_equivalent_preprocessing(self) -> List:
         raise NotImplementedError
