@@ -1,5 +1,6 @@
 import torch.nn.functional as F
 import importlib
+from .install_utils import install_package
 
 __all__ = ["import_pytorch_quantization_or_fail_with_instructions", "import_pytorch_quantization_or_install", "patch_pytorch_quantization_modules_if_needed"]
 
@@ -67,8 +68,5 @@ def import_pytorch_quantization_or_install() -> None:
 
         patch_pytorch_quantization_modules_if_needed()
     except ImportError:
-        import pip
-
-        pip.main(["install", "pytorch_quantization==2.1.2", "--extra-index-url", "https://pypi.ngc.nvidia.com"])
-
+        install_package("pytorch_quantization==2.1.2", extra_index_url="https://pypi.ngc.nvidia.com")
         return import_pytorch_quantization_or_fail_with_instructions()

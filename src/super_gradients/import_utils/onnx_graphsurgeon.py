@@ -1,3 +1,5 @@
+from .install_utils import install_package
+
 __all__ = ["import_onnx_graphsurgeon_or_fail_with_instructions", "import_onnx_graphsurgeon_or_install"]
 
 
@@ -18,8 +20,5 @@ def import_onnx_graphsurgeon_or_install():
 
         return gs
     except ImportError:
-        import pip
-
-        pip.main(["install", "onnx_graphsurgeon==0.3.27", "--extra-index-url", "https://pypi.ngc.nvidia.com"])
-
+        install_package("onnx_graphsurgeon==0.3.27", extra_index_url="https://pypi.ngc.nvidia.com")
         return import_onnx_graphsurgeon_or_fail_with_instructions()
