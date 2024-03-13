@@ -1,16 +1,20 @@
-from copy import deepcopy
-
 import torch
 from torch.onnx import TrainingMode
+from copy import deepcopy
+from pytorch_quantization import nn as quant_nn
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-
-
-from pytorch_quantization import nn as quant_nn
+from super_gradients.common.deprecate import deprecated
+from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
 
 logger = get_logger(__name__)
 
 
+@deprecated(
+    deprecated_since="3.7.0",
+    removed_from="4.0.0",
+    target=export_to_onnx,
+)
 def export_quantized_module_to_onnx(
     model: torch.nn.Module, onnx_filename: str, input_shape: tuple, train: bool = False, to_cpu: bool = True, deepcopy_model=False, **kwargs
 ):
