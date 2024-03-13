@@ -402,52 +402,31 @@ class ExportableSegmentationModel:
                 )
 
         if engine in {ExportTargetBackend.ONNXRUNTIME, ExportTargetBackend.TENSORRT}:
+            from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
+
             onnx_export_kwargs = onnx_export_kwargs or {}
+            onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
 
-            if quantization_mode == ExportQuantizationMode.INT8:
-                from pytorch_quantization import nn as quant_nn
+            export_to_onnx(
+                model=complete_model,
+                model_input=onnx_input,
+                onnx_filename=output,
+                input_names=["input"],
+                output_names=output_names,
+                onnx_opset=onnx_export_kwargs.get("opset_version", None),
+                do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
+                dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
+                keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
+                verbose=onnx_export_kwargs.get("verbose", False),
+            )
 
-                use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
-                quant_nn.TensorQuantizer.use_fb_fake_quant = True
+            if onnx_simplify:
+                model_opt, simplify_successful = onnxsim.simplify(output)
+                if not simplify_successful:
+                    raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+                onnx.save(model_opt, output)
 
-            try:
-                with torch.no_grad():
-                    onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
-                    # Sanity check that model works
-                    _ = complete_model(onnx_input)
-
-                    for name, p in complete_model.named_parameters():
-                        if p.device != device:
-                            logger.warning(f"Model parameter {name} is on device {p.device} but expected to be on device {device}")
-
-                    for name, p in complete_model.named_buffers():
-                        if p.device != device:
-                            logger.warning(f"Model buffer {name} is on device {p.device} but expected to be on device {device}")
-
-                    logger.debug("Exporting model to ONNX")
-                    logger.debug(f"ONNX input shape: {input_shape} with dtype: {input_image_dtype}")
-                    logger.debug(f"ONNX output names: {output_names}")
-                    logger.debug(f"ONNX export kwargs: {onnx_export_kwargs}")
-
-                    if onnx_export_kwargs is not None and "args" in onnx_export_kwargs:
-                        raise ValueError(
-                            "`args` key found in onnx_export_kwargs. We explicitly construct dummy input (`args`) inside export() method. "
-                            "Overriding args is not supported so please remove it from the `onnx_export_kwargs`."
-                        )
-                    torch.onnx.export(model=complete_model, args=onnx_input, f=output, input_names=["input"], output_names=output_names, **onnx_export_kwargs)
-
-                if onnx_simplify:
-                    model_opt, simplify_successful = onnxsim.simplify(output)
-                    if not simplify_successful:
-                        raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
-                    onnx.save(model_opt, output)
-
-                    logger.debug(f"Ran onnxsim.simplify on {output}")
-            finally:
-                if quantization_mode == ExportQuantizationMode.INT8:
-                    # Restore functions of quant_nn back as expected
-                    quant_nn.TensorQuantizer.use_fb_fake_quant = use_fb_fake_quant_state
-
+                logger.debug(f"Ran onnxsim.simplify on {output}")
         else:
             raise ValueError(f"Unsupported export format: {engine}. Supported formats: onnxruntime, tensorrt")
 

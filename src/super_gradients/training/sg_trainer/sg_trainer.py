@@ -2761,7 +2761,7 @@ class Trainer:
                It may be used as an example of the input shape during ONNX export.
         :return: An instance of export result object if model supports `model.export()` or None of it's a regular model
         """
-        from super_gradients.training.utils.quantization import export_quantized_module_to_onnx
+        from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
 
         input_image_shape = export_params.input_image_shape
         if input_image_shape is None:
@@ -2807,14 +2807,19 @@ class Trainer:
                 onnx_export_kwargs=export_params.onnx_export_kwargs,
             )
         else:
-            # TODO: modify SG's convert_to_onnx for quantized models and use it instead
-            export_quantized_module_to_onnx(
-                model=model.cpu(),
+            device = "cpu"
+            onnx_input = torch.randn(input_shape_with_explicit_batch).to(device="cpu")
+            onnx_export_kwargs = export_params.onnx_export_kwargs or {}
+            export_to_onnx(
+                model=model.to(device),
+                model_input=onnx_input,
                 onnx_filename=export_params.output_onnx_path,
-                input_shape=input_shape_with_explicit_batch,
-                input_size=input_shape_with_explicit_batch,
-                train=False,
-                deepcopy_model=False,
+                input_names=["input"],
+                onnx_opset=onnx_export_kwargs.get("opset_version", None),
+                do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
+                dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
+                keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
+                verbose=onnx_export_kwargs.get("verbose", False),
             )
 
         return export_result

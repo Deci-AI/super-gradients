@@ -30,7 +30,7 @@ def ptq(
     :param calibration_batches: (int) Number of batches to use for calibration. Default is 16.
     :param calibration_percentile: (float) Percentile for percentile calibration method. Default is 99.99.
     :param calibration_verbose:
-    :return: A quantize model
+    :return: A quantized model
     """
     contains_quantized_modules = check_model_contains_quantized_modules(model)
     if contains_quantized_modules:
