@@ -587,11 +587,11 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
         )
         return sample
 
-    @property
     def get_number_of_additional_samples(self) -> int:
         do_mosaic = self.enable_mosaic and random.random() < self.prob
         return 3 if do_mosaic else 0
 
+    @property
     def may_require_additional_samples(self):
         return self.enable_mosaic
 
@@ -796,11 +796,11 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
 
         return sample
 
-    @property
     def get_number_of_additional_samples(self) -> int:
         do_mixup = self.enable_mixup and random.random() < self.prob
         return int(do_mixup)
 
+    @property
     def may_require_additional_samples(self):
         return self.enable_mixup
 

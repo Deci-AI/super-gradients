@@ -53,6 +53,7 @@ class KeypointsMixup(AbstractKeypointTransform):
         do_mixup = random.random() < self.prob
         return int(do_mixup)
 
+    @property
     def may_require_additional_samples(self) -> bool:
         return True
 

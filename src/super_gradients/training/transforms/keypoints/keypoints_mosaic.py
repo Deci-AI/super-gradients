@@ -77,11 +77,11 @@ class KeypointsMosaic(AbstractKeypointTransform):
         self.prob = prob
         self.pad_value = tuple(pad_value)
 
-    @property
     def get_number_of_additional_samples(self) -> int:
         do_mosaic = random.random() < self.prob
         return 3 if do_mosaic else 0
 
+    @property
     def may_require_additional_samples(self) -> bool:
         return True
 
