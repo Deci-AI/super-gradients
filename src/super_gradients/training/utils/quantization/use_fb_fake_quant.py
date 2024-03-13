@@ -19,5 +19,5 @@ class use_fb_fake_quant:
         quant_nn.TensorQuantizer.use_fb_fake_quant = self.enabled
         return self
 
-    def __exit__(self, exc_type, exc):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         quant_nn.TensorQuantizer.use_fb_fake_quant = self.use_fb_fake_quant_state
