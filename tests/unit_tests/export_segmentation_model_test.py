@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 from super_gradients.common.object_names import Models
 from super_gradients.conversion.conversion_enums import ExportQuantizationMode
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
+from super_gradients.import_utils import import_pytorch_quantization_or_install
 from super_gradients.module_interfaces import ExportableSegmentationModel, SegmentationModelExportResult
 from super_gradients.training import models
 from super_gradients.training.datasets.datasets_conf import CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST
@@ -22,6 +23,7 @@ from super_gradients.training.utils.visualization.segmentation import overlay_se
 from torch.utils.data import DataLoader
 
 gs = import_onnx_graphsurgeon_or_fail_with_instructions()
+import_pytorch_quantization_or_install()
 
 
 class TestSegmentationModelExport(unittest.TestCase):
