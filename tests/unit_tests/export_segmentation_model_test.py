@@ -10,18 +10,19 @@ import torch
 from matplotlib import pyplot as plt
 from super_gradients.common.object_names import Models
 from super_gradients.conversion.conversion_enums import ExportQuantizationMode
-from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
+from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
+from super_gradients.import_utils import import_pytorch_quantization_or_install
 from super_gradients.module_interfaces import ExportableSegmentationModel, SegmentationModelExportResult
 from super_gradients.training import models
 from super_gradients.training.datasets.datasets_conf import CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST
 from super_gradients.training.utils.detection_utils import DetectionVisualization
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.media.image import load_image
-from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 from super_gradients.training.utils.visualization.segmentation import overlay_segmentation
 from torch.utils.data import DataLoader
 
-gs = import_onnx_graphsurgeon_or_fail_with_instructions()
+gs = import_onnx_graphsurgeon_or_install()
+import_pytorch_quantization_or_install()
 
 
 class TestSegmentationModelExport(unittest.TestCase):
@@ -156,6 +157,8 @@ class TestSegmentationModelExport(unittest.TestCase):
         return result
 
     def test_export_already_quantized_model(self):
+        from super_gradients.training.utils.quantization import SelectiveQuantizer
+
         for model_type in self.models_to_test:
             with self.subTest(model_type=model_type):
                 model = models.get(model_type, pretrained_weights="cityscapes")

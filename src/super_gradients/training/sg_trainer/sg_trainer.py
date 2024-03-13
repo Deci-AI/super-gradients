@@ -30,7 +30,7 @@ from super_gradients.common.environment.checkpoints_dir_utils import (
 )
 from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
-
+from super_gradients.import_utils import import_pytorch_quantization_or_install
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.training.utils.callbacks.callbacks import create_lr_scheduler_callback, LRSchedulerCallback
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -114,19 +114,6 @@ from super_gradients.common.deprecate import deprecated_parameter
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 
 logger = get_logger(__name__)
-
-
-try:
-    from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
-    from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
-    from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
-
-    _imported_pytorch_quantization_failure = None
-
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.debug("Failed to import pytorch_quantization:")
-    logger.debug(import_err)
-    _imported_pytorch_quantization_failure = import_err
 
 
 class Trainer:
@@ -2399,8 +2386,7 @@ class Trainer:
         :raises ImportError: If pytorch-quantization import was unsuccessful
 
         """
-        if _imported_pytorch_quantization_failure is not None:
-            raise _imported_pytorch_quantization_failure
+        import_pytorch_quantization_or_install()
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -2569,6 +2555,8 @@ class Trainer:
 
         :return: An instance of QATResult containing the quantized model, the ONNX path and other relevant information.
         """
+        import_pytorch_quantization_or_install()
+
         if quantization_params is None:
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             logger.info(f"Using default quantization params: {quantization_params}")
@@ -2681,6 +2669,9 @@ class Trainer:
 
         :return: Validation results of the calibrated model.
         """
+        import_pytorch_quantization_or_install()
+        from super_gradients.training.utils.quantization import SelectiveQuantizer, QuantizationCalibrator
+
         if deepcopy_model_for_export is False:
             raise RuntimeError(
                 "deepcopy_model_for_export=False is not supported. "
@@ -2776,6 +2767,8 @@ class Trainer:
                It may be used as an example of the input shape during ONNX export.
         :return: An instance of export result object if model supports `model.export()` or None of it's a regular model
         """
+        from super_gradients.training.utils.quantization import export_quantized_module_to_onnx
+
         input_image_shape = export_params.input_image_shape
         if input_image_shape is None:
             input_image_shape = infer_image_shape_from_model(model)

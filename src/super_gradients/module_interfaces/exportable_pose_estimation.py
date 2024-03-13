@@ -15,11 +15,10 @@ from torch.utils.data import DataLoader
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
-from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
+from super_gradients.import_utils import import_onnx_graphsurgeon_or_install, import_pytorch_quantization_or_install
 from super_gradients.module_interfaces.exceptions import ModelHasNoPreprocessingParamsException
 from super_gradients.module_interfaces.usage_instructions import build_usage_instructions_for_pose_estimation
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
-from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
 from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules, infer_model_dtype
 
 logger = get_logger(__name__)
@@ -227,23 +226,11 @@ class ExportablePoseEstimationModel:
 
         # Do imports here to avoid raising error of missing onnx_graphsurgeon package if it is not needed.
         import_onnx_graphsurgeon_or_install()
+        if ExportQuantizationMode.INT8 == quantization_mode:
+            import_pytorch_quantization_or_install()
+
         from super_gradients.conversion.onnx.pose_nms import attach_onnx_pose_nms
         from super_gradients.conversion.preprocessing_modules import CastTensorTo
-
-        usage_instructions = []
-
-        try:
-            from pytorch_quantization import nn as quant_nn
-            from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
-            from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
-
-            patch_pytorch_quantization_modules_if_needed()
-        except ImportError:
-            if quantization_mode is not None:
-                raise ImportError(
-                    "pytorch_quantization package is not installed. "
-                    "Please install it via `pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com`"
-                )
 
         if not isinstance(self, nn.Module):
             raise TypeError(f"Export is only supported for torch.nn.Module. Got type {type(self)}")
@@ -400,6 +387,9 @@ class ExportablePoseEstimationModel:
         contains_quantized_modules = check_model_contains_quantized_modules(model)
 
         if quantization_mode == ExportQuantizationMode.INT8:
+            from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
+            from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
+
             if contains_quantized_modules:
                 logger.debug("Model contains quantized modules. Skipping quantization & calibration steps since it is already quantized.")
                 pass
@@ -458,6 +448,8 @@ class ExportablePoseEstimationModel:
             onnx_export_kwargs = onnx_export_kwargs or {}
 
             if quantization_mode == ExportQuantizationMode.INT8:
+                from pytorch_quantization import nn as quant_nn
+
                 use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
                 quant_nn.TensorQuantizer.use_fb_fake_quant = True
 
