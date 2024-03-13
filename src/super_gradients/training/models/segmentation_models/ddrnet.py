@@ -1,18 +1,17 @@
 import warnings
-from typing import Optional, Callable, Dict
 from abc import ABC
+from collections import OrderedDict
+from typing import Optional, Callable, Dict
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from collections import OrderedDict
-
-from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
+from super_gradients.common.registry.registry import register_model
+from super_gradients.module_interfaces import SupportsReplaceInputChannels, ExportableSegmentationModel
 from super_gradients.training.models.classification_models.resnet import BasicResNetBlock, Bottleneck
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import get_param, HpmStruct
-from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 """
 paper: Deep Dual-resolution Networks for Real-time and
@@ -269,7 +268,7 @@ class RegnetDDRBackBone(DDRBackBoneBase):
             raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_input_channels`")
 
 
-class DDRNet(SegmentationModule):
+class DDRNet(SegmentationModule, ExportableSegmentationModel):
     def __init__(
         self,
         backbone: DDRBackBoneBase.__class__,
@@ -318,6 +317,7 @@ class DDRNet(SegmentationModule):
         self.relu = nn.ReLU(inplace=False)
         self.classification_mode = classification_mode
         self.layer3_repeats = layer3_repeats
+        self.num_classes = num_classes
 
         assert not (use_aux_heads and classification_mode), "auxiliary head cannot be used in classification mode"
 
@@ -483,12 +483,14 @@ class DDRNet(SegmentationModule):
             self.seghead_extra = new_aux_head
         if new_head is not None:
             self.final_layer = new_head
+            self.num_classes = None
         else:
             self.final_layer = SegmentHead(
                 self.highres_planes * self.layer5_bottleneck_expansion, self.head_width, new_num_classes, 8, inter_mode=self.segmentation_inter_mode
             )
             if self.use_aux_heads:
                 self.seghead_extra = SegmentHead(self.highres_planes, self.head_width, new_num_classes, 8, inter_mode=self.segmentation_inter_mode)
+            self.num_classes = new_num_classes
 
     def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
         lr_dict = {"final_layer": lr, "default": 0}
