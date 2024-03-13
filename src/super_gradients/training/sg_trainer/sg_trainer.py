@@ -2670,7 +2670,7 @@ class Trainer:
         :return: Validation results of the calibrated model.
         """
         import_pytorch_quantization_or_install()
-        from super_gradients.training.utils.quantization import SelectiveQuantizer, QuantizationCalibrator
+        from super_gradients.training.utils.quantization import SelectiveQuantizer, ptq
 
         if deepcopy_model_for_export is False:
             raise RuntimeError(
@@ -2693,10 +2693,6 @@ class Trainer:
 
         os.makedirs(output_dir_path, exist_ok=True)
 
-        from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
-
-        patch_pytorch_quantization_modules_if_needed()
-
         if quantization_params is None:
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             logger.info(f"Using default quantization params: {quantization_params}")
@@ -2707,6 +2703,7 @@ class Trainer:
 
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
         calib_params = get_param(quantization_params, "calib_params")
+
         # QUANTIZE MODEL
         fuse_repvgg_blocks_residual_branches(model)
         q_util = SelectiveQuantizer(
@@ -2718,20 +2715,17 @@ class Trainer:
         )
         q_util.register_skip_quantization(layer_names=get_param(selective_quantizer_params, "skip_modules"))
         q_util.quantize_module(model)
-        # CALIBRATE MODEL
-        logger.info("Calibrating model...")
-        calibrator = QuantizationCalibrator(
-            verbose=get_param(calib_params, "verbose"),
-            torch_hist=True,
-        )
-        calibrator.calibrate_model(
+
+        model = ptq(
             model,
-            method=get_param(calib_params, "histogram_calib_method"),
-            calib_data_loader=calib_loader,
-            num_calib_batches=get_param(calib_params, "num_calib_batches") or len(calib_loader),
-            percentile=get_param(calib_params, "percentile", 99.99),
+            selective_quantizer=q_util,
+            calib_loader=calib_loader,
+            calibration_method=get_param(calib_params, "histogram_calib_method"),
+            calibration_batches=get_param(calib_params, "num_calib_batches") or len(calib_loader),
+            calibration_percentile=get_param(calib_params, "percentile", 99.99),
+            calibration_verbose=get_param(calib_params, "verbose"),
         )
-        calibrator.reset_calibrators(model)  # release memory taken by calibrators
+
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
         logger.info("Validating PTQ model...")
         valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
@@ -2767,7 +2761,7 @@ class Trainer:
                It may be used as an example of the input shape during ONNX export.
         :return: An instance of export result object if model supports `model.export()` or None of it's a regular model
         """
-        from super_gradients.training.utils.quantization import export_quantized_module_to_onnx
+        from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
 
         input_image_shape = export_params.input_image_shape
         if input_image_shape is None:
@@ -2813,14 +2807,19 @@ class Trainer:
                 onnx_export_kwargs=export_params.onnx_export_kwargs,
             )
         else:
-            # TODO: modify SG's convert_to_onnx for quantized models and use it instead
-            export_quantized_module_to_onnx(
-                model=model.cpu(),
+            device = "cpu"
+            onnx_input = torch.randn(input_shape_with_explicit_batch).to(device="cpu")
+            onnx_export_kwargs = export_params.onnx_export_kwargs or {}
+            export_to_onnx(
+                model=model.to(device),
+                model_input=onnx_input,
                 onnx_filename=export_params.output_onnx_path,
-                input_shape=input_shape_with_explicit_batch,
-                input_size=input_shape_with_explicit_batch,
-                train=False,
-                deepcopy_model=False,
+                input_names=["input"],
+                onnx_opset=onnx_export_kwargs.get("opset_version", None),
+                do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
+                dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
+                keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
+                verbose=onnx_export_kwargs.get("verbose", False),
             )
 
         return export_result

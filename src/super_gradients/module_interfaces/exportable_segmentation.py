@@ -361,33 +361,16 @@ class ExportableSegmentationModel:
         contains_quantized_modules = check_model_contains_quantized_modules(model)
 
         if quantization_mode == ExportQuantizationMode.INT8:
-            from super_gradients.training.utils.quantization import QuantizationCalibrator
-            from super_gradients.training.utils.quantization import SelectiveQuantizer
+            from super_gradients.training.utils.quantization import ptq
 
-            if contains_quantized_modules:
-                logger.debug("Model contains quantized modules. Skipping quantization & calibration steps since it is already quantized.")
-                pass
-
-            q_util = selective_quantizer or SelectiveQuantizer(
-                default_quant_modules_calibrator_weights="max",
-                default_quant_modules_calibrator_inputs="histogram",
-                default_per_channel_quant_weights=True,
-                default_learn_amax=False,
-                verbose=True,
+            model = ptq(
+                model,
+                selective_quantizer=selective_quantizer,
+                calibration_loader=calibration_loader,
+                calibration_method=calibration_method,
+                calibration_batches=calibration_batches,
+                calibration_percentile=calibration_percentile,
             )
-            q_util.quantize_module(model)
-
-            if calibration_loader:
-                logger.debug("Calibrating model")
-                calibrator = QuantizationCalibrator(verbose=True)
-                calibrator.calibrate_model(
-                    model,
-                    method=calibration_method,
-                    calib_data_loader=calibration_loader,
-                    num_calib_batches=calibration_batches,
-                    percentile=calibration_percentile,
-                )
-                logger.debug("Calibrating model complete")
         elif quantization_mode == ExportQuantizationMode.FP16:
             if contains_quantized_modules:
                 raise RuntimeError("Model contains quantized modules for INT8 mode. " "FP16 quantization is not supported for such models.")
@@ -419,52 +402,31 @@ class ExportableSegmentationModel:
                 )
 
         if engine in {ExportTargetBackend.ONNXRUNTIME, ExportTargetBackend.TENSORRT}:
+            from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
+
             onnx_export_kwargs = onnx_export_kwargs or {}
+            onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
 
-            if quantization_mode == ExportQuantizationMode.INT8:
-                from pytorch_quantization import nn as quant_nn
+            export_to_onnx(
+                model=complete_model,
+                model_input=onnx_input,
+                onnx_filename=output,
+                input_names=["input"],
+                output_names=output_names,
+                onnx_opset=onnx_export_kwargs.get("opset_version", None),
+                do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
+                dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
+                keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
+                verbose=onnx_export_kwargs.get("verbose", False),
+            )
 
-                use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
-                quant_nn.TensorQuantizer.use_fb_fake_quant = True
+            if onnx_simplify:
+                model_opt, simplify_successful = onnxsim.simplify(output)
+                if not simplify_successful:
+                    raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+                onnx.save(model_opt, output)
 
-            try:
-                with torch.no_grad():
-                    onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
-                    # Sanity check that model works
-                    _ = complete_model(onnx_input)
-
-                    for name, p in complete_model.named_parameters():
-                        if p.device != device:
-                            logger.warning(f"Model parameter {name} is on device {p.device} but expected to be on device {device}")
-
-                    for name, p in complete_model.named_buffers():
-                        if p.device != device:
-                            logger.warning(f"Model buffer {name} is on device {p.device} but expected to be on device {device}")
-
-                    logger.debug("Exporting model to ONNX")
-                    logger.debug(f"ONNX input shape: {input_shape} with dtype: {input_image_dtype}")
-                    logger.debug(f"ONNX output names: {output_names}")
-                    logger.debug(f"ONNX export kwargs: {onnx_export_kwargs}")
-
-                    if onnx_export_kwargs is not None and "args" in onnx_export_kwargs:
-                        raise ValueError(
-                            "`args` key found in onnx_export_kwargs. We explicitly construct dummy input (`args`) inside export() method. "
-                            "Overriding args is not supported so please remove it from the `onnx_export_kwargs`."
-                        )
-                    torch.onnx.export(model=complete_model, args=onnx_input, f=output, input_names=["input"], output_names=output_names, **onnx_export_kwargs)
-
-                if onnx_simplify:
-                    model_opt, simplify_successful = onnxsim.simplify(output)
-                    if not simplify_successful:
-                        raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
-                    onnx.save(model_opt, output)
-
-                    logger.debug(f"Ran onnxsim.simplify on {output}")
-            finally:
-                if quantization_mode == ExportQuantizationMode.INT8:
-                    # Restore functions of quant_nn back as expected
-                    quant_nn.TensorQuantizer.use_fb_fake_quant = use_fb_fake_quant_state
-
+                logger.debug(f"Ran onnxsim.simplify on {output}")
         else:
             raise ValueError(f"Unsupported export format: {engine}. Supported formats: onnxruntime, tensorrt")
 
