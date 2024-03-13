@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from super_gradients.training.utils.visualization.utils import generate_color_mapping
 from torchvision.utils import draw_segmentation_masks
 from typing import List, Optional, Tuple, Union, Set
 from super_gradients.training.utils.segmentation_utils import to_one_hot
@@ -17,16 +18,24 @@ def overlay_segmentation(
     """Draw a bounding box on an image.
 
     :param image:           Image on which to draw the segmentation.
-    :param pred_mask:           Image on which to draw the segmentation.
-    :param num_classes:           Image on which to draw the segmentation.
+    :param pred_mask:       Image on which to draw the segmentation.
+    :param num_classes:     Image on which to draw the segmentation.
     :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
-    :param colors:           List containing the colors of the masks or single color for all masks. By default, random colors are generated for each mask.
-    :param class_names:           List containing the class names of cityscapes classes used for model training
+    :param colors:          List containing the colors of the masks or single color for all masks. By default, random colors are generated for each mask.
+    :param class_names:     List containing the class names of cityscapes classes used for model training
     """
+    if class_names is None:
+        class_names = [f"class_{i}" for i in range(num_classes)]
+    if colors is None:
+        colors = generate_color_mapping(num_classes)
+    if len(colors) != num_classes:
+        raise ValueError(f"Number of colors ({len(colors)}) should be equal to the number of classes ({num_classes})")
+    if len(class_names) != num_classes:
+        raise ValueError(f"Number of class names ({len(class_names)}) should be equal to the number of classes ({num_classes})")
 
     overlay = image.copy()
     overlay = torch.from_numpy(overlay.transpose(2, 0, 1))  # torch.from_numpy(overlay.astype(np.uint8)*255)
-    segmentation_mask = torch.from_numpy(np.expand_dims(pred_mask.segmentation_map, axis=0))
+    segmentation_mask = torch.from_numpy(np.expand_dims(pred_mask, axis=0))
     one_hot_prediction_masks = to_one_hot(target=segmentation_mask, num_classes=num_classes)  # , ignore_index: int = None)
     segmentation_overlay = draw_segmentation_masks(overlay, masks=one_hot_prediction_masks.squeeze(0).bool(), alpha=alpha, colors=colors)
 
