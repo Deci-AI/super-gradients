@@ -6,6 +6,7 @@ from typing import Tuple, List, Union, Optional
 
 import cv2
 import numpy as np
+from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 from torch import nn
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -730,6 +731,14 @@ class SegmentationResizeWithPadding(Processing):
     def resizes_image(self) -> bool:
         return True
 
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the output image shape from the processing.
+
+        :return: (rows, cols) Returns the last known output shape for all the processings.
+        """
+        return self.output_shape
+
 
 @register_processing(Processings.SegmentationRescale)
 class SegmentationRescale(Processing):
@@ -774,6 +783,11 @@ class SegmentationRescale(Processing):
         """Return True if the processing resizes the image, False otherwise."""
         return True
 
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        if self.long_size is not None:
+            return (self.long_size, self.long_size)
+        return None
+
 
 @register_processing(Processings.SegmentationResize)
 class SegmentationResize(Processing):
@@ -783,7 +797,7 @@ class SegmentationResize(Processing):
     """
 
     def __init__(self, output_shape: Tuple[int, int]):
-        self.output_shape = output_shape
+        self.output_shape = tuple(output_shape)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, SegmentationResizeMetadata]:
         height, width = image.shape[:2]
@@ -805,6 +819,14 @@ class SegmentationResize(Processing):
     def resizes_image(self) -> bool:
         return True
 
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the output image shape from the processing.
+
+        :return: (rows, cols) Returns the last known output shape for all the processings.
+        """
+        return self.output_shape
+
 
 @register_processing(Processings.SegmentationPadShortToCropSize)
 class SegmentationPadShortToCropSize(Processing):
@@ -817,7 +839,7 @@ class SegmentationPadShortToCropSize(Processing):
     """
 
     def __init__(self, crop_size: Union[float, Tuple, List], fill_image: Union[int, Tuple, List]):
-        self.crop_size = crop_size
+        self.crop_size = ensure_is_tuple_of_two(crop_size)
         self.fill_image = tuple(fill_image) if isinstance(fill_image, typing.Sequence) else fill_image
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
@@ -841,6 +863,14 @@ class SegmentationPadShortToCropSize(Processing):
     @property
     def resizes_image(self) -> bool:
         return True
+
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the output image shape from the processing.
+
+        :return: (rows, cols) Returns the last known output shape for all the processings.
+        """
+        return self.crop_size
 
 
 @register_processing(Processings.SegmentationPadToDivisible)

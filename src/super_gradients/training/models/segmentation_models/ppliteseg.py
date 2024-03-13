@@ -234,6 +234,7 @@ class PPLiteSegBase(SegmentationModule):
                 ]
             )
         self.init_params()
+        self.num_classes = num_classes
 
     def _remove_auxiliary_heads(self):
         if hasattr(self, "aux_heads"):
@@ -302,6 +303,7 @@ class PPLiteSegBase(SegmentationModule):
         for module in self.modules():
             if isinstance(module, SegmentationHead):
                 module.replace_num_classes(new_num_classes)
+        self.num_classes = new_num_classes
 
     def get_finetune_lr_dict(self, lr: float) -> Dict[str, float]:
         lr_dict = {"seg_head": lr, "default": 0}

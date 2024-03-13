@@ -6,33 +6,26 @@ https://github.com/NVIDIA/TensorRT/blob/51a4297753d3e12d0eed864be52400f429a6a94c
 
 (Licensed under the Apache License, Version 2.0)
 """
+
 import logging
 
 import torch
+from torch.distributed import all_gather
 from tqdm import tqdm
+
+
+from pytorch_quantization import nn as quant_nn
+from pytorch_quantization import calib
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.ddp_utils import get_local_rank, get_world_size
-from torch.distributed import all_gather
-
 from super_gradients.training.utils.utils import infer_model_device
 
 logger = get_logger(__name__)
 
-try:
-    from pytorch_quantization import nn as quant_nn
-    from pytorch_quantization import calib
-
-    _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warning("Failed to import pytorch_quantization")
-    _imported_pytorch_quantization_failure = import_err
-
 
 class QuantizationCalibrator:
     def __init__(self, torch_hist: bool = True, verbose: bool = True) -> None:
-        if _imported_pytorch_quantization_failure is not None:
-            raise _imported_pytorch_quantization_failure
         super().__init__()
         self.verbose = verbose
         self.torch_hist = torch_hist
