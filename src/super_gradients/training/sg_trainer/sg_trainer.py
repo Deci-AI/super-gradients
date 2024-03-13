@@ -2670,7 +2670,7 @@ class Trainer:
         :return: Validation results of the calibrated model.
         """
         import_pytorch_quantization_or_install()
-        from super_gradients.training.utils.quantization import SelectiveQuantizer, QuantizationCalibrator
+        from super_gradients.training.utils.quantization import SelectiveQuantizer, ptq
 
         if deepcopy_model_for_export is False:
             raise RuntimeError(
@@ -2693,10 +2693,6 @@ class Trainer:
 
         os.makedirs(output_dir_path, exist_ok=True)
 
-        from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
-
-        patch_pytorch_quantization_modules_if_needed()
-
         if quantization_params is None:
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             logger.info(f"Using default quantization params: {quantization_params}")
@@ -2707,6 +2703,7 @@ class Trainer:
 
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
         calib_params = get_param(quantization_params, "calib_params")
+
         # QUANTIZE MODEL
         fuse_repvgg_blocks_residual_branches(model)
         q_util = SelectiveQuantizer(
@@ -2718,20 +2715,17 @@ class Trainer:
         )
         q_util.register_skip_quantization(layer_names=get_param(selective_quantizer_params, "skip_modules"))
         q_util.quantize_module(model)
-        # CALIBRATE MODEL
-        logger.info("Calibrating model...")
-        calibrator = QuantizationCalibrator(
-            verbose=get_param(calib_params, "verbose"),
-            torch_hist=True,
-        )
-        calibrator.calibrate_model(
+
+        model = ptq(
             model,
-            method=get_param(calib_params, "histogram_calib_method"),
-            calib_data_loader=calib_loader,
-            num_calib_batches=get_param(calib_params, "num_calib_batches") or len(calib_loader),
-            percentile=get_param(calib_params, "percentile", 99.99),
+            selective_quantizer=q_util,
+            calib_loader=calib_loader,
+            calibration_method=get_param(calib_params, "histogram_calib_method"),
+            calibration_batches=get_param(calib_params, "num_calib_batches") or len(calib_loader),
+            calibration_percentile=get_param(calib_params, "percentile", 99.99),
+            calibration_verbose=get_param(calib_params, "verbose"),
         )
-        calibrator.reset_calibrators(model)  # release memory taken by calibrators
+
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
         logger.info("Validating PTQ model...")
         valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)

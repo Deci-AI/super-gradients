@@ -400,33 +400,17 @@ class ExportableObjectDetectionModel:
         contains_quantized_modules = check_model_contains_quantized_modules(model)
 
         if quantization_mode == ExportQuantizationMode.INT8:
-            from super_gradients.training.utils.quantization import QuantizationCalibrator
-            from super_gradients.training.utils.quantization import SelectiveQuantizer
+            from super_gradients.training.utils.quantization import ptq
 
-            if contains_quantized_modules:
-                logger.debug("Model contains quantized modules. Skipping quantization & calibration steps since it is already quantized.")
-                pass
-
-            q_util = selective_quantizer or SelectiveQuantizer(
-                default_quant_modules_calibrator_weights="max",
-                default_quant_modules_calibrator_inputs="histogram",
-                default_per_channel_quant_weights=True,
-                default_learn_amax=False,
-                verbose=True,
+            model = ptq(
+                model,
+                selective_quantizer=selective_quantizer,
+                calibration_loader=calibration_loader,
+                calibration_method=calibration_method,
+                calibration_batches=calibration_batches,
+                calibration_percentile=calibration_percentile,
             )
-            q_util.quantize_module(model)
 
-            if calibration_loader:
-                logger.debug("Calibrating model")
-                calibrator = QuantizationCalibrator(verbose=True)
-                calibrator.calibrate_model(
-                    model,
-                    method=calibration_method,
-                    calib_data_loader=calibration_loader,
-                    num_calib_batches=calibration_batches,
-                    percentile=calibration_percentile,
-                )
-                logger.debug("Calibrating model complete")
         elif quantization_mode == ExportQuantizationMode.FP16:
             if contains_quantized_modules:
                 raise RuntimeError("Model contains quantized modules for INT8 mode. " "FP16 quantization is not supported for such models.")
