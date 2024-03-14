@@ -162,7 +162,7 @@ class PascalVOCFormatDetectionDataset(DetectionDataset):
         if not Path(self.images_dir).exists():
             raise FileNotFoundError(f"{self.images_dir} not found.")
 
-        img_files = glob.glob(os.path.join(self.images_dir, "*.jpg"))
+        img_files = list(sorted(glob.glob(os.path.join(self.images_dir, "*.jpg"))))
         if len(img_files) == 0:
             raise FileNotFoundError(f"No image files found in {self.images_dir}")
 
