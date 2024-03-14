@@ -101,5 +101,5 @@ training_hyperparams:
 
 architecture: yolox_l
 
-multi_gpu: OFF  # DDP, DP, OFF or AUTO
-num_gpus: 1
+multi_gpu: DDP  # DDP, DP, OFF or AUTO
+num_gpus: 4

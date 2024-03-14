@@ -23,8 +23,9 @@ if git_branch:
     repository_url += f"@{git_branch}"
 
 force_build = False  # set to True to force the image build, may be necessary not to use the cached image
-gpu_count = 1  # number of GPUs to use for the modal run
-gpu = modal.gpu.A100(count=gpu_count)  # A10G is time/price efficient for modal runs
+gpu_count = 4 # number of GPUs to use for the modal run
+cpu_count = 20. # number of CPU cores to use for the modal run - 20 is maximum
+gpu = modal.gpu.H100(count=gpu_count)  # A10G for time/price efficiency; H100 for the fastest training
 data_volume = modal.Volume.persisted("od_datasets")  # will be mounted to /data in the modal environment
 checkpoints_volume = modal.Volume.persisted("checkpoints")  # will be mounted to /root/modal_checkpoints in the modal environment
 dotenv_secrets = modal.Secret.from_dotenv()  # loads GITHUB_TOKEN from .env file
@@ -44,8 +45,8 @@ image = (
 def _validate_gpu_count(modal_gpu_count, config_name):
     with hydra.initialize(config_path="recipes"):
         config = hydra.compose(config_name=config_name)
-    if "training_hyperparams" in config and "num_gpus" in config.training_hyperparams:
-        config_gpu_count = config.training_hyperparams.num_gpus
+    if "num_gpus" in config:
+        config_gpu_count = config.num_gpus
     else:
         config_gpu_count = 1
     if modal_gpu_count != config_gpu_count:
@@ -55,6 +56,7 @@ def _validate_gpu_count(modal_gpu_count, config_name):
 @stub.function(
     image=image,
     gpu=gpu,
+    cpu=cpu_count,
     volumes={"/data": data_volume, "/root/modal_checkpoints": checkpoints_volume},
     timeout=modal_timeout,
     _allow_background_volume_commits=True,

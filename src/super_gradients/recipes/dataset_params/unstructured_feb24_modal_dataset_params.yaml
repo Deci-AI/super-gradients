@@ -16,9 +16,9 @@ val_dataset_params:
 train_dataloader_params:
   dataset: DocLayNetDetectionDataset
   batch_size: 32
-  num_workers: 32
+  num_workers: 8
 
 val_dataloader_params:
   dataset: DocLayNetDetectionDataset
   batch_size: 32
-  num_workers: 32
+  num_workers: 8
