@@ -2719,7 +2719,7 @@ class Trainer:
         model = ptq(
             model,
             selective_quantizer=q_util,
-            calib_loader=calib_loader,
+            calibration_loader=calib_loader,
             calibration_method=get_param(calib_params, "histogram_calib_method"),
             calibration_batches=get_param(calib_params, "num_calib_batches") or len(calib_loader),
             calibration_percentile=get_param(calib_params, "percentile", 99.99),
