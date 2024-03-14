@@ -109,7 +109,7 @@ from super_gradients.module_interfaces import (
     QuantizationResult,
 )
 from super_gradients.conversion import ExportQuantizationMode, ExportParams
-from super_gradients.common.deprecate import deprecated_parameter
+from super_gradients.common.deprecate import deprecated_parameter, deprecated
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 
 logger = get_logger(__name__)
@@ -408,8 +408,8 @@ class Trainer:
         return model, valid_metrics_dict
 
     @classmethod
+    @deprecated(deprecated_since="3.6.2", removed_from="3.7.0", target=evaluate_from_config)
     def evaluate_from_recipe(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
-        warnings.warn("This method is deprecated and will be removed in the future. Please use `Trainer.evaluate_from_config` instead.", DeprecationWarning)
         return cls.evaluate_from_config(cfg)
 
     @classmethod
