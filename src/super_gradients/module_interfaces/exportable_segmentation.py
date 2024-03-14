@@ -5,63 +5,48 @@ import gc
 from typing import Any
 from typing import Union, Optional, List, Tuple
 
+import numpy as np
 import onnx
 import onnxsim
 import torch
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMode
 from super_gradients.conversion.conversion_utils import find_compatible_model_device_for_dtype
+from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
+from super_gradients.import_utils import import_pytorch_quantization_or_install
+from super_gradients.module_interfaces.exceptions import ModelHasNoPreprocessingParamsException
 from super_gradients.module_interfaces.supports_input_shape_check import SupportsInputShapeCheck
+from super_gradients.training.utils.export_utils import (
+    infer_image_shape_from_model,
+    infer_image_input_channels,
+    infer_num_output_classes,
+)
+from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules, infer_model_dtype
 from torch import nn, Tensor
 from torch.utils.data import DataLoader
 
-from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
-from super_gradients.import_utils import import_onnx_graphsurgeon_or_install, import_pytorch_quantization_or_install
-from super_gradients.module_interfaces.exceptions import ModelHasNoPreprocessingParamsException
-from super_gradients.module_interfaces.usage_instructions import build_usage_instructions_for_pose_estimation
-from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
-from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules, infer_model_dtype
-
 logger = get_logger(__name__)
 
-__all__ = ["AbstractPoseEstimationDecodingModule", "PoseEstimationModelExportResult", "ExportablePoseEstimationModel"]
+__all__ = ["ExportableSegmentationModel", "AbstractSegmentationDecodingModule", "SegmentationModelExportResult"]
 
 
-class AbstractPoseEstimationDecodingModule(nn.Module):
+class AbstractSegmentationDecodingModule(nn.Module):
     """
-    Abstract class for decoding outputs from pose estimation model into to a tuple of three tensors (boxes, scores, poses)
+    Abstract class for decoding output from semantic segmentation models to a single tensor with class indices.
     """
 
     @abc.abstractmethod
-    def forward(self, predictions: Any) -> Tuple[Tensor, Tensor, Tensor]:
+    def forward(self, predictions: Any) -> Tensor:
         """
-        The implementation of this method must take raw predictions from the model and convert / postprocess them
-        to output candidates for NMS. This method may filter out predictions based on confidence threshold and
-        it must obey the contract that the number of predictions per image is fixed and equal to
-        value returned by self.get_num_pre_nms_predictions().
+        The implementation of this method must take raw predictions from the model and convert them
+        to class labels tensor of [B,H,W] shape.
 
         :param predictions: Input predictions from the model itself.
-        The value of this argument is model-specific
+                            Usually, this is a tensor of shape [B, C, H, W] where C is the number of classes.
+                            Could also be a tuple/list of tensors.
+                            In this case, the first tensor assumed to be the class predictions.
 
-        :return: Implementation of this method must return a tuple of two tensors (boxes, scores) with
-        the following semantics:
-        - boxes - [B, N, 4]
-        - scores - [B, N, 1]
-        - joints - [B, N, 17, 3]
-
-        Where N is the maximum number of predictions per image (see self.get_num_pre_nms_predictions())
-        """
-        raise NotImplementedError(f"forward() method is not implemented for class {self.__class__.__name__}. ")
-
-    @torch.jit.ignore
-    def infer_total_number_of_predictions(self, predictions: Any) -> int:
-        """
-        This method is used to infer the total number of predictions for a given input resolution.
-        The function takes raw predictions from the model and returns the total number of predictions.
-        It is needed to check whether max_predictions_per_image and num_pre_nms_predictions are not greater than
-        the total number of predictions for a given resolution.
-
-        :param predictions: Predictions from the model itself.
-        :return: A total number of predictions for a given resolution
+        :return: Implementation of this method must return a single tensor of shape [B, H, W] with class indices.
         """
         raise NotImplementedError(f"forward() method is not implemented for class {self.__class__.__name__}. ")
 
@@ -73,19 +58,57 @@ class AbstractPoseEstimationDecodingModule(nn.Module):
 
         :return: A list of output names.
         """
-        return ["pre_nms_bboxes_xyxy", "pre_nms_scores", "pre_nms_poses"]
+        return ["segmentation_mask"]
 
-    @abc.abstractmethod
-    def get_num_pre_nms_predictions(self) -> int:
+
+class BinarySegmentationDecodingModule(AbstractSegmentationDecodingModule):
+    """
+    A simple decoding module for binary segmentation.
+    """
+
+    def __init__(self, threshold: float = 0.5):
         """
-        Returns the number of predictions per image that this module produces.
-        :return: Number of predictions per image.
+
+        :param threshold: A threshold value for converting logits to hard binary mask.
         """
-        raise NotImplementedError(f"get_num_pre_nms_predictions() method is not implemented for class {self.__class__.__name__}. ")
+        super().__init__()
+        self.threshold = threshold
+
+    def forward(self, predictions: Any) -> Tensor:
+        """
+        Convert raw predictions to binary mask.
+
+        :param predictions: Predicted logits from the model.
+               Can be a single tensor of tuple of tensors where first tensor is the predicted logits.
+        :return: A tensor of long dtype with binary labels (0 or 1) of shape [B, H, W]
+        """
+
+        if isinstance(predictions, (list, tuple)):
+            predictions = predictions[0]
+
+        return (predictions[:, 0].sigmoid() >= self.threshold).long()
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(threshold={self.threshold})"
+
+
+class SemanticSegmentationDecodingModule(AbstractSegmentationDecodingModule):
+    """
+    A simple decoding module for multi-class segmentation.
+    """
+
+    def forward(self, predictions: Any) -> Tensor:
+        if isinstance(predictions, (list, tuple)):
+            predictions = predictions[0]
+
+        return predictions.argmax(dim=1, keepdims=False)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
 
 
 @dataclasses.dataclass
-class PoseEstimationModelExportResult:
+class SegmentationModelExportResult:
     """
     A dataclass that holds the result of model export.
     """
@@ -98,7 +121,6 @@ class PoseEstimationModelExportResult:
     quantization_mode: Optional[ExportQuantizationMode]
 
     output: str
-    output_predictions_format: DetectionOutputFormatMode
 
     usage_instructions: str = ""
 
@@ -106,9 +128,9 @@ class PoseEstimationModelExportResult:
         return self.usage_instructions
 
 
-class ExportablePoseEstimationModel:
+class ExportableSegmentationModel:
     """
-    A mixin class that adds export functionality to the pose estimation models.
+    A mixin class that adds export functionality to the semantic segmentation models.
     Classes that inherit from this mixin must implement the following methods:
     - get_decoding_module()
     - get_preprocessing_callback()
@@ -116,17 +138,25 @@ class ExportablePoseEstimationModel:
     using model.export(...) method.
     """
 
-    def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractPoseEstimationDecodingModule:
+    def get_decoding_module(self, confidence_threshold=0.5, **kwargs) -> AbstractSegmentationDecodingModule:
         """
         Gets the decoding module for the object detection model.
         This method must be implemented by the derived class and should return
-        an instance of AbstractObjectDetectionDecodingModule that would take raw models' outputs and
-        convert them to a tuple of two tensors (boxes, scores):
-         - boxes: [B, N, 4] - All predicted boxes in (x1, y1, x2, y2) format.
-         - scores: [B, N, C] - All predicted scores ([0..1] range) for each box and class.
-        :return: An instance of AbstractObjectDetectionDecodingModule
+        an instance of AbstractSegmentationDecodingModule that would take raw models' outputs and
+        convert them to semantic segmentation mask.
+
+        :return: An instance of AbstractSegmentationDecodingModule
         """
-        raise NotImplementedError(f"get_decoding_module() is not implemented for class {self.__class__.__name__}.")
+        num_classes = infer_num_output_classes(self)
+        if num_classes is None:
+            raise NotImplementedError(
+                f"Cannot infer number of output classes for {self.__class__.__name__}.\n" f"You would need to implement get_decoding_module() method manually."
+            )
+
+        if num_classes == 1:
+            return BinarySegmentationDecodingModule(threshold=confidence_threshold)
+        else:
+            return SemanticSegmentationDecodingModule()
 
     def get_preprocessing_callback(self, **kwargs) -> Optional[nn.Module]:
         raise NotImplementedError(f"get_preprocessing_callback is not implemented for class {self.__class__.__name__}.")
@@ -135,8 +165,6 @@ class ExportablePoseEstimationModel:
         self,
         output: str,
         confidence_threshold: Optional[float] = None,
-        nms_threshold: Optional[float] = None,
-        engine: Optional[ExportTargetBackend] = None,
         quantization_mode: Optional[ExportQuantizationMode] = None,
         selective_quantizer: Optional["SelectiveQuantizer"] = None,  # noqa
         calibration_loader: Optional[DataLoader] = None,
@@ -150,32 +178,23 @@ class ExportablePoseEstimationModel:
         input_image_shape: Optional[Tuple[int, int]] = None,
         input_image_channels: Optional[int] = None,
         input_image_dtype: Optional[torch.dtype] = None,
-        max_predictions_per_image: Optional[int] = None,
         onnx_export_kwargs: Optional[dict] = None,
         onnx_simplify: bool = True,
         device: Optional[Union[torch.device, str]] = None,
-        output_predictions_format: DetectionOutputFormatMode = DetectionOutputFormatMode.BATCH_FORMAT,
-        num_pre_nms_predictions: int = 1000,
     ):
         """
         Export the model to one of supported formats. Format is inferred from the output file extension or can be
         explicitly specified via `format` argument.
 
         :param output: Output file name of the exported model.
-        :param nms_threshold: (float) NMS threshold for the exported model.
         :param confidence_threshold: (float) Confidence threshold for the exported model.
-        :param engine: Explicit specification of the inference engine. If not specified, engine is inferred from the output file extension.
-                       Supported values:
-                       - "onnxruntime" - export to ONNX format with ONNX runtime as inference engine.
-                       Note, models that are using NMS exported in this mode ARE compatible with TRT runtime.
-                       - "tensorrt" - export to ONNX format with TensorRT  as inference engine.
-                       This mode enables use of efficient TensorRT NMS plugin. Note, models that are using NMS exported in this
-                       mode ARE NOT COMPATIBLE with ONNX runtime.
+               This parameter is used only for binary segmentation models (num_classes = 1).
+               If None, a default value of 0.5 will be used.
         :param quantization_mode: (QuantizationMode) Sets the quantization mode for the exported model.
             If None, the model is exported as-is without any changes to mode weights.
             If QuantizationMode.FP16, the model is exported with weights converted to half precision.
-            If QuantizationMode.INT8, the model is exported with weights quantized to INT8. For this mode you can use calibration_loader
-            to specify a data loader for calibrating the model.
+            If QuantizationMode.INT8, the model is exported with weights quantized to INT8 (Using PTQ).
+            For this mode you can use calibration_loader to specify a data loader for calibrating the model.
         :param selective_quantizer: (SelectiveQuantizer) An optional quantizer for selectively quantizing model weights.
         :param calibration_loader: (torch.utils.data.DataLoader) An optional data loader for calibrating a quantized model.
         :param calibration_method: (str) Calibration method for quantized models. See QuantizationCalibrator for details.
@@ -202,25 +221,9 @@ class ExportablePoseEstimationModel:
                 If preprocessing is True, dtype will default to torch.uint8.
                 If preprocessing is False and requested quantization mode is FP16 a torch.float16 will be used,
                 otherwise a default torch.float32 dtype will be used.
-        :param max_predictions_per_image: (int) Maximum number of detections per image for the exported model.
         :param device: (torch.device) Device to use for exporting the model. If not specified, the device is inferred from the model itself.
         :param onnx_export_kwargs: (dict) Optional keyword arguments for torch.onnx.export() function.
         :param onnx_simplify: (bool) If True, apply onnx-simplifier to the exported model.
-        :param output_predictions_format: (DetectionOutputFormatMode) Format of the output predictions after NMS.
-                Possible values:
-                DetectionOutputFormatMode.BATCH_FORMAT - A tuple of 4 tensors will be returned
-                (num_detections, detection_boxes, detection_scores, detection_classes)
-                - A tensor of [batch_size, 1] containing the image indices for each detection.
-                - A tensor of [batch_size, max_output_boxes, 4] containing the bounding box coordinates for each detection in [x1, y1, x2, y2] format.
-                - A tensor of [batch_size, max_output_boxes] containing the confidence scores for each detection.
-                - A tensor of [batch_size, max_output_boxes] containing the class indices for each detection.
-
-                DetectionOutputFormatMode.FLAT_FORMAT - Tensor of shape [N, 7], where N is the total number of
-                predictions in the entire batch.
-                Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
-
-
-        :param num_pre_nms_predictions: (int) Number of predictions to keep before NMS.
         :return:
         """
 
@@ -228,9 +231,14 @@ class ExportablePoseEstimationModel:
         import_onnx_graphsurgeon_or_install()
         if ExportQuantizationMode.INT8 == quantization_mode:
             import_pytorch_quantization_or_install()
-
-        from super_gradients.conversion.onnx.pose_nms import attach_onnx_pose_nms
+        from super_gradients.conversion.conversion_utils import torch_dtype_to_numpy_dtype
         from super_gradients.conversion.preprocessing_modules import CastTensorTo
+
+        usage_instructions = []
+
+        # Hard-coded for now
+        # Will be made a parameter if we decide to support CoreML/OpenVino/TRT export in the future
+        engine = ExportTargetBackend.ONNXRUNTIME
 
         if not isinstance(self, nn.Module):
             raise TypeError(f"Export is only supported for torch.nn.Module. Got type {type(self)}")
@@ -251,13 +259,6 @@ class ExportablePoseEstimationModel:
         logger.debug(f"Using device: {device} for exporting model {self.__class__.__name__}")
 
         model: nn.Module = copy.deepcopy(self).eval()
-
-        engine: ExportTargetBackend = engine or infer_format_from_file_name(output)
-        if engine is None:
-            raise ValueError(
-                "Export format is not specified and cannot be inferred from the output file name. "
-                "Please specify the format explicitly: model.export(..., format=ExportTargetBackend.ONNXRUNTIME)"
-            )
 
         # Infer the input image shape from the model
         if input_image_shape is None:
@@ -330,55 +331,28 @@ class ExportablePoseEstimationModel:
             # If a user-specified postprocessing module is provided, we will attach is to the model and not
             # attempt to attach NMS step, since we do not know what the user-specified postprocessing module does,
             # and what outputs it produces.
-            attach_nms_postprocessing = False
             postprocessing_module = postprocessing
         elif postprocessing is True:
-            attach_nms_postprocessing = True
+            num_classes = infer_num_output_classes(model)
             postprocessing_kwargs = postprocessing_kwargs or {}
-            postprocessing_kwargs["num_pre_nms_predictions"] = num_pre_nms_predictions
-            postprocessing_module: AbstractPoseEstimationDecodingModule = model.get_decoding_module(**postprocessing_kwargs)
+            if num_classes == 1:
+                if confidence_threshold is None and "confidence_threshold" not in postprocessing_kwargs:
+                    logger.info(
+                        "A model seems to be producing a segmentation mask of one channel.\n"
+                        "For binary segmentation task a confidence_threshold parameter controls the decision boundary.\n"
+                        "A default value of 0.5 will be used for confidence_threshold.\n"
+                        "You can override this by passing confidence_threshold to model.export(..., confidence_threshold=YOUR_VALUE)"
+                    )
+                    postprocessing_kwargs["confidence_threshold"] = 0.5
+
+            postprocessing_module: AbstractSegmentationDecodingModule = model.get_decoding_module(**postprocessing_kwargs)
 
             output_names = postprocessing_module.get_output_names()
-            num_pre_nms_predictions = postprocessing_module.num_pre_nms_predictions
-            max_predictions_per_image = max_predictions_per_image or num_pre_nms_predictions
 
             dummy_input = torch.randn(input_shape).to(device=infer_model_device(model), dtype=infer_model_dtype(model))
             with torch.no_grad():
-                number_of_predictions = postprocessing_module.infer_total_number_of_predictions(model.eval()(dummy_input))
-
-            if num_pre_nms_predictions > number_of_predictions:
-                logger.warning(
-                    f"num_pre_nms_predictions ({num_pre_nms_predictions}) is greater than the total number of predictions ({number_of_predictions}) for input"
-                    f"shape {input_shape}. Setting num_pre_nms_predictions to {number_of_predictions}"
-                )
-                num_pre_nms_predictions = number_of_predictions
-                # We have to recreate the postprocessing_module with the new value of num_pre_nms_predictions
-                postprocessing_kwargs["num_pre_nms_predictions"] = num_pre_nms_predictions
-                postprocessing_module: AbstractPoseEstimationDecodingModule = model.get_decoding_module(**postprocessing_kwargs)
-
-            if max_predictions_per_image > num_pre_nms_predictions:
-                logger.warning(
-                    f"max_predictions_per_image ({max_predictions_per_image}) is greater than num_pre_nms_predictions ({num_pre_nms_predictions}). "
-                    f"Setting max_predictions_per_image to {num_pre_nms_predictions}"
-                )
-                max_predictions_per_image = num_pre_nms_predictions
-
-            nms_threshold = nms_threshold or getattr(model, "_default_nms_iou", None)
-            if nms_threshold is None:
-                raise ValueError(
-                    "nms_threshold is not specified and cannot be inferred from the model. "
-                    "Please specify the nms_threshold explicitly: model.export(..., nms_threshold=0.5)"
-                )
-
-            confidence_threshold = confidence_threshold or getattr(model, "_default_nms_conf", None)
-            if confidence_threshold is None:
-                raise ValueError(
-                    "confidence_threshold is not specified and cannot be inferred from the model. "
-                    "Please specify the confidence_threshold explicitly: model.export(..., confidence_threshold=0.5)"
-                )
-
+                model.eval()(dummy_input)
         else:
-            attach_nms_postprocessing = False
             postprocessing_module = None
 
         if hasattr(model, "prep_model_for_conversion"):
@@ -446,34 +420,13 @@ class ExportablePoseEstimationModel:
                 verbose=onnx_export_kwargs.get("verbose", False),
             )
 
-            # Stitch ONNX graph with NMS postprocessing
-            if attach_nms_postprocessing:
-                if engine in (ExportTargetBackend.TENSORRT, ExportTargetBackend.ONNXRUNTIME):
-                    # For pose estimation models, we cannot use EfficientNMS plugin, since it does not output
-                    # indexes to keep which is necessary since we have to filter also joints.
-                    nms_attach_method = attach_onnx_pose_nms
-                else:
-                    raise KeyError(f"Unsupported engine: {engine}")
-
-                nms_attach_method(
-                    onnx_model_path=output,
-                    output_onnx_model_path=output,
-                    num_pre_nms_predictions=num_pre_nms_predictions,
-                    max_predictions_per_image=max_predictions_per_image,
-                    nms_threshold=nms_threshold,
-                    confidence_threshold=confidence_threshold,
-                    batch_size=batch_size,
-                    output_predictions_format=output_predictions_format,
-                    device=device,
-                )
-
             if onnx_simplify:
-                model_opt, check_ok = onnxsim.simplify(output)
-                if not check_ok:
-                    raise RuntimeError(f"Failed to simplify ONNX model {output}")
+                model_opt, simplify_successful = onnxsim.simplify(output)
+                if not simplify_successful:
+                    raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
                 onnx.save(model_opt, output)
-                logger.debug(f"Ran onnxsim.simplify on {output}")
 
+                logger.debug(f"Ran onnxsim.simplify on {output}")
         else:
             raise ValueError(f"Unsupported export format: {engine}. Supported formats: onnxruntime, tensorrt")
 
@@ -483,32 +436,71 @@ class ExportablePoseEstimationModel:
             torch.cuda.empty_cache()
 
         # Add usage instructions
-        usage_instructions = build_usage_instructions_for_pose_estimation(
-            output=output,
-            engine=engine,
-            quantization_mode=quantization_mode,
-            input_image_shape=input_image_shape,
-            input_image_channels=input_image_channels,
-            input_image_dtype=input_image_dtype,
-            batch_size=batch_size,
-            output_predictions_format=output_predictions_format,
-            num_pre_nms_predictions=num_pre_nms_predictions,
-            max_predictions_per_image=max_predictions_per_image,
-            nms_threshold=nms_threshold,
-            confidence_threshold=confidence_threshold,
-            preprocessing=preprocessing,
-            preprocessing_module=preprocessing_module,
-            postprocessing=postprocessing,
-            postprocessing_module=postprocessing_module,
+        usage_instructions.append(f"Model exported successfully to {output}")
+        usage_instructions.append(f"Model expects input image of shape [{batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}]")
+        usage_instructions.append(f"Input image dtype is {input_image_dtype}")
+
+        if preprocessing:
+            usage_instructions.append("Exported model already contains preprocessing (normalization) step, so you don't need to do it manually.")
+            usage_instructions.append("Preprocessing steps to be applied to input image are:")
+            usage_instructions.append(repr(preprocessing_module))
+            usage_instructions.append("")
+
+        if postprocessing:
+            usage_instructions.append(f"Exported model contains postprocessing module {repr(postprocessing_module)}.")
+            usage_instructions.append(f"Output of the model is mask of [{batch_size, *input_image_shape}] [B,H,W] shape with class indices.")
+            usage_instructions.append("")
+
+        usage_instructions.append("Exported model is in ONNX format and can be used with ONNXRuntime")
+        usage_instructions.append("To run inference with ONNXRuntime, please use the following code snippet:")
+        usage_instructions.append("")
+        usage_instructions.append("    import onnxruntime")
+        usage_instructions.append("    import numpy as np")
+        usage_instructions.append("    import matplotlib.pyplot as plt")
+        usage_instructions.append("    from super_gradients.training.utils.visualization.segmentation import overlay_segmentation")
+
+        usage_instructions.append(f'    session = onnxruntime.InferenceSession("{output}", providers=["CUDAExecutionProvider", "CPUExecutionProvider"])')
+        usage_instructions.append("    inputs = [o.name for o in session.get_inputs()]")
+        usage_instructions.append("    outputs = [o.name for o in session.get_outputs()]")
+
+        dtype_name = np.dtype(torch_dtype_to_numpy_dtype(input_image_dtype)).name
+        usage_instructions.append(
+            f"    example_input_batch = np.zeros(({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]})).astype(np.{dtype_name})"  # noqa
         )
 
-        return PoseEstimationModelExportResult(
+        usage_instructions.append("    predictions = session.run(outputs, {inputs[0]: example_input_image})")
+        usage_instructions.append("")
+
+        if postprocessing is True:
+            usage_instructions.append("")
+            usage_instructions.append("    [segmentation_mask] = predictions")
+            usage_instructions.append("    for image_index in range(segmentation_mask.shape[0]):")
+            usage_instructions.append("        mask = segmentation_mask[image_index]")
+            usage_instructions.append("        overlay = overlay_segmentation(")
+            usage_instructions.append(f"            pred_mask=segmentation_mask, image=example_input_batch[image_index], num_classes={num_classes}")
+            usage_instructions.append("        )")
+            usage_instructions.append("        plt.figure(figsize=(10, 10))")
+            usage_instructions.append("        plt.imshow(overlay)")
+            usage_instructions.append("        plt.title('Segmentation Overlay')")
+            usage_instructions.append("        plt.tight_layout()")
+            usage_instructions.append("        plt.show()")
+
+        elif postprocessing is False:
+            usage_instructions.append("Model exported with postprocessing=False")
+            usage_instructions.append("This means that the model produces raw predictions (logits) and you need to implement your own postprocessing step.")
+            usage_instructions.append("Please refer to the documentation for the model you exported")
+        elif isinstance(postprocessing, nn.Module):
+            usage_instructions.append("Exported model contains a custom postprocessing step.")
+            usage_instructions.append("We are unable to provide usage instructions to user-provided postprocessing module")
+            usage_instructions.append("But here is the human-friendly representation of the postprocessing module:")
+            usage_instructions.append(repr(postprocessing))
+
+        return SegmentationModelExportResult(
             input_image_channels=input_image_channels,
             input_image_dtype=input_image_dtype,
             input_image_shape=input_image_shape,
             engine=engine,
             quantization_mode=quantization_mode,
             output=output,
-            output_predictions_format=output_predictions_format,
-            usage_instructions=usage_instructions,
+            usage_instructions="\n".join(usage_instructions),
         )
