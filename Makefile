@@ -48,7 +48,7 @@ NOTEBOOKS_TO_CHECK += notebooks/DEKR_PoseEstimationFineTuning.ipynb
 NOTEBOOKS_TO_CHECK += notebooks/albumentations_tutorial.ipynb
 NOTEBOOKS_TO_CHECK += notebooks/yolo_nas_pose_eval_with_pycocotools.ipynb
 NOTEBOOKS_TO_CHECK += notebooks/dataloader_adapter.ipynb
-
+NOTEBOOKS_TO_CHECK += notebooks/Segmentation_Model_Export.ipynb
 
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
 check_notebooks_version_match: $(NOTEBOOKS_TO_CHECK)

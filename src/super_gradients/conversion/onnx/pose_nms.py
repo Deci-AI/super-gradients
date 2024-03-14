@@ -13,7 +13,7 @@ from torch import nn, Tensor
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
 from super_gradients.conversion.conversion_utils import numpy_dtype_to_torch_dtype
-from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
+from super_gradients.import_utils import import_onnx_graphsurgeon_or_fail_with_instructions
 from super_gradients.conversion.onnx.utils import append_graphs, iteratively_infer_shapes
 
 logger = get_logger(__name__)
