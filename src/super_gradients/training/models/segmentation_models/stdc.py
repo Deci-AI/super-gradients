@@ -22,7 +22,7 @@ from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.modules import ConvBNReLU, Residual
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
-from super_gradients.module_interfaces import SupportsReplaceInputChannels, HasPredict, SupportsInputShapeCheck
+from super_gradients.module_interfaces import SupportsReplaceInputChannels, HasPredict, SupportsInputShapeCheck, ExportableSegmentationModel
 from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.predict import ImagesSegmentationPrediction
 
@@ -439,7 +439,7 @@ class ContextPath(nn.Module):
         return self.backbone.get_input_channels()
 
 
-class STDCSegmentationBase(SgModule, HasPredict, SupportsInputShapeCheck):
+class STDCSegmentationBase(SgModule, HasPredict, SupportsInputShapeCheck, ExportableSegmentationModel):
     """
     Base STDC Segmentation Module.
     :param backbone: Backbone of type AbstractSTDCBackbone that return info about backbone output channels.
@@ -468,7 +468,7 @@ class STDCSegmentationBase(SgModule, HasPredict, SupportsInputShapeCheck):
         super(STDCSegmentationBase, self).__init__()
         backbone.validate_backbone()
         self._use_aux_heads = use_aux_heads
-
+        self.num_classes = num_classes
         self.cp = ContextPath(backbone, context_fuse_channels, use_aux_heads=use_aux_heads)
 
         stage3_s8_channels, stage4_s16_channels, stage5_s32_channels = backbone.get_backbone_output_number_of_channels()
@@ -579,6 +579,7 @@ class STDCSegmentationBase(SgModule, HasPredict, SupportsInputShapeCheck):
 
         # Output layer's replacement- first modules in the sequences are the SegmentationHead modules.
         self.segmentation_head[0] = SegmentationHead(ffm_channels, ffm_channels, new_num_classes, dropout=dropout)
+        self.num_classes = new_num_classes
         if self.use_aux_heads:
             stage3_s8_channels, stage4_s16_channels, stage5_s32_channels = self.backbone.get_backbone_output_number_of_channels()
             aux_head_channels = self.aux_head_s16[0].seg_head[-1].in_channels
@@ -700,6 +701,14 @@ class STDCSegmentationBase(SgModule, HasPredict, SupportsInputShapeCheck):
 
     def get_minimum_input_shape_size(self) -> Tuple[int, int]:
         return 32, 32
+
+    def get_processing_params(self):
+        return self._image_processor
+
+    def get_preprocessing_callback(self, **kwargs):
+        processing = self.get_processing_params()
+        preprocessing_module = processing.get_equivalent_photometric_module()
+        return preprocessing_module
 
 
 @register_model(Models.STDC_CUSTOM)

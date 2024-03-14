@@ -1,17 +1,12 @@
-# Imports for backward compatibility
-from super_gradients.training.utils.quantization.modules import (
-    QuantBottleneck,
-    QuantSTDCBlock,
-    QuantAttentionRefinementModule,
-    QuantFeatureFusionModule,
-    QuantContextPath,
+from .quantized_stdc_blocks import QuantSTDCBlock, QuantAttentionRefinementModule, QuantFeatureFusionModule, QuantContextPath
+from .resnet_bottleneck import QuantBottleneck
+from .quantized_skip_connections import (
     QuantHeadInternalSkipConnection,
-    QuantResidual,
     QuantCrossModelSkipConnection,
     QuantBackboneInternalSkipConnection,
     QuantSkipConnection,
+    QuantResidual,
 )
-
 
 __all__ = [
     "QuantSTDCBlock",
