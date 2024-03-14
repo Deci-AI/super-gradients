@@ -2714,7 +2714,6 @@ class Trainer:
             verbose=get_param(calib_params, "verbose"),
         )
         q_util.register_skip_quantization(layer_names=get_param(selective_quantizer_params, "skip_modules"))
-        q_util.quantize_module(model)
 
         model = ptq(
             model,
