@@ -5,6 +5,7 @@ import torch.nn as nn
 
 from super_gradients.conversion.conversion_enums import ExportTargetBackend
 from super_gradients.module_interfaces import HasPredict
+from super_gradients.training.utils.utils import unwrap_model
 
 
 def fuse_conv_bn(model: nn.Module, replace_bn_with_identity: bool = False):
@@ -38,6 +39,7 @@ def infer_format_from_file_name(output_filename: str) -> Optional[ExportTargetBa
 
 
 def infer_image_input_channels(model: Union[nn.Module, HasPredict]) -> Optional[int]:
+    model = unwrap_model(model)
     if isinstance(model, HasPredict):
         input_channels = model.get_input_channels()
         return input_channels
@@ -51,9 +53,16 @@ def infer_image_shape_from_model(model: Union[nn.Module, HasPredict]) -> Optiona
     :param model:
     :return: A tuple of (height, width) or None
     """
+    model = unwrap_model(model)
     if isinstance(model, HasPredict):
         processing = model.get_processing_params()
         if processing is not None:
-            return processing.infer_image_input_shape()
-
+            shape = processing.infer_image_input_shape()
+            return shape
     return None
+
+
+def infer_num_output_classes(model: nn.Module):
+    model = unwrap_model(model)
+    if hasattr(model, "num_classes"):
+        return model.num_classes

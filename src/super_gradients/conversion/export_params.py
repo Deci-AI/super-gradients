@@ -25,8 +25,10 @@ class ExportParams:
     :param postprocessing: If True, the postprocessing will be included in the ONNX model.
            This option is only available for models that support model.export() syntax.
 
-    :param confidence_threshold: The confidence threshold for object detection models.
-           This option is only available for models that support model.export() syntax.
+    :param confidence_threshold: The confidence threshold for object detection models
+           or image binary segmentation models.
+           This attribute used only for models inheriting ExportableSegmentationModel
+           and ExportableObjectDetectionModel.
            If None, the default confidence threshold for a given model will be used.
     :param onnx_export_kwargs: (dict) Optional keyword arguments for torch.onnx.export() function.
     :param onnx_simplify: (bool) If True, apply onnx-simplifier to the exported model.
