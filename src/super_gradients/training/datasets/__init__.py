@@ -9,6 +9,7 @@ from super_gradients.training.datasets.detection_datasets import (
     COCODetectionDataset,
     PascalVOCDetectionDataset,
     YoloDarknetFormatDetectionDataset,
+    PascalVOCFormatDetectionDataset,
 )
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.pascal_voc_segmentation import (
@@ -42,13 +43,13 @@ __all__ = [
     "COCODetectionDataset",
     "YoloDarknetFormatDetectionDataset",
     "PascalVOCDetectionDataset",
+    "PascalVOCFormatDetectionDataset",
     "ImageNetDataset",
     "Cifar10",
     "Cifar100",
     "SuperviselyPersonsDataset",
     "COCOKeypointsDataset",
     "COCOPoseEstimationDataset",
-    "BaseDatasetAdapterCollateFN",
 ]
 
 cv2.setNumThreads(0)

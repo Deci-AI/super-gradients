@@ -7,6 +7,8 @@ train_dataset_params:
     - DetectionTargetsFormatTransform:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
         output_format: LABEL_CXCYWH
+  images_dir: images
+  labels_dir: labels
   class_inclusion_list:
   max_num_samples:
   download: True
@@ -20,7 +22,8 @@ val_dataset_params:
     - DetectionTargetsFormatTransform:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
         output_format: LABEL_CXCYWH
-  images_sub_directory: images/test2007/
+  images_dir: images/test2007/
+  labels_dir: labels/test2007/
   class_inclusion_list:
   max_num_samples:
   download: True
