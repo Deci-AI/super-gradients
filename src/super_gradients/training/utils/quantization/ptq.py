@@ -37,7 +37,7 @@ def ptq(
         logger.debug("Model contains quantized modules. Skipping quantization & calibration steps since it is already quantized.")
         return model
 
-    model = copy.deepcopy(model)
+    model = copy.deepcopy(model).eval()
 
     if selective_quantizer is None:
         selective_quantizer = SelectiveQuantizer(
