@@ -2721,7 +2721,7 @@ class Trainer:
             selective_quantizer=q_util,
             calibration_loader=calib_loader,
             calibration_method=get_param(calib_params, "histogram_calib_method"),
-            calibration_batches=get_param(calib_params, "num_calib_batches") or len(calib_loader),
+            calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
             calibration_percentile=get_param(calib_params, "percentile", 99.99),
             calibration_verbose=get_param(calib_params, "verbose"),
         )
