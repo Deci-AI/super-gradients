@@ -41,7 +41,9 @@ class DatasetIntegrationTest(unittest.TestCase):
         self.test_dir = tempfile.TemporaryDirectory().name
         PascalVOCDetectionDataset.download(self.test_dir)
         self.pascal_class_inclusion_lists = [["aeroplane", "bicycle"], ["bird", "boat", "bottle", "bus"], ["pottedplant"], ["person"]]
-        self.pascal_base_config = dict(data_dir=self.test_dir, images_sub_directory="images/train2012/", input_dim=(640, 640), transforms=transforms)
+        self.pascal_base_config = dict(
+            data_dir=self.test_dir, images_dir="images/train2012/", labels_dir="labels/train2012/", input_dim=(640, 640), transforms=transforms
+        )
 
         self.coco_class_inclusion_lists = [["airplane", "bicycle"], ["bird", "boat", "bottle", "bus"], ["potted plant"], ["person"]]
         self.dataset_coco_base_config = dict(
@@ -58,7 +60,7 @@ class DatasetIntegrationTest(unittest.TestCase):
             dataset = PascalVOCDetectionDataset(
                 class_inclusion_list=class_inclusion_list, max_num_samples=self.max_samples_per_plot * self.n_plot, **self.pascal_base_config
             )
-            dataset.plot(max_samples_per_plot=self.max_samples_per_plot, n_plots=self.n_plot, plot_transformed_data=False)
+            dataset.plot(max_samples_per_plot=min(self.max_samples_per_plot, len(dataset)), n_plots=self.n_plot, plot_transformed_data=False)
 
     def test_multiple_pascal_dataset_subclass_after_transforms(self):
         """Run test_pascal_dataset_subclass on multiple inclusion lists"""
@@ -66,7 +68,7 @@ class DatasetIntegrationTest(unittest.TestCase):
             dataset = PascalVOCDetectionDataset(
                 class_inclusion_list=class_inclusion_list, max_num_samples=self.max_samples_per_plot * self.n_plot, **self.pascal_base_config
             )
-            dataset.plot(max_samples_per_plot=self.max_samples_per_plot, n_plots=self.n_plot, plot_transformed_data=True)
+            dataset.plot(max_samples_per_plot=min(self.max_samples_per_plot, len(dataset)), n_plots=self.n_plot, plot_transformed_data=True)
 
     def test_multiple_coco_dataset_subclass_before_transforms(self):
         """Check subclass on multiple inclusions before transform"""
@@ -74,7 +76,7 @@ class DatasetIntegrationTest(unittest.TestCase):
             dataset = COCODetectionDataset(
                 class_inclusion_list=class_inclusion_list, max_num_samples=self.max_samples_per_plot * self.n_plot, **self.dataset_coco_base_config
             )
-            dataset.plot(max_samples_per_plot=self.max_samples_per_plot, n_plots=self.n_plot, plot_transformed_data=False)
+            dataset.plot(max_samples_per_plot=min(self.max_samples_per_plot, len(dataset)), n_plots=self.n_plot, plot_transformed_data=False)
 
     def test_multiple_coco_dataset_subclass_after_transforms(self):
         """Check subclass on multiple inclusions after transform"""
@@ -82,7 +84,7 @@ class DatasetIntegrationTest(unittest.TestCase):
             dataset = COCODetectionDataset(
                 class_inclusion_list=class_inclusion_list, max_num_samples=self.max_samples_per_plot * self.n_plot, **self.dataset_coco_base_config
             )
-            dataset.plot(max_samples_per_plot=self.max_samples_per_plot, n_plots=self.n_plot, plot_transformed_data=True)
+            dataset.plot(max_samples_per_plot=min(self.max_samples_per_plot, len(dataset)), n_plots=self.n_plot, plot_transformed_data=True)
 
     def test_subclass_non_existing_class(self):
         """Check that EmptyDatasetException is raised when unknown label."""
