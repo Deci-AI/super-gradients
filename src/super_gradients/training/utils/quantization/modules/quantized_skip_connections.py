@@ -1,13 +1,16 @@
+from pytorch_quantization import nn as quant_nn
+
 from super_gradients.modules import Residual, SkipConnection, BackboneInternalSkipConnection, HeadInternalSkipConnection, CrossModelSkipConnection
+from super_gradients.training.utils.quantization.core import SGQuantMixin
+from super_gradients.training.utils.quantization.selective_quantization_utils import register_quantized_module
 
-try:
-    from pytorch_quantization import nn as quant_nn
-    from super_gradients.training.utils.quantization.core import SGQuantMixin
-    from super_gradients.training.utils.quantization.selective_quantization_utils import register_quantized_module
-
-    _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    _imported_pytorch_quantization_failure = import_err
+__all__ = [
+    "QuantSkipConnection",
+    "QuantResidual",
+    "QuantCrossModelSkipConnection",
+    "QuantBackboneInternalSkipConnection",
+    "QuantHeadInternalSkipConnection",
+]
 
 
 @register_quantized_module(float_source=Residual)
@@ -16,9 +19,6 @@ class QuantResidual(SGQuantMixin):
     This is a placeholder module used by the quantization engine only.
     The module is to be used as a quantized substitute to a residual skip connection within a single block.
     """
-
-    if _imported_pytorch_quantization_failure is not None:
-        raise _imported_pytorch_quantization_failure
 
     @classmethod
     def from_float(cls, float_instance: Residual, **kwargs):
@@ -31,9 +31,6 @@ class QuantSkipConnection(SGQuantMixin):
     This is a placeholder module used by the quantization engine only.
     The module is to be used as a quantized substitute to a skip connection between blocks.
     """
-
-    if _imported_pytorch_quantization_failure is not None:
-        raise _imported_pytorch_quantization_failure
 
     @classmethod
     def from_float(cls, float_instance: SkipConnection, **kwargs):

@@ -327,7 +327,7 @@ class ImageSegmentationPrediction(ImagePrediction):
         color_mapping = color_mapping or generate_color_mapping(len(class_names))
 
         return overlay_segmentation(
-            image=image, pred_mask=self.prediction, num_classes=len(class_names), alpha=alpha, colors=color_mapping, class_names=class_names
+            image=image, pred_mask=self.prediction.segmentation_map, num_classes=len(class_names), alpha=alpha, colors=color_mapping, class_names=class_names
         )
 
     def show(self, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
