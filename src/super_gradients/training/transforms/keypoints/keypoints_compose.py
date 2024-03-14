@@ -19,8 +19,8 @@ class KeypointsCompose(AbstractKeypointTransform):
                                    Default value is None, which would raise an error if additional samples are needed.
         """
         for transform in transforms:
-            if load_sample_fn is None and transform.may_require_additional_samples:
-                raise RuntimeError(f"Detected transform {transform.__class__.__name__} that requires additional samples but load_sample_fn is None")
+            if hasattr(transform, "may_require_additional_samples") and transform.may_require_additional_samples and load_sample_fn is None:
+                raise RuntimeError(f"Detected transform {transform.__class__.__name__} that requires additional samples but `load_sample_fn` is None")
 
         super().__init__()
         self.transforms = transforms
@@ -34,7 +34,7 @@ class KeypointsCompose(AbstractKeypointTransform):
         This method acts as a wrapper for apply_to_sample method to support old-style API.
         """
         for transform in self.transforms:
-            if transform.may_require_additional_samples:
+            if hasattr(transform, "may_require_additional_samples") and transform.may_require_additional_samples:
                 raise RuntimeError(f"{transform.__class__.__name__} require additional samples that is not supported in old-style transforms API")
 
         for t in self.transforms:
@@ -88,7 +88,7 @@ class KeypointsCompose(AbstractKeypointTransform):
         """
         applied_transforms_so_far = []
         for t in transforms:
-            if not t.may_require_additional_samples:
+            if not hasattr(t, "may_require_additional_samples") or not t.may_require_additional_samples:
                 sample = t.apply_to_sample(sample)
                 applied_transforms_so_far.append(t)
             else:
