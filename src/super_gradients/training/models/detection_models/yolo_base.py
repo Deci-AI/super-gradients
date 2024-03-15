@@ -779,21 +779,47 @@ class YoloX_MAR24_1_1(YoloBase):
     This class is a wrapper around the YoloX model with posprocessing designed to a specific checkpoint: MAR24_1.
     We're going to follow similar approach for other checkpoints that are selected for a release.
     """
+
     def __init__(self, backbone: YoloDarknetBackbone, arch_params: HpmStruct = None, initialize_module: bool = True):
         super().__init__(backbone=backbone, arch_params=arch_params, initialize_module=initialize_module)
 
     @staticmethod
-    def get_post_prediction_callback(
-        *args, **kwargs
-    ) -> DetectionPostPredictionCallback:
+    def get_post_prediction_callback(*args, **kwargs) -> DetectionPostPredictionCallback:
         # post-prediction callback is hardcoded
         return YoloXPostPredictionCallback(
             conf=0.01,
             iou=0.65,
             class_agnostic_nms=True,
             nms_type=NMS_Type.CLASS_THRESHOLDED,
-            # paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas, page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet
-            class_thresholds=[0.49, 0.27, 0.28, 0.47, 0.49, 0.65, 0.44, 0.18, 0.49, 0.46, 0.6, 0.46, 0.36, 0.49, 0.28, 0.45, 0.05, 0.37, 0.41])
+            # Best score thresholds per class, for maximum F-sqrt(2) score
+            # paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas,
+            # page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet
+            class_thresholds=[0.49, 0.27, 0.28, 0.47, 0.49, 0.65, 0.44, 0.18, 0.49, 0.46, 0.6, 0.46, 0.36, 0.49, 0.28, 0.45, 0.05, 0.37, 0.41],
+        )
+
+
+class YoloX_MAR24_2_1(YoloBase):
+    """
+    This class is a wrapper around the YoloX model with posprocessing designed to a specific checkpoint: MAR24_2.
+    We're going to follow similar approach for other checkpoints that are selected for a release.
+    """
+
+    def __init__(self, backbone: YoloDarknetBackbone, arch_params: HpmStruct = None, initialize_module: bool = True):
+        super().__init__(backbone=backbone, arch_params=arch_params, initialize_module=initialize_module)
+
+    @staticmethod
+    def get_post_prediction_callback(*args, **kwargs) -> DetectionPostPredictionCallback:
+        # post-prediction callback is hardcoded
+        return YoloXPostPredictionCallback(
+            conf=0.01,
+            iou=0.65,
+            class_agnostic_nms=True,
+            nms_type=NMS_Type.CLASS_THRESHOLDED,
+            # Best score thresholds per class, for maximum F-sqrt(2) score
+            # paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas,
+            # page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet
+            class_thresholds=[0.38, 0.47, 0.47, 0.39, 0.31, 0.5, 0.4, 0.26, 0.32, 0.34, 0.63, 0.42, 0.2, 0.36, 0.48, 0.22, 0.22, 0.82, 0.28],
+        )
 
 
 class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):

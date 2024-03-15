@@ -275,6 +275,7 @@ class Models:
     YOLOX_L = "yolox_l"
     YOLOX_X = "yolox_x"
     YOLOX_MAR24_1_1 = "yolox_mar24_1_1"
+    YOLOX_MAR24_2_1 = "yolox_mar24_2_1"
     CUSTOM_YOLO_X = "custom_yolox"
     SSD_MOBILENET_V1 = "ssd_mobilenet_v1"
     SSD_LITE_MOBILENET_V2 = "ssd_lite_mobilenet_v2"
