@@ -813,8 +813,9 @@ class YoloX_MAR24_2_1(YoloBase):  # TODO Change!! thresholds for F sqrt(2) !!!! 
             iou=0.65,
             class_agnostic_nms=True,
             nms_type=NMS_Type.CLASS_THRESHOLDED,
+            # Best score thresholds per class, for maximum F-sqrt(2) score
             # paragraph, page_number, image, paragraphs_in_image, title, table, paragraphs_in_table, other, page_header, subheading, formulas, page_footer, paragraphs_in_form, checkbox, checkbox_checked, form, radio_button_checked, radio_button, code_snippet
-            class_thresholds=[0.49, 0.27, 0.28, 0.47, 0.49, 0.65, 0.44, 0.18, 0.49, 0.46, 0.6, 0.46, 0.36, 0.49, 0.28, 0.45, 0.05, 0.37, 0.41],
+            class_thresholds=[0.38, 0.47, 0.47, 0.39, 0.31, 0.5, 0.4, 0.26, 0.32, 0.34, 0.63, 0.42, 0.2, 0.36, 0.48, 0.22, 0.22, 0.82, 0.28],
         )
 
 
