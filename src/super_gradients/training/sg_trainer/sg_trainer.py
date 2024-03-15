@@ -2470,24 +2470,24 @@ class Trainer:
 
         if quantization_params.ptq_only:
             res = trainer.ptq(
-                calib_loader=calib_dataloader,
                 model=model,
-                quantization_params=quantization_params,
                 valid_loader=val_dataloader,
                 valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
+                calib_loader=calib_dataloader,
+                quantization_params=quantization_params,
                 export_params=export_params,
             )
         else:
             res = trainer.qat(
                 model=model,
-                quantization_params=quantization_params,
                 calib_loader=calib_dataloader,
                 valid_loader=val_dataloader,
                 valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
                 train_loader=train_dataloader,
                 training_params=cfg.training_hyperparams,
-                additional_qat_configs_to_log=recipe_logged_cfg,
+                quantization_params=quantization_params,
                 export_params=export_params,
+                additional_qat_configs_to_log=recipe_logged_cfg,
             )
 
         return res
