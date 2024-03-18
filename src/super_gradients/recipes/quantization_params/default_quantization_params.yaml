@@ -9,5 +9,5 @@ selective_quantizer_params:
 calib_params:
   histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", "mse"], "max" calibrators always use "max"
   percentile: 99.99                     # percentile for all histogram calibrators with method "percentile", other calibrators are not affected
-  num_calib_batches:                    # number of batches to use for calibration, if None, 512 / batch_size will be used
+  num_calib_batches: 16                 # number of batches to use for calibration, if None, 512 / batch_size will be used
   verbose: False                        # if calibrator should be verbose

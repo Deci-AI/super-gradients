@@ -2470,24 +2470,24 @@ class Trainer:
 
         if quantization_params.ptq_only:
             res = trainer.ptq(
-                calib_loader=calib_dataloader,
                 model=model,
-                quantization_params=quantization_params,
                 valid_loader=val_dataloader,
                 valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
+                calib_loader=calib_dataloader,
+                quantization_params=quantization_params,
                 export_params=export_params,
             )
         else:
             res = trainer.qat(
                 model=model,
-                quantization_params=quantization_params,
                 calib_loader=calib_dataloader,
                 valid_loader=val_dataloader,
                 valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
                 train_loader=train_dataloader,
                 training_params=cfg.training_hyperparams,
-                additional_qat_configs_to_log=recipe_logged_cfg,
+                quantization_params=quantization_params,
                 export_params=export_params,
+                additional_qat_configs_to_log=recipe_logged_cfg,
             )
 
         return res
@@ -2714,14 +2714,13 @@ class Trainer:
             verbose=get_param(calib_params, "verbose"),
         )
         q_util.register_skip_quantization(layer_names=get_param(selective_quantizer_params, "skip_modules"))
-        q_util.quantize_module(model)
 
         model = ptq(
             model,
             selective_quantizer=q_util,
-            calib_loader=calib_loader,
+            calibration_loader=calib_loader,
             calibration_method=get_param(calib_params, "histogram_calib_method"),
-            calibration_batches=get_param(calib_params, "num_calib_batches") or len(calib_loader),
+            calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
             calibration_percentile=get_param(calib_params, "percentile", 99.99),
             calibration_verbose=get_param(calib_params, "verbose"),
         )
