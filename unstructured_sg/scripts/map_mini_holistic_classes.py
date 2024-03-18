@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from utils import load_json, dump_json
-
-from mappings import MINIHOLISTIC_CAT, UNSTRUCTURED_CAT, MINIHOLISTIC_UNSTRUCTURED_MAP
+from unstructured_sg.mappings import MINIHOLISTIC_CAT, UNSTRUCTURED_CAT, MINIHOLISTIC_UNSTRUCTURED_MAP
+from unstructured_sg.utils import load_json
 
 
 COCO_PATH = Path("/mnt/ml-team/homes/marianna.parzych/Unstructured/MiniHolistic/COCO/test.json")

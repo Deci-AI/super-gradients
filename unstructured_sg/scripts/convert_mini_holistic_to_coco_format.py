@@ -15,7 +15,7 @@ from pathlib import Path
 from pdf2image import convert_from_path
 from PIL import Image
 
-from utils import load_json, dump_json
+from unstructured_sg.utils import load_json, dump_json
 
 
 # Known issue with labels:

@@ -18,15 +18,14 @@ from typing import List, Dict, Tuple, Optional
 from pathlib import Path
 
 import dotenv
-import json
 import neptune
 import numpy as np
 import torch
 
 from super_gradients.training.utils import detection_utils as core_utils
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics, DetectionMetrics_09
-from mappings import HI_RES_ELEMENT_TYPES
-from utils import IdentityPostPredictionCallback, load_json
+from unstructured_sg.mappings import HI_RES_ELEMENT_TYPES
+from unstructured_sg.utils import IdentityPostPredictionCallback, load_json
 
 dotenv.load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

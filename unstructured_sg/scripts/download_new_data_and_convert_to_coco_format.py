@@ -2,7 +2,7 @@
 This is a helper scripts that downloads new dataset images based on annotation file,
 and converts annotations as .json file in COCO format: https://cocodataset.org/#format-data.
 
-To download image and prepare new annotations ans splits:
+To download image and prepare new annotations and splits:
 >> python helper_scripts/download_new_data_and_convert_to_coco_format.py --images_dir /path/to/images/dir \
     --labels_path /path/to/original/labels_first_batch.txt /path/to/original/labels_second_batch.txt \
     --coco_labels_dir /path/to/save/coco/labels --download_images
@@ -26,10 +26,11 @@ import urllib.request
 from math import ceil
 from pathlib import Path
 
-from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list, clean_category_name
 from PIL import Image
 from tqdm import tqdm
-from utils import dump_json, load_json, load_txt_with_json, load_txt, load_csv_with_json
+
+from convert_mini_holistic_to_coco_format import check_and_add_category, check_and_add_image, get_id_from_dict_list, clean_category_name
+from unstructured_sg.utils import dump_json, load_json, load_txt_with_json, load_txt, load_csv_with_json
 
 
 def parse_args() -> argparse.Namespace:

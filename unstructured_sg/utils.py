@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import Any
 import sys
 
-from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
-
 
 def load_txt(path: Path) -> str:
     with open(path, "r") as file:
@@ -57,8 +55,3 @@ def load_csv_with_json(path):
 
             data.append(row)
     return data
-
-
-class IdentityPostPredictionCallback(DetectionPostPredictionCallback):
-    def forward(self, p, device=None):
-        return [p]

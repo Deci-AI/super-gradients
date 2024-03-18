@@ -4,6 +4,8 @@ This is a helper scripts that performes inference on images from given directory
 >> python src/super_gradients/scripts/visualize_and_save_results_from_directory.py --model_type yolox_l --num_classes 11 --checkpoint_path \
     /path/to/model/checkpoint.pth --input_dir /path/to/directory/with/input/images/ --output_dir /path/to/directory/where/results/should/be/saved
 """
+
+# TODO: Change to add shared functions from the unstructured_predict.py script
 import argparse
 import json
 from pathlib import Path
@@ -13,8 +15,6 @@ import numpy as np
 from pdf2image import convert_from_path
 
 from super_gradients.training import models
-from super_gradients.training.transforms.utils import _rescale_and_pad_to_size, _rescale_xyxy_bboxes
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Prepare results based on images from directory.")
@@ -64,11 +64,6 @@ def parse_args() -> argparse.Namespace:
         help="Confidence threshold. Predictions below this threshold are discarded.",
     )
     parser.add_argument(
-        "--res",
-        type=int,
-        help="Resize the image to resolution before inference.",
-    )
-    parser.add_argument(
         "--output_json",
         default=False,
         type=bool,
@@ -86,7 +81,6 @@ def main(
     split_info_pth: Path,
     iou: float,
     conf: float,
-    res: int | None,
     output_json: bool,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -154,6 +148,5 @@ if __name__ == "__main__":
         args.split_info_pth,
         args.iou,
         args.conf,
-        args.res,
         args.output_json,
     )
