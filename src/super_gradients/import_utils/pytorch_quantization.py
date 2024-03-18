@@ -33,7 +33,11 @@ def __fixed_conv_transpose_2d_forward(self, input, output_size=None):
 
 
 def __HistogramCalibrator_collect(self, x):
-    """Collect histogram"""
+    """Collect histogram.
+    This implementation is a copy of the original method from pytorch_quantization.calib.histogram.HistogramCalibrator
+    which does computation in double-precision to prevent overflow.
+
+    """
     from absl import logging
 
     if torch.min(x) < 0.0:
@@ -90,7 +94,9 @@ def __HistogramCalibrator_collect(self, x):
 
 
 def __HistogramCalibrator_compute_amax(self, method: str, *, stride: int = 1, start_bin: int = 128, percentile: float = 99.99):
-    """Compute the amax from the collected histogram
+    """Compute the amax from the collected histogram.
+    This implementation is a copy of the original method from pytorch_quantization.calib.histogram.HistogramCalibrator
+    which does computation in long type to prevent overflow.
 
     Args:
         method: A string. One of ['entropy', 'mse', 'percentile']
