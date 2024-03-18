@@ -396,7 +396,7 @@ class Trainer:
         return model, valid_metrics_dict
 
     @classmethod
-    @deprecated(deprecated_since="3.6.2", removed_from="3.7.0", target=evaluate_from_config)
+    @deprecated(deprecated_since="3.6.2", removed_from="3.8.0", target=evaluate_from_config)
     def evaluate_from_recipe(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
         return cls.evaluate_from_config(cfg)
 
