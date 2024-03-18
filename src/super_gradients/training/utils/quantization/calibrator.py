@@ -65,7 +65,7 @@ class QuantizationCalibrator:
                 self._collect_stats(model, calib_data_loader, num_batches=num_calib_batches)
                 # FOR PERCENTILE WE MUST PASS PERCENTILE VALUE THROUGH KWARGS,
                 # SO IT WOULD BE PASSED TO module.load_calib_amax(**kwargs), AND IN OTHER METHODS WE MUST NOT PASS IT.
-                if method == "precentile":
+                if method == "percentile":
                     self._compute_amax(model, method="percentile", percentile=percentile)
                 else:
                     self._compute_amax(model, method=method)
