@@ -94,26 +94,41 @@ def save_predictions(model, images, file_name, output_dir, output_json):
         logging.debug(f"Saved in: {output_image_path}.")
 
         if output_json:
-            save_json_output(output, output_image_path)
+            save_json_output(output, output_image_path, file_name)
 
 
-def get_dict_output(output):
-    """Get output prediction details in dictionary format."""
-    dict_output = {
-        "class_names": output.class_names,
-        "bboxes_xyxy": output.prediction.bboxes_xyxy.tolist(),
-        "confidence": output.prediction.confidence.tolist(),
-        "labels": output.prediction.labels.tolist(),
-        "image_shape": output.prediction.image_shape,
-    }
-    return dict_output
+def get_json_output(output, file_name):
+    """Get output prediction details in json-compatible format."""
+    json_output = []
+    height, width = output.image.shape[:2]
+    for bbox_xyxy, confidence, label in zip(output.prediction.bboxes_xyxy, output.prediction.confidence, output.prediction.labels):
+        x1, y1, x2, y2 = bbox_xyxy
+        x1, x2 = x1 / width, x2 / width
+        y1, y2 = y1 / height, y2 / height
+        points = [[x1, y1], [x2, y1], [x2, y2], [x1, y2]]
+        json_output.append({
+            "type": output.class_names[int(label)],
+            "element_id": None,
+            "metadata": {
+                "detection_class_prob": confidence * 100,
+                "page_number": 1,
+                "filename": file_name,
+                "coordinates": {
+                    "layout_height": 1,
+                    "layout_width": 1,
+                    "points": points
+                }
+            }
+        })
+
+    return json_output
 
 
-def save_json_output(output, output_path):
+def save_json_output(output, output_path, file_name):
     """Save output prediction details in JSON format."""
     out_json_path = output_path.with_suffix(".json")
-    dict_output = get_dict_output(output)
-    dump_json(path=out_json_path, data=dict_output)
+    json_output = get_json_output(output, file_name)
+    dump_json(path=out_json_path, data=json_output)
     logging.debug(f"Saved in: {out_json_path}")
 
 

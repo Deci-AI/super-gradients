@@ -18,7 +18,7 @@ def load_json(path: Path) -> Any:
 
 def dump_json(path: Path, data: Any) -> None:
     with open(path, "w") as file:
-        json.dump(data, file)
+        json.dump(data, file, indent=4)
 
 
 def load_txt_with_json(path: Path) -> Any:
