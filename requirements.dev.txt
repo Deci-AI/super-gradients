@@ -1,5 +1,5 @@
 flake8==5.0.4
-black==22.10.0
+black==24.3.0
 pre-commit==2.20.0
 gitpython>=3.1.0
 ipykernel==6.25
