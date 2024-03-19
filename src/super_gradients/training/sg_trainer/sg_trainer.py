@@ -674,7 +674,8 @@ class Trainer:
         # BUILD THE state_dict
         state = {
             "net": unwrap_model(self.net).state_dict(),
-            "acc": curr_tracked_metric,
+            "acc": curr_tracked_metric,  # LEFT FOR BACKWARD COMPATIBILITY
+            "best_metric_achieved": self.best_metric,
             "epoch": epoch,
             "metrics": all_metrics,
             "packages": get_installed_packages(),
@@ -1870,9 +1871,14 @@ class Trainer:
                     "well. It "
                     " will only be loaded during validation when training with ema=True. "
                 )
+        if "best_metric_achieved" not in self.checkpoint.keys() and "acc" in self.checkpoint.keys():
+            logger.warning("Trying to resume checkpoints from versions earlier then 3.6.3 might result in wrong " "best_metric.")
+            #  FALLBACK SO THAT WE GET THE LAST METRIC TO WATCH ACHIEVED WHICH IS PRESUMABLY BETTER THEN NOTHING
+            self.checkpoint["best_metric_achieved"] = self.checkpoint["acc"]
 
-        # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS
-        self.best_metric = self.checkpoint["acc"] if "acc" in self.checkpoint.keys() else -1
+        # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS'
+        self.best_metric = self.checkpoint["best_metric_achieved"] if "best_metric_achieved" in self.checkpoint.keys() else -1
+
         self.start_epoch = self.checkpoint["epoch"] if "epoch" in self.checkpoint.keys() else 0
 
     def _prep_for_test(
