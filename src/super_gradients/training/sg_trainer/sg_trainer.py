@@ -1872,7 +1872,7 @@ class Trainer:
                     " will only be loaded during validation when training with ema=True. "
                 )
         if "best_metric_achieved" not in self.checkpoint.keys() and "acc" in self.checkpoint.keys():
-            logger.warning("Trying to resume checkpoints from versions earlier then 3.6.3 might result in wrong " "best_metric.")
+            logger.warning("Trying to resume checkpoints from versions earlier then 3.7 might result in wrong " "best_metric.")
             #  FALLBACK SO THAT WE GET THE LAST METRIC TO WATCH ACHIEVED WHICH IS PRESUMABLY BETTER THEN NOTHING
             self.checkpoint["best_metric_achieved"] = self.checkpoint["acc"]
 
