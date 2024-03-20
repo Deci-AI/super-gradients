@@ -12,6 +12,7 @@ from super_gradients.training.utils.utils import get_image_size_from_path
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.common.abstractions.abstract_logger import get_logger
+import xml.etree.ElementTree as ET
 
 logger = get_logger(__name__)
 
@@ -127,6 +128,7 @@ class PascalVOCFormatDetectionDataset(DetectionDataset):
         show_all_warnings: bool = False,
         cache=None,
         cache_dir=None,
+        label_file_ext: str = "xml",
     ):
         """
         Initialize the Pascal VOC Detection Dataset.
@@ -137,6 +139,10 @@ class PascalVOCFormatDetectionDataset(DetectionDataset):
 
         self.images_dir = os.path.join(data_dir, images_dir)
         self.labels_dir = os.path.join(data_dir, labels_dir)
+
+        if label_file_ext not in ["xml", "txt"]:
+            raise TypeError("Only .xml and .txt annotation files are supported.")
+        self.label_file_ext = label_file_ext
 
         super(PascalVOCFormatDetectionDataset, self).__init__(
             data_dir=data_dir,
@@ -187,8 +193,10 @@ class PascalVOCFormatDetectionDataset(DetectionDataset):
                     - img_path
         """
         img_path, target_path = self.img_and_target_path_list[sample_id]
-        with open(target_path, "r") as file:
-            target = np.array([x.split() for x in file.read().splitlines()], dtype=np.float32)
+        if self.label_file_ext == "txt":
+            target = self.load_txt_annotation(target_path)
+        else:
+            target = self.load_xml_annotation(target_path)
 
         height, width = get_image_size_from_path(img_path)
         r = min(self.input_dim[1] / height, self.input_dim[0] / width)
@@ -196,3 +204,54 @@ class PascalVOCFormatDetectionDataset(DetectionDataset):
         resized_img_shape = (int(height * r), int(width * r))
 
         return {"img_path": img_path, "target": target, "resized_img_shape": resized_img_shape}
+
+    @staticmethod
+    def load_txt_annotation(target_path: str) -> np.ndarray:
+        """Load target annotations from a text file.
+
+        This method reads bounding box coordinates and class labels from a given text file.
+         The expected format in the file is one bounding box per line, with each line containing the bounding box coordinates
+          in XYXY format followed by the class label, all separated by spaces.
+
+
+        :param target_path: (str): The file path from which to load the annotation.
+
+        :return:np.ndarray: A numpy array of targets, where each target
+         is represented as a row with bounding box coordinates in XYXY format followed by the class label.
+        """
+        with open(target_path, "r") as file:
+            target = np.array([x.split() for x in file.read().splitlines()], dtype=np.float32)
+        return target
+
+    @staticmethod
+    def load_xml_annotation(target_path: str) -> np.ndarray:
+        """Load target annotations from an XML file in Pascal VOC format.
+
+        This method parses an XML file to extract bounding box coordinates and
+         class labels for each object annotated in the image. The expected XML structure follows the Pascal VOC format,
+          with each object's bounding box specified in terms of xmin, ymin, xmax, ymax.
+
+        :param target_path: (str): The file path from which to load the XML annotation.
+
+        :return: np.ndarray: A numpy array of targets,
+         where each target is represented as a row.
+          Each row contains bounding box coordinates in XYXY format followed by the class label.
+        """
+        tree = ET.parse(target_path)
+        root = tree.getroot()
+
+        annotations = []
+        for obj in root.iter("object"):
+            class_label = obj.find("name").text
+            # Convert class label to a numeric value if necessary, e.g., using a mapping dictionary
+            # class_id = class_label_mapping[class_label]
+
+            bndbox = obj.find("bndbox")
+            xmin = float(bndbox.find("xmin").text)
+            ymin = float(bndbox.find("ymin").text)
+            xmax = float(bndbox.find("xmax").text)
+            ymax = float(bndbox.find("ymax").text)
+
+            annotations.append([xmin, ymin, xmax, ymax, class_label])  # Replace class_label with class_id if using numeric labels
+
+        return np.array(annotations, dtype=np.float32)
