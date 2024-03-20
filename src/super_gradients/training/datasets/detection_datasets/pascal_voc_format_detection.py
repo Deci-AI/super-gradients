@@ -223,8 +223,7 @@ class PascalVOCFormatDetectionDataset(DetectionDataset):
             target = np.array([x.split() for x in file.read().splitlines()], dtype=np.float32)
         return target
 
-    @staticmethod
-    def load_xml_annotation(target_path: str) -> np.ndarray:
+    def load_xml_annotation(self, target_path: str) -> np.ndarray:
         """Load target annotations from an XML file in Pascal VOC format.
 
         This method parses an XML file to extract bounding box coordinates and
@@ -243,6 +242,7 @@ class PascalVOCFormatDetectionDataset(DetectionDataset):
         annotations = []
         for obj in root.iter("object"):
             class_label = obj.find("name").text
+            class_label_ind = self.all_classes_list.index(str(class_label))
             # Convert class label to a numeric value if necessary, e.g., using a mapping dictionary
             # class_id = class_label_mapping[class_label]
 
@@ -252,6 +252,6 @@ class PascalVOCFormatDetectionDataset(DetectionDataset):
             xmax = float(bndbox.find("xmax").text)
             ymax = float(bndbox.find("ymax").text)
 
-            annotations.append([xmin, ymin, xmax, ymax, class_label])  # Replace class_label with class_id if using numeric labels
+            annotations.append([xmin, ymin, xmax, ymax, class_label_ind])  # Replace class_label with class_id if using numeric labels
 
         return np.array(annotations, dtype=np.float32)
