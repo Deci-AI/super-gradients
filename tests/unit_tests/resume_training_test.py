@@ -2,6 +2,8 @@ import os
 import unittest
 from copy import deepcopy
 
+from torchmetrics import Metric
+
 from super_gradients.training import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
@@ -9,6 +11,7 @@ from super_gradients.training.utils.callbacks import PhaseCallback, Phase, Phase
 from super_gradients.training.utils.utils import check_models_have_same_weights
 from super_gradients.training.models import LeNet
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_latest_run_id
+import torch
 
 
 class FirstEpochInfoCollector(PhaseCallback):
@@ -23,6 +26,38 @@ class FirstEpochInfoCollector(PhaseCallback):
             self.first_epoch = context.epoch
             self.first_epoch_net = deepcopy(context.net)
             self.called = True
+
+
+class DummyEpoch(Metric):
+    """
+    Dummy metric that returns the latest epoch number
+    """
+
+    def __init__(self):
+        super(DummyEpoch, self).__init__()
+        self.add_state("curr_epoch", default=torch.tensor(0.0))
+
+    def update(self, epoch: int):
+        self.curr_epoch = torch.tensor(epoch)
+
+    def compute(self) -> torch.Tensor:
+        return self.curr_epoch
+
+
+class DummyMetric1(Metric):
+    """
+    Dummy metric that always returns 1
+    """
+
+    def __init__(self):
+        super(DummyMetric1, self).__init__()
+        self.add_state("curr_val", default=torch.tensor(0.0))
+
+    def update(self, epoch: int):
+        self.curr_val = torch.tensor(1.0)
+
+    def compute(self) -> torch.Tensor:
+        return self.curr_val
 
 
 class ResumeTrainingTest(unittest.TestCase):
@@ -237,6 +272,59 @@ class ResumeTrainingTest(unittest.TestCase):
             len(os.listdir(experiment_dir)),
             "Using resume_path should create a new run folder",
         )
+
+    def test_resume_training_different_metric_to_watch(self):
+        """
+        Tests that if we switch metrics when returning the best_metric
+         is properly extracted by performing additional test
+        """
+        train_params = {
+            "max_epochs": 3,
+            "lr_updates": [1],
+            "lr_decay_factor": 0.1,
+            "lr_mode": "StepLRScheduler",
+            "lr_warmup_epochs": 0,
+            "initial_lr": 0.1,
+            "loss": "CrossEntropyLoss",
+            "optimizer": "SGD",
+            "criterion_params": {},
+            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+            "train_metrics_list": [],
+            "valid_metrics_list": [DummyEpoch()],
+            "metric_to_watch": "DummyEpoch",
+            "greater_metric_to_watch_is_better": True,
+            "average_best_models": False,
+        }
+
+        # Define Model
+        net = LeNet()
+        trainer = Trainer("test_resume_training")
+        trainer.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
+        self.assertEqual(trainer.best_metric, 2)
+
+        # TRAIN FOR 1 MORE EPOCH AND COMPARE THE NET AT THE BEGINNING OF EPOCH 4 AND THE END OF EPOCH NUMBER 3
+        resume_net = LeNet()
+        trainer = Trainer("test_resume_training")
+        train_params["resume"] = True
+        train_params["max_epochs"] = 4
+
+        # CHANGE THE METRIC AND METRIC TO WATCH
+        train_params["valid_metrics_list"] = [DummyMetric1()]
+        train_params["metric_to_watch"] = "DummyMetric1"
+        first_epoch_cb = FirstEpochInfoCollector()
+        train_params["phase_callbacks"] = [first_epoch_cb]
+        trainer.train(
+            model=resume_net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
+
+        # ASSERT RELOADED MODEL HAS THE SAME WEIGHTS AS THE MODEL SAVED IN FIRST PART OF TRAINING
+        self.assertTrue(check_models_have_same_weights(net, first_epoch_cb.first_epoch_net))
+
+        # ASSERT WE START FROM THE RIGHT EPOCH NUMBER
+        self.assertTrue(first_epoch_cb.first_epoch == 3)
+
+        # EVEN THOUGH BEST METRIC IS BEFORE RESUME WAS 2 WE ARE SWITCHING METRICS SO THE BEST SHOULD BE 1
+        self.assertTrue(trainer.best_metric, 1)
 
 
 if __name__ == "__main__":

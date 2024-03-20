@@ -223,6 +223,7 @@ class Trainer:
 
         self._epoch_start_logging_values = {}
         self._torch_lr_scheduler = None
+        self._eval_before_resume = False
 
     @property
     def device(self) -> str:
@@ -1489,6 +1490,8 @@ class Trainer:
 
         self._maybe_set_preprocessing_params_for_model_from_dataset()
 
+        self._maybe_eval_before_resume(context, silent_mode)
+
         try:
             # HEADERS OF THE TRAINING PROGRESS
             if not silent_mode:
@@ -1647,6 +1650,34 @@ class Trainer:
 
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
+
+    def _maybe_eval_before_resume(self, context, silent_mode):
+        if self._eval_before_resume:
+            if not silent_mode:
+                logger.info(f"Couldn't fetch {self.metric_to_watch} from the checkpoint.\n Running test on the " f"validation data before resuming training...")
+            if self.ema:
+                keep_model = self.net
+                self.net = self.ema_model.ema
+
+            self.net.eval()
+            self._reset_metrics()
+            self.valid_metrics.to(device_config.device)
+            valid_metrics_dict = self.evaluate(
+                data_loader=self.valid_loader,
+                metrics=self.valid_metrics,
+                evaluation_type=EvaluationType.TEST,
+                silent_mode=silent_mode,
+            )
+            self._save_checkpoint(
+                optimizer=self.optimizer,
+                epoch=self.start_epoch,
+                train_metrics_dict=valid_metrics_dict,
+                validation_results_dict=valid_metrics_dict,
+                context=context,
+            )
+
+            if self.ema:
+                self.net = keep_model
 
     def _maybe_set_preprocessing_params_for_model_from_dataset(self):
         processing_params = self._get_preprocessing_from_valid_loader()
@@ -1872,7 +1903,12 @@ class Trainer:
                 )
 
         # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS
-        self.best_metric = self.checkpoint["acc"] if "acc" in self.checkpoint.keys() else -1
+        checkpoint_valid_metrics_dict = get_param(get_param(self.checkpoint, "metrics"), "valid")
+        if self.load_checkpoint or resume_path:
+            if checkpoint_valid_metrics_dict is None or self.metric_to_watch not in checkpoint_valid_metrics_dict.keys():
+                self._eval_before_resume = True
+            else:
+                self.best_metric = checkpoint_valid_metrics_dict[self.metric_to_watch]
         self.start_epoch = self.checkpoint["epoch"] if "epoch" in self.checkpoint.keys() else 0
 
     def _prep_for_test(
