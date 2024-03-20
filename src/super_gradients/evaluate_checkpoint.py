@@ -7,9 +7,9 @@ Use this script if:
 
 Don't use this script if:
     - You want to train and evaluate a model (use examples/train_from_recipe_example)
-    - You want to evaluate a pretrained model from model zoo (use examples/evaluate_from_recipe_example)
+    - You want to evaluate a pretrained model from model zoo (use examples/evaluate_from_config_example)
     - You want to evaluate a checkpoint from one of your previous experiment, but with different validation parameters
-        such as dataset params or metrics for instance (use examples/evaluate_from_recipe_example)
+        such as dataset params or metrics for instance (use examples/evaluate_from_config_example)
 
 Note:
     The parameters will be unchanged even if the recipe used for that experiment was changed since then.

@@ -110,7 +110,7 @@ from super_gradients.module_interfaces import (
     QuantizationResult,
 )
 from super_gradients.conversion import ExportQuantizationMode, ExportParams
-from super_gradients.common.deprecate import deprecated_parameter
+from super_gradients.common.deprecate import deprecated_parameter, deprecated
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 
 logger = get_logger(__name__)
@@ -328,7 +328,7 @@ class Trainer:
         return cls.train_from_config(cfg)
 
     @classmethod
-    def evaluate_from_recipe(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
+    def evaluate_from_config(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
         """
         Evaluate according to a cfg recipe configuration.
 
@@ -398,13 +398,18 @@ class Trainer:
         return model, valid_metrics_dict
 
     @classmethod
+    @deprecated(deprecated_since="3.6.2", removed_from="3.8.0", target=evaluate_from_config)
+    def evaluate_from_recipe(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
+        return cls.evaluate_from_config(cfg)
+
+    @classmethod
     def evaluate_checkpoint(
         cls,
         experiment_name: str,
         ckpt_name: str = "ckpt_latest.pth",
         ckpt_root_dir: Optional[str] = None,
         run_id: Optional[str] = None,
-    ) -> None:
+    ) -> Tuple[nn.Module, Tuple]:
         """
         Evaluate a checkpoint resulting from one of your previous experiment, using the same parameters (dataset, valid_metrics,...)
         as used during the training of the experiment
@@ -431,7 +436,7 @@ class Trainer:
         cfg = load_experiment_cfg(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)
 
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
-        cls.evaluate_from_recipe(cfg)
+        return cls.evaluate_from_config(cfg)
 
     def _net_to_device(self):
         """
