@@ -28,20 +28,23 @@ class FirstEpochInfoCollector(PhaseCallback):
             self.called = True
 
 
-class DummyEpoch(Metric):
+class DummyEpochMetric(Metric):
     """
-    Dummy metric that returns the latest epoch number
+    Dummy metric that returns 10 if epoch is smaller then 3 else 2
     """
 
     def __init__(self):
-        super(DummyEpoch, self).__init__()
+        super(DummyEpochMetric, self).__init__()
         self.add_state("curr_epoch", default=torch.tensor(0.0))
 
     def update(self, epoch: int):
         self.curr_epoch = torch.tensor(epoch)
 
     def compute(self) -> torch.Tensor:
-        return self.curr_epoch
+        if self.curr_epoch < 3:
+            return torch.tensor(10)
+        else:
+            return torch.tensor(2)
 
 
 class DummyMetric1(Metric):
@@ -276,10 +279,12 @@ class ResumeTrainingTest(unittest.TestCase):
     def test_resume_training_different_metric_to_watch(self):
         """
         Tests that if we switch metrics when returning the best_metric
-         is properly extracted by performing additional test
+         is properly extracted by performing additional test.
+         We use the dummy epoch metric that will not be optimal in the latest checkpoint on purpose - to check we are
+          not just using the latest metric.
         """
         train_params = {
-            "max_epochs": 3,
+            "max_epochs": 4,
             "lr_updates": [1],
             "lr_decay_factor": 0.1,
             "lr_mode": "StepLRScheduler",
@@ -290,8 +295,8 @@ class ResumeTrainingTest(unittest.TestCase):
             "criterion_params": {},
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [],
-            "valid_metrics_list": [DummyEpoch()],
-            "metric_to_watch": "DummyEpoch",
+            "valid_metrics_list": [DummyEpochMetric()],
+            "metric_to_watch": "DummyEpochMetric",
             "greater_metric_to_watch_is_better": True,
             "average_best_models": False,
         }
@@ -300,13 +305,15 @@ class ResumeTrainingTest(unittest.TestCase):
         net = LeNet()
         trainer = Trainer("test_resume_training")
         trainer.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
-        self.assertEqual(trainer.best_metric, 2)
+
+        # BEST METRIC WILL BE 3 SINCE AT EPOCH 4 IT WILL BE 10 (THIS IS DONE TO CHECK WE ARE NOT TAKING JUST THE LATEST)
+        self.assertEqual(trainer.best_metric, 10)
 
         # TRAIN FOR 1 MORE EPOCH AND COMPARE THE NET AT THE BEGINNING OF EPOCH 4 AND THE END OF EPOCH NUMBER 3
         resume_net = LeNet()
         trainer = Trainer("test_resume_training")
         train_params["resume"] = True
-        train_params["max_epochs"] = 4
+        train_params["max_epochs"] = 5
 
         # CHANGE THE METRIC AND METRIC TO WATCH
         train_params["valid_metrics_list"] = [DummyMetric1()]
@@ -321,7 +328,7 @@ class ResumeTrainingTest(unittest.TestCase):
         self.assertTrue(check_models_have_same_weights(net, first_epoch_cb.first_epoch_net))
 
         # ASSERT WE START FROM THE RIGHT EPOCH NUMBER
-        self.assertTrue(first_epoch_cb.first_epoch == 3)
+        self.assertTrue(first_epoch_cb.first_epoch == 4)
 
         # EVEN THOUGH BEST METRIC IS BEFORE RESUME WAS 2 WE ARE SWITCHING METRICS SO THE BEST SHOULD BE 1
         self.assertTrue(trainer.best_metric, 1)

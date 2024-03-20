@@ -224,6 +224,7 @@ class Trainer:
         self._epoch_start_logging_values = {}
         self._torch_lr_scheduler = None
         self._eval_before_resume = False
+        self._best_ckpt_metrics = None
 
     @property
     def device(self) -> str:
@@ -679,6 +680,7 @@ class Trainer:
             "epoch": epoch,
             "metrics": all_metrics,
             "packages": get_installed_packages(),
+            "_best_ckpt_metrics": self._best_ckpt_metrics,
         }
 
         if optimizer is not None:
@@ -710,6 +712,8 @@ class Trainer:
         ):
             # STORE THE CURRENT metric AS BEST
             self.best_metric = curr_tracked_metric
+
+            self._best_ckpt_metrics = all_metrics
             self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
             # RUN PHASE CALLBACKS
@@ -1903,12 +1907,12 @@ class Trainer:
                 )
 
         # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS
-        checkpoint_valid_metrics_dict = get_param(get_param(self.checkpoint, "metrics"), "valid")
+        _best_ckpt_metrics = get_param(self.checkpoint, "_best_ckpt_metrics")
         if self.load_checkpoint or resume_path:
-            if checkpoint_valid_metrics_dict is None or self.metric_to_watch not in checkpoint_valid_metrics_dict.keys():
+            if _best_ckpt_metrics is None or self.metric_to_watch != _best_ckpt_metrics["tracked_metric_name"]:
                 self._eval_before_resume = True
             else:
-                self.best_metric = checkpoint_valid_metrics_dict[self.metric_to_watch]
+                self.best_metric = _best_ckpt_metrics["valid"][self.metric_to_watch]
         self.start_epoch = self.checkpoint["epoch"] if "epoch" in self.checkpoint.keys() else 0
 
     def _prep_for_test(
