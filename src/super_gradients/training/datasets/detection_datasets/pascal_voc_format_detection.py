@@ -172,7 +172,7 @@ class PascalVOCFormatDetectionDataset(DetectionDataset):
         if len(img_files) == 0:
             raise FileNotFoundError(f"No image files found in {self.images_dir}")
 
-        target_files = [os.path.join(self.labels_dir, os.path.basename(img_file).replace(".jpg", ".txt")) for img_file in img_files]
+        target_files = [os.path.join(self.labels_dir, os.path.basename(img_file).replace(".jpg", f".{self.label_file_ext}")) for img_file in img_files]
 
         img_and_target_path_list = [(img_file, target_file) for img_file, target_file in zip(img_files, target_files) if os.path.exists(target_file)]
         if len(img_and_target_path_list) == 0:
