@@ -113,6 +113,7 @@ class SegmentationModelExportResult:
     A dataclass that holds the result of model export.
     """
 
+    batch_size: int
     input_image_channels: int
     input_image_dtype: torch.dtype
     input_image_shape: Tuple[int, int]
@@ -496,6 +497,7 @@ class ExportableSegmentationModel:
             usage_instructions.append(repr(postprocessing))
 
         return SegmentationModelExportResult(
+            batch_size=batch_size,
             input_image_channels=input_image_channels,
             input_image_dtype=input_image_dtype,
             input_image_shape=input_image_shape,
