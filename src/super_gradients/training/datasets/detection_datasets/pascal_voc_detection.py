@@ -138,6 +138,7 @@ class PascalVOCDetectionDataset(PascalVOCFormatDetectionDataset):
             cache=cache,
             cache_dir=cache_dir,
             all_classes_list=PASCAL_VOC_2012_CLASSES_LIST,
+            label_file_ext="txt",
         )
 
     @staticmethod
