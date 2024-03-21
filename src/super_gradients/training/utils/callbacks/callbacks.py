@@ -1380,8 +1380,10 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
         inputs *= 255
         inputs = inputs.to(torch.uint8)
         inputs = inputs.cpu().numpy()
-        inputs = inputs[:, ::-1, :, :].transpose(0, 2, 3, 1)
-        inputs = np.ascontiguousarray(inputs, dtype=np.uint8)
+        if inputs.shape[1] == 3:
+            inputs = inputs[:, ::-1, :, :]
+
+        inputs = np.ascontiguousarray(inputs.transpose(0, 2, 3, 1), dtype=np.uint8)
         return inputs
 
     def process_extreme_batch(self) -> np.ndarray:

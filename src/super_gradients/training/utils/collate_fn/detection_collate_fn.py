@@ -26,9 +26,12 @@ class DetectionCollateFN:
 
     @staticmethod
     def _format_images(images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+        # Add dummy channel if missing
+        images_batch = [np.expand_dims(img, -1) if len(img.shape) == 2 else img for img in images_batch]
+
         images_batch = [torch.tensor(img) for img in images_batch]
         images_batch_stack = torch.stack(images_batch, 0)
-        if images_batch_stack.shape[3] == 3:
+        if images_batch_stack.shape[3] in {1, 3}:
             images_batch_stack = torch.moveaxis(images_batch_stack, -1, 1).float()
         return images_batch_stack
 

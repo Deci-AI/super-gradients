@@ -496,6 +496,9 @@ class DetectionVisualization:
         image_name: Optional[str] = None,
     ):
         image_np = cv2.resize(image_np, (0, 0), fx=image_scale, fy=image_scale, interpolation=cv2.INTER_NEAREST)
+        if len(image_np.shape) == 2 or image_np.shape[2] == 1:
+            image_np = cv2.cvtColor(image_np, cv2.COLOR_GRAY2RGB)
+
         color_mapping = DetectionVisualization._generate_color_mapping(len(class_names))
 
         if pred_boxes is not None:
@@ -524,17 +527,17 @@ class DetectionVisualization:
             else:
                 image_with_targets = image_np
 
-            for label_xyxy in target_boxes:
+            for label, x1, y1, x2, y2 in target_boxes:
                 image_with_targets = DetectionVisualization.draw_box_title(
                     color_mapping=color_mapping,
                     class_names=class_names,
                     box_thickness=box_thickness,
                     image_np=image_with_targets,
-                    x1=int(label_xyxy[1]),
-                    y1=int(label_xyxy[2]),
-                    x2=int(label_xyxy[3]),
-                    y2=int(label_xyxy[4]),
-                    class_id=int(label_xyxy[0]),
+                    x1=int(x1),
+                    y1=int(y1),
+                    x2=int(x2),
+                    y2=int(y2),
+                    class_id=int(label),
                     bbox_prefix="[GT]" if pred_boxes is not None else "",  # If we have PREDICTIONS, we want to add a prefix to distinguish.
                 )
 
@@ -625,7 +628,7 @@ class DetectionVisualization:
         out_images = []
         for i in range(image_np.shape[0]):
             preds = pred_boxes[i].detach().cpu().numpy() if pred_boxes[i] is not None else np.empty((0, 6))
-            targets_cur = targets[targets[:, 0] == i]
+            targets_cur = targets[targets[:, 0] == i][:, 1:]
 
             image_name = "_".join([str(batch_name), str(i)])
             res_image = DetectionVisualization._visualize_image(

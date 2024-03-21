@@ -319,11 +319,12 @@ class DetectionDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
         """Sublass targets of a specific image.
 
         :param targets:     Target array to subclass of shape [n_targets, 5], 5 representing a bbox
-        :param class_index:    Position of the class id in a bbox
-                                ex: 0 if bbox of format label_xyxy | -1 if bbox of format xyxy_label
+        :param class_index: Position of the class id in a bbox
+                            ex: 0 if bbox of format label_xyxy | -1 if bbox of format xyxy_label
         :return:            Subclassed target
         """
         targets_kept = []
+        targets = targets.copy()  # This is to prevent modification of the input argument
         for target in targets:
             cls_id = int(target[class_index])
             cls_name = self.all_classes_list[cls_id]
@@ -354,7 +355,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
         :return:            Image in BGR format, and channel last (HWC).
         """
         img_file = os.path.join(image_path)
-        img = cv2.imread(img_file)
+        # TODO: Make this an argument
+        img = cv2.imread(img_file, cv2.IMREAD_UNCHANGED)
 
         if img is None:
             raise FileNotFoundError(f"{img_file} was no found. Please make sure that the dataset was" f"downloaded and that the path is correct")
