@@ -1159,7 +1159,7 @@ class DetectionRGB2BGR(AbstractDetectionTransform, LegacyDetectionTransformMixin
         self.prob = float(prob)
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        if len(sample.image.shape) != 3 or sample.image.shape[2] < 3:
+        if len(sample.image.shape) != 3 or sample.image.shape[2] != 3:
             raise ValueError("DetectionRGB2BGR transform expects image to have 3 channels, got input image shape: " + str(sample.image.shape))
         if random.random() < self.prob:
             sample = DetectionSample(
