@@ -4,7 +4,7 @@ import os
 import typing
 import warnings
 from copy import deepcopy
-from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
+from typing import Union, Tuple, Mapping, Dict, Any, List, Optional, Sequence
 
 import hydra
 import numpy as np
@@ -55,6 +55,7 @@ from super_gradients.training.metrics.metric_utils import (
     get_metrics_dict,
     get_train_loop_description_dict,
 )
+from super_gradients.common.sg_loggers.metric_outputs import MetricOutput, get_scalar_metric_outputs
 from super_gradients.training.models import SgModule, get_model_name
 from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
@@ -455,7 +456,7 @@ class Trainer:
             local_rank = int(device_config.device.split(":")[1])
             self.net = torch.nn.parallel.DistributedDataParallel(self.net, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
 
-    def _train_epoch(self, context: PhaseContext, silent_mode: bool = False) -> tuple:
+    def _train_epoch(self, context: PhaseContext, silent_mode: bool = False) -> Sequence[MetricOutput]:
         """
         train_epoch - A single epoch training procedure
             :param optimizer:   The optimizer for the network
@@ -513,7 +514,7 @@ class Trainer:
                 self._backward_step(loss, context.epoch, batch_idx, context)
 
                 # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                logging_values = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
+                logging_values: Sequence[MetricOutput] = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
                 gpu_memory_utilization = get_gpu_mem_utilization() / 1e9 if torch.cuda.is_available() else 0
 
                 # RENDER METRICS PROGRESS
@@ -667,14 +668,15 @@ class Trainer:
         # create metrics dict to save
         valid_metrics_titles = get_metrics_titles(self.valid_metrics)
 
+        # We only return the scalar values (plots are not dump)
         all_metrics = {
             "tracked_metric_name": self.metric_to_watch,
-            "valid": {metric_name: float(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles},
+            "valid": get_scalar_metric_outputs({metric_name: validation_results_dict[metric_name] for metric_name in valid_metrics_titles}),
         }
 
         if train_metrics_dict is not None:
             train_metrics_titles = get_metrics_titles(self.train_metrics)
-            all_metrics["train"] = {metric_name: float(train_metrics_dict[metric_name]) for metric_name in train_metrics_titles}
+            all_metrics["train"] = get_scalar_metric_outputs({metric_name: train_metrics_dict[metric_name] for metric_name in train_metrics_titles})
 
         # BUILD THE state_dict
         state = {
@@ -1754,7 +1756,7 @@ class Trainer:
         unwrap_model(self.net).load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
         context.update_context(epoch=self.max_epochs)
-        averaged_model_results_dict = self._validate_epoch(context=context)
+        averaged_model_results_dict: Dict[str, MetricOutput] = self._validate_epoch(context=context)
         self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
             monitored_values_dict=self.valid_monitored_values,
             new_values_dict=averaged_model_results_dict,
@@ -1765,7 +1767,7 @@ class Trainer:
 
         if not self.ddp_silent_mode:
             write_struct = ""
-            for name, value in averaged_model_results_dict.items():
+            for name, value in get_scalar_metric_outputs(metric_outputs=averaged_model_results_dict).items():
                 write_struct += "%s: %.3f  \n  " % (name, value)
                 self.sg_logger.add_scalar(name, value, global_step=self.max_epochs)
 
@@ -2013,7 +2015,7 @@ class Trainer:
         }
         return hyper_param_config
 
-    def _write_scalars_to_logger(self, metrics: dict, epoch: int, inference_time: float, tag: str) -> None:
+    def _write_scalars_to_logger(self, metrics: Dict[str, MetricOutput], epoch: int, inference_time: float, tag: str) -> None:
         """
         Method for writing metrics and LR info to logger.
 
@@ -2024,9 +2026,8 @@ class Trainer:
         """
 
         if not self.ddp_silent_mode:
-            info_dict = {f"{tag} Inference Time": inference_time, **{f"{tag}_{k}": v for k, v in metrics.items()}}
-
-            self.sg_logger.add_scalars(tag_scalar_dict=info_dict, global_step=epoch)
+            info_dict: Dict[str, Any] = {"Inference Time": inference_time, **{k: v for k, v in metrics.items()}}
+            self.sg_logger.add_metric_outputs(metric_outputs=info_dict, global_step=epoch, tag=tag)
 
     def _get_epoch_start_logging_values(self) -> dict:
         """Get all the values that should be logged at the start of each epoch.
@@ -2051,7 +2052,7 @@ class Trainer:
         metrics_progress_verbose=False,
         test_phase_callbacks=None,
         use_ema_net=True,
-    ) -> Dict[str, float]:
+    ) -> Dict[str, MetricOutput]:
         """
         Evaluates the model on given dataloader and metrics.
         :param model: model to perfrom test on. When none is given, will try to use self.net (defalut=None).
@@ -2120,7 +2121,7 @@ class Trainer:
 
         return test_results
 
-    def _validate_epoch(self, context: PhaseContext, silent_mode: bool = False) -> Dict[str, float]:
+    def _validate_epoch(self, context: PhaseContext, silent_mode: bool = False) -> Dict[str, MetricOutput]:
         """
         Runs evaluation on self.valid_loader, with self.valid_metrics.
 
@@ -2172,7 +2173,7 @@ class Trainer:
         metrics_progress_verbose: bool = False,
         dataset_name: str = "",
         max_batches: Optional[int] = None,
-    ) -> Dict[str, float]:
+    ) -> Dict[str, MetricOutput]:
         """
         Evaluates the model on given dataloader and metrics.
 
@@ -2253,12 +2254,12 @@ class Trainer:
                     # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
                     if metrics_progress_verbose and not silent_mode:
                         # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                        logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                        logging_values: Sequence[MetricOutput] = get_logging_values(loss_avg_meter, metrics, self.criterion)
                         pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
                         progress_bar_data_loader.set_postfix(**pbar_message_dict)
 
-            logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+            logging_values: Sequence[MetricOutput] = get_logging_values(loss_avg_meter, metrics, self.criterion)
             # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
             if not metrics_progress_verbose:
                 # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
@@ -2267,7 +2268,7 @@ class Trainer:
                 progress_bar_data_loader.set_postfix(**pbar_message_dict)
 
             if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-                logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
+                logging_values: Sequence[MetricOutput] = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
 
         return get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 

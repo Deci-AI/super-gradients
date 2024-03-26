@@ -1,12 +1,12 @@
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
-from typing import Optional
+from typing import Optional, Dict, Union
 import torch
 import numpy as np
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.registry.registry import register_callback
 from super_gradients.common.object_names import Callbacks
-
+from super_gradients.common.sg_loggers.metric_outputs import MetricOutput, get_scalar_metric_outputs
 
 logger = get_logger(__name__)
 
@@ -74,7 +74,7 @@ class EarlyStop(PhaseCallback):
         torch_inf = torch.tensor(np.Inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
-    def _get_metric_value(self, metrics_dict):
+    def _get_metric_value(self, metrics_dict: Dict[str, MetricOutput]) -> Union[float, int, torch.Tensor]:
         if self.monitor_key not in metrics_dict.keys():
             msg = f"Can't find EarlyStop monitor {self.monitor_key} in metrics_dict: {metrics_dict.keys()}"
             exception_cls = RuntimeError if self.strict else MissingMonitorKeyException
@@ -121,7 +121,8 @@ class EarlyStop(PhaseCallback):
 
     def __call__(self, context: PhaseContext):
         try:
-            current = self._get_metric_value(context.metrics_dict)
+            # Only get the scalar metrics
+            current = self._get_metric_value(metrics_dict=get_scalar_metric_outputs(context.metrics_dict))
         except MissingMonitorKeyException as e:
             logger.warning(e)
             return

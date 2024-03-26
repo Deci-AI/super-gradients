@@ -4,7 +4,7 @@ import os
 import shutil
 import signal
 import time
-from typing import Union, Any
+from typing import Union, Any, Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,6 +26,7 @@ from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogge
 from super_gradients.common.sg_loggers.time_units import TimeUnit
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils import sg_trainer_utils, get_param
+from super_gradients.common.sg_loggers.metric_outputs import MetricOutput, get_scalar_metric_outputs, get_plottable_metric_outputs
 
 logger = get_logger(__name__)
 
@@ -168,6 +169,15 @@ class BaseSGLogger(AbstractSGLogger):
 
         self.tensorboard_writer.add_text(tag, json.dumps(config, indent=4, default=str).replace(" ", "&nbsp;").replace("\n", "  \n  "))
         self._write_to_log_file(log_lines)
+
+    @multi_process_safe
+    def add_metric_outputs(self, tag: str, metric_outputs: Dict[str, MetricOutput], global_step: int = None):
+
+        tagged_metric_outputs = {f"{tag}_{k}": v for k, v in metric_outputs.items()}
+        self.add_scalars(tag_scalar_dict=get_scalar_metric_outputs(metric_outputs=tagged_metric_outputs), global_step=global_step)
+
+        for metric_name, metric_output in get_plottable_metric_outputs(metric_outputs=metric_outputs).items():
+            self.add_image(tag=f"{tag}_{metric_name}", image=metric_output.image, global_step=global_step, data_format="HWC")
 
     @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: Union[int, TimeUnit] = None):

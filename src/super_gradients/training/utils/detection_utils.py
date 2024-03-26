@@ -5,6 +5,7 @@ import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional
+import matplotlib.pyplot as plt
 
 import cv2
 
@@ -1492,10 +1493,7 @@ def compute_detection_metrics_per_cls(
     mean_f1_per_threshold = torch.zeros(nb_score_thrs, device=device)
     best_score_threshold = torch.tensor(0.0, dtype=torch.float, device=device)
 
-    tps = preds_matched
-    fps = torch.logical_and(torch.logical_not(preds_matched), torch.logical_not(preds_to_ignore))
-
-    if len(tps) == 0:
+    if len(preds_matched) == 0:
         return (
             torch.zeros(nb_iou_thrs, device=device),
             torch.zeros(nb_iou_thrs, device=device),
@@ -1504,16 +1502,7 @@ def compute_detection_metrics_per_cls(
             best_score_threshold,
         )
 
-    # Sort by decreasing score
-    dtype = torch.uint8 if preds_scores.is_cuda and preds_scores.dtype is torch.bool else preds_scores.dtype
-    sort_ind = torch.argsort(preds_scores.to(dtype), descending=True)
-    tps = tps[sort_ind, :]
-    fps = fps[sort_ind, :]
-    preds_scores = preds_scores[sort_ind].contiguous()
-
-    # Rolling sum over the predictions
-    rolling_tps = torch.cumsum(tps, axis=0, dtype=torch.float)
-    rolling_fps = torch.cumsum(fps, axis=0, dtype=torch.float)
+    rolling_tps, rolling_fps = compute_rolling_values(preds_scores=preds_scores, preds_matched=preds_matched, preds_to_ignore=preds_to_ignore)
 
     rolling_recalls = rolling_tps / n_targets
     rolling_precisions = rolling_tps / (rolling_tps + rolling_fps + torch.finfo(torch.float64).eps)
@@ -1578,3 +1567,85 @@ def compute_detection_metrics_per_cls(
     ap = sampled_precision_points.mean(0)
 
     return ap, precision, recall, mean_f1_per_threshold, best_score_threshold
+
+
+def compute_rolling_values(preds_matched: torch.Tensor, preds_scores: torch.Tensor, preds_to_ignore: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Compute the rolling True Positives (TPs) and False Positives (FPs) across different scores.
+
+    This function is used to calculate the cumulative sum of TPs and FPs over all predictions,
+    sorted by their confidence scores in descending order. It assists in the calculation of
+    various metrics such as precision, recall, and F1 score across different thresholds.
+
+    :param preds_matched: Tensor of shape (num_predictions, n_iou_thresholds).
+                          True when a prediction is matched with a target with respect to
+                          the corresponding IoU threshold.
+    :param preds_scores: Tensor of shape (num_predictions), representing the confidence score
+                         for every prediction.
+    :param preds_to_ignore: Tensor of shape (num_predictions, n_iou_thresholds).
+                            True when a prediction is matched with a 'crowd' target or is to
+                            be ignored with respect to the corresponding IoU threshold.
+
+    :return: A tuple containing two tensors:
+             - rolling_tps: Tensor of shape (num_predictions, n_iou_thresholds) representing
+                            the cumulative sum of True Positives.
+             - rolling_fps: Tensor of shape (num_predictions, n_iou_thresholds) representing
+                            the cumulative sum of False Positives.
+    """
+
+    tps = preds_matched
+    fps = torch.logical_and(torch.logical_not(preds_matched), torch.logical_not(preds_to_ignore))
+
+    # Sort by decreasing score
+    dtype = torch.uint8 if preds_scores.is_cuda and preds_scores.dtype is torch.bool else preds_scores.dtype
+    sort_ind = torch.argsort(preds_scores.to(dtype), descending=True)
+    tps = tps[sort_ind, :]
+    fps = fps[sort_ind, :]
+
+    # Rolling sum over the predictions
+    rolling_tps = torch.cumsum(tps, axis=0, dtype=torch.float)
+    rolling_fps = torch.cumsum(fps, axis=0, dtype=torch.float)
+
+    return rolling_tps, rolling_fps
+
+
+def plot_2d_graph(
+    title: str,
+    x: List[float],
+    y: List[float],
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    xlim: Optional[Tuple[float, float]] = None,
+    ylim: Optional[Tuple[float, float]] = None,
+):
+    """
+    Generate a 2D plot from given x and y data and return the plot as an image array.
+
+    This function creates a 2D line plot using Matplotlib, with various customizable
+    aspects like axes labels, title, and axes limits. After plotting, it converts the
+    plot into a numpy array representing the image of the plot.
+
+    :param title: Title of the plot.
+    :param x: A list of floats representing the data points on the x-axis.
+    :param y: A list of floats representing the data points on the y-axis.
+    :param xlabel: Optional label for the x-axis.
+    :param ylabel: Optional label for the y-axis.
+    :param xlim: Optional tuple (min, max) to set the limits of the x-axis.
+    :param ylim: Optional tuple (min, max) to set the limits of the y-axis.
+
+    :return: A numpy array representing the RGB image of the plot.
+    """
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(x, y)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.set_title(title)
+
+    # Create a numpy array to store the image data
+    fig.canvas.draw()
+    image_data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    image_data = image_data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    return image_data

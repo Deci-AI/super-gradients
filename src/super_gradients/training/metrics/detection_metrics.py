@@ -9,6 +9,7 @@ import super_gradients
 import super_gradients.common.environment.ddp_utils
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
+from super_gradients.common.sg_loggers.metric_outputs import PlottableMetricOutput
 from super_gradients.training.utils import tensor_container_to_device
 from super_gradients.training.utils.detection_utils import (
     compute_detection_matching,
@@ -17,6 +18,8 @@ from super_gradients.training.utils.detection_utils import (
     EuclideanDistance,
     IoUMatching,
     DistanceMatching,
+    compute_rolling_values,
+    plot_2d_graph,
 )
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -144,6 +147,7 @@ class DetectionMetrics(Metric):
 
         if self.calc_best_score_thresholds and self.include_classwise_ap:
             self.component_names += self.best_threshold_per_class_names
+        self.component_names += ["precision_recall", "roc"]
 
         self.components = len(self.component_names)
 
@@ -202,13 +206,16 @@ class DetectionMetrics(Metric):
         """Compute the metrics for all the accumulated results.
         :return: Metrics of interest
         """
+        output_dict = {}
+
         mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold = -1.0, -1.0, -1.0, -1.0, -1.0
         accumulated_matching_info = getattr(self, self.state_key)
         best_score_threshold_per_cls = np.zeros(self.num_cls)
         mean_ap_per_class = np.zeros(self.num_cls)
 
         if len(accumulated_matching_info):
-            matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
+
+            preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
 
             # shape (n_class, nb_iou_thresh)
             (
@@ -220,7 +227,11 @@ class DetectionMetrics(Metric):
                 best_score_threshold,
                 best_score_thresholds_per_present_classes,
             ) = compute_detection_metrics(
-                *matching_info_tensors,
+                preds_matched=preds_matched,
+                preds_to_ignore=preds_to_ignore,
+                preds_scores=preds_scores,
+                preds_cls=preds_cls,
+                targets_cls=targets_cls,
                 recall_thresholds=self.recall_thresholds,
                 score_threshold=self.score_threshold,
                 device="cpu" if self.accumulate_on_cpu else self.device,
@@ -230,6 +241,7 @@ class DetectionMetrics(Metric):
             # results before version 3.0.4 (Dec 11 2022) were computed only for smallest value (i.e IoU 0.5 if metric is @0.5:0.95)
             mean_precision, mean_recall, mean_f1 = precision_per_present_classes.mean(), recall_per_present_classes.mean(), f1_per_present_classes.mean()
 
+            precision, recall = precision_per_present_classes.mean(0), recall_per_present_classes.mean(0)
             # MaP is averaged over IoU thresholds and over classes
             mean_ap = ap_per_present_classes.mean()
 
@@ -239,12 +251,48 @@ class DetectionMetrics(Metric):
                 mean_ap_per_class[class_index] = float(ap_per_class[i])
                 best_score_threshold_per_cls[class_index] = float(best_score_thresholds_per_present_classes[i])
 
-        output_dict = {
-            self.precision_metric_key: float(mean_precision),
-            self.recall_metric_key: float(mean_recall),
-            self.map_metric_key: float(mean_ap),
-            self.f1_metric_key: float(mean_f1),
-        }
+            # > COMPUTE PLOTS
+
+            # Compute rolling values
+            rolling_tps, rolling_fps = compute_rolling_values(preds_matched, preds_scores, preds_to_ignore)
+
+            # Calculate precision and recall for PR curve
+            precision = rolling_tps / (rolling_tps + rolling_fps + torch.finfo(torch.float64).eps)
+            recall = rolling_tps / len(targets_cls)
+
+            # Calculate TPR and FPR for ROC curve
+            total_predictions = preds_scores.size(0)
+            tpr = recall  # TPR is the same as recall
+            fpr = rolling_fps / total_predictions
+
+            output_dict["precision_recall"] = PlottableMetricOutput(
+                image=plot_2d_graph(
+                    title="Precision-Recall Curve",
+                    x=recall[:, 0],
+                    y=precision[:, 0],
+                    xlabel="Recall",
+                    ylabel="Precision",
+                    xlim=(0, 1),
+                    ylim=(0, 1),
+                ),
+            )
+
+            output_dict["roc"] = PlottableMetricOutput(
+                image=plot_2d_graph(
+                    title="ROC",
+                    x=fpr[:, 0],
+                    y=tpr[:, 0],
+                    xlabel="False Positive Rate",
+                    ylabel="True Positive Rate",
+                    xlim=(0, 1),
+                    ylim=(0, 1),
+                ),
+            )
+
+        output_dict[self.precision_metric_key] = float(mean_precision)
+        output_dict[self.recall_metric_key] = float(mean_recall)
+        output_dict[self.map_metric_key] = float(mean_ap)
+        output_dict[self.f1_metric_key] = float(mean_f1)
 
         if self.include_classwise_ap:
             for i, ap_i in enumerate(mean_ap_per_class):
