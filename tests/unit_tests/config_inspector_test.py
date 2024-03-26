@@ -113,9 +113,7 @@ class ConfigInspectTest(unittest.TestCase):
                 "encoder.pretrained",
                 "encoder.backbone",
                 "encoder.layers.0.blocks",
-                "encoder.layers.1",
                 "encoder.layers.1.blocks",
-                "encoder.layers.2",
                 "encoder.layers.2.blocks",
                 "encoder.layers.2.blocks",
             },
@@ -161,9 +159,7 @@ class ConfigInspectTest(unittest.TestCase):
                 "encoder.pretrained",
                 "encoder.backbone",
                 "encoder.layers.0.blocks",
-                "encoder.layers.1",
                 "encoder.layers.1.blocks",
-                "encoder.layers.2",
                 "encoder.layers.2.blocks",
                 "encoder.layers.2.blocks",
             },
@@ -209,9 +205,7 @@ class ConfigInspectTest(unittest.TestCase):
                 "encoder.pretrained",
                 "encoder.backbone",
                 "encoder.layers.0.blocks",
-                "encoder.layers.1",
                 "encoder.layers.1.blocks",
-                "encoder.layers.2",
                 "encoder.layers.2.blocks",
                 "encoder.layers.2.blocks",
             },
@@ -230,7 +224,7 @@ class ConfigInspectTest(unittest.TestCase):
             _ = architecture_cls(arch_params=tracked_arch_params)
 
         with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
-            arch_params.override(me_is_not_used=True)
+            arch_params.override({"me_is_not_used": True})
             with raise_if_unused_params(arch_params) as tracked_arch_params:
                 _ = architecture_cls(arch_params=tracked_arch_params)
 

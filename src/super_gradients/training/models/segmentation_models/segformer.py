@@ -542,7 +542,7 @@ class SegFormerB0(SegFormerCustom):
         """
 
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B0_PARAMS)
-        _arch_params.override(**arch_params.to_dict())
+        _arch_params.override(arch_params)
         super().__init__(_arch_params)
 
 
@@ -555,7 +555,7 @@ class SegFormerB1(SegFormerCustom):
         """
 
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B1_PARAMS)
-        _arch_params.override(**arch_params.to_dict())
+        _arch_params.override(arch_params)
         super().__init__(_arch_params)
 
 
@@ -568,7 +568,7 @@ class SegFormerB2(SegFormerCustom):
         """
 
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B2_PARAMS)
-        _arch_params.override(**arch_params.to_dict())
+        _arch_params.override(arch_params)
         super().__init__(_arch_params)
 
 
@@ -581,7 +581,7 @@ class SegFormerB3(SegFormerCustom):
         """
 
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B3_PARAMS)
-        _arch_params.override(**arch_params.to_dict())
+        _arch_params.override(arch_params)
         super().__init__(_arch_params)
 
 
@@ -594,7 +594,7 @@ class SegFormerB4(SegFormerCustom):
         """
 
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B4_PARAMS)
-        _arch_params.override(**arch_params.to_dict())
+        _arch_params.override(arch_params)
         super().__init__(_arch_params)
 
 
@@ -607,5 +607,5 @@ class SegFormerB5(SegFormerCustom):
         """
 
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B5_PARAMS)
-        _arch_params.override(**arch_params.to_dict())
+        _arch_params.override(arch_params)
         super().__init__(_arch_params)

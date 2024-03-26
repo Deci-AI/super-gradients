@@ -94,7 +94,7 @@ class COCOPoseRescoringNet(PoseRescoringNet):
 
         RESCORING_POSE_DEKR_ARCH_PARAMS = get_arch_params("pose_dekr_coco_rescoring_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(RESCORING_POSE_DEKR_ARCH_PARAMS))
-        merged_arch_params.override(**arch_params.to_dict())
+        merged_arch_params.override(arch_params)
         super().__init__(
             num_classes=merged_arch_params.num_classes,
             hidden_channels=merged_arch_params.hidden_channels,

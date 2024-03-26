@@ -471,7 +471,7 @@ class BeitBasePatch16_224(Beit):
         model_kwargs = HpmStruct(
             patch_size=(16, 16), embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, use_abs_pos_emb=False, use_rel_pos_bias=True, init_values=0.1
         )
-        model_kwargs.override(**arch_params.to_dict())
+        model_kwargs.override(arch_params)
         super(BeitBasePatch16_224, self).__init__(**model_kwargs.to_dict())
 
 
@@ -490,5 +490,5 @@ class BeitLargePatch16_224(Beit):
             init_values=1e-5,
         )
 
-        model_kwargs.override(**arch_params.to_dict())
+        model_kwargs.override(arch_params)
         super(BeitLargePatch16_224, self).__init__(**model_kwargs.to_dict())

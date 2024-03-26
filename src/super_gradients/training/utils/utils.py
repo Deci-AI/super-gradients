@@ -54,8 +54,11 @@ class HpmStruct:
     def set_schema(self, schema: dict):
         self.schema = schema
 
-    def override(self, **entries):
-        recursive_override(self.__dict__, entries)
+    def override(self, entries: Union[dict, "HpmStruct"]):
+        if isinstance(entries, dict):
+            recursive_override(self.__dict__, entries)
+        elif isinstance(entries, HpmStruct):
+            recursive_override(self.__dict__, entries.to_dict())
 
     def to_dict(self, include_schema=True) -> dict:
         """Convert this HpmStruct instance into a dict.
