@@ -1,0 +1,104 @@
+defaults:
+  - coco2017_yolo_nas_pose_s
+  - _self_
+  - variable_setup
+
+
+dataset_params:
+  train_dataset_params:
+    transforms:
+      - KeypointsRandomHorizontalFlip:
+          flip_index: ${dataset_params.flip_indexes}
+          prob: 0.5
+
+      - Albumentations:
+          Compose:
+            bbox_params:
+              min_area: 1
+              min_visibility: 0
+              min_width: 0
+              min_height: 0
+              check_each_transform: True
+            keypoint_params:
+            transforms:
+              - RandomBrightnessContrast:
+                  brightness_limit: [-0.3, 0.3]
+                  contrast_limit: [-0.3, 0.3]
+                  p: 0.75
+              - HueSaturationValue:
+                  hue_shift_limit: 25
+                  sat_shift_limit: 25
+                  val_shift_limit: 25
+                  p: 0.75
+              - Affine:
+                  scale: [0.5, 1.5]
+                  translate_percent:
+                    x: [-0.1, 0.1]
+                    y: [-0.1, 0.1]
+                  rotate: [-5, 5]
+                  cval: [127, 127, 127]
+                  cval_mask: 1
+                  interpolation: 1
+                  p: 1
+
+      - KeypointsMosaic:
+          prob: ${dataset_params.mosaic_prob}
+
+      - Albumentations:
+          Compose:
+            bbox_params:
+              min_area: 1
+              min_visibility: 0
+              min_width: 0
+              min_height: 0
+              check_each_transform: True
+            keypoint_params:
+            transforms:
+              - LongestMaxSize:
+                  max_size: [640, 640]
+                  p: 1
+              - PadIfNeeded:
+                  min_height: 640
+                  min_width: 640
+                  border_mode: 0
+                  value: [127, 127, 127]
+                  mask_value: 1
+                  p: 1
+
+      - KeypointsReverseImageChannels:
+          prob: 0.5
+      - KeypointsImageStandardize:
+          max_value: 255
+
+  val_dataset_params:
+    transforms:
+      - Albumentations:
+          Compose:
+            bbox_params:
+              min_area: 1
+              min_visibility: 0
+              min_width: 0
+              min_height: 0
+              check_each_transform: True
+            keypoint_params:
+            transforms:
+            - LongestMaxSize:
+                max_size: [640, 640]
+                p: 1
+            - PadIfNeeded:
+                min_height: 640
+                min_width: 640
+                border_mode: 0
+                value: [127, 127, 127]
+                mask_value: 1
+                p: 1
+      - KeypointsImageStandardize:
+          max_value: 255
+
+  train_dataloader_params:
+    batch_size: 1
+    num_workers: 0
+
+  val_dataloader_params:
+    batch_size: 1
+    num_workers: 0
