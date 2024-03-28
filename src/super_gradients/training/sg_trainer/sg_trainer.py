@@ -2724,21 +2724,6 @@ class Trainer:
             :return:
             """
 
-            class WrapperAroundCompiledModel:
-                def __init__(self, model):
-                    self.model = model
-
-                def eval(self):
-                    pass
-
-                def to(self, device):
-                    return self
-
-                def __call__(self, input):
-                    outputs = self.model(input.numpy())
-                    outputs = tuple(torch.from_numpy(outputs[k]) for k in self.model.outputs)
-                    return outputs
-
             from nncf.data.dataset import DataProvider
             from nncf.quantization.algorithms.accuracy_control.evaluator import IterationCounter
 
@@ -2765,7 +2750,7 @@ class Trainer:
 
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
         logger.info("Validating PTQ model...")
-        valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
+        valid_metrics_dict = self.test(model=WrapperAroundCompiledModel(model), test_loader=valid_loader, test_metrics_list=valid_metrics_list)
         results = ["PTQ Model Validation Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
@@ -2860,3 +2845,19 @@ class Trainer:
             )
 
         return export_result
+
+
+class WrapperAroundCompiledModel:
+    def __init__(self, model):
+        self.model = model
+
+    def eval(self):
+        pass
+
+    def to(self, device):
+        return self
+
+    def __call__(self, input):
+        outputs = self.model(input.numpy())
+        outputs = tuple(torch.from_numpy(outputs[k]) for k in self.model.outputs)
+        return outputs

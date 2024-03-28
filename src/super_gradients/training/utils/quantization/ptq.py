@@ -57,6 +57,7 @@ def openvino_ptq(
             ignored_scope=ignored_scope,
             subset_size=calibration_batches,
         )
+        logger.debug("Model quantization using NNCF with QC completed")
     else:
         logger.debug("Starting model quantization using NNCF without QC")
         calibration_dataset = nncf.Dataset(calibration_loader, transform_func=partial(transform_fn_to_device, device=device))
