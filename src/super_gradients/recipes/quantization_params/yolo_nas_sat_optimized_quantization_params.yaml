@@ -1,0 +1,55 @@
+ptq_only: True               # whether to launch QAT, or leave PTQ only
+selective_quantizer_params:
+  calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
+  calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
+  per_channel: True          # per-channel quantization of weights, activations stay per-tensor by default
+  learn_amax: False          # enable learnable amax in all TensorQuantizers using straight-through estimator
+#  skip_modules:              # optional list of module names (strings) to skip from quantization
+#    - heads.head1.reg_convs
+#    - heads.head1.cls_convs
+#    - heads.head1.cls_pred
+#    - heads.head1.reg_pred
+#
+#    - heads.head2.reg_convs
+#    - heads.head2.cls_convs
+#    - heads.head2.cls_pred
+#    - heads.head2.reg_pred
+#
+#    - heads.head3.reg_convs
+#    - heads.head3.cls_convs
+#    - heads.head3.cls_pred
+#    - heads.head3.reg_pred
+
+  skip_modules:
+    - ".+reg_convs.+"
+    - ".+cls_convs.+"
+    - ".+cls_pred.+"
+    - ".+reg_pred.+"
+
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head1]/Sequential[reg_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFConv2d[conv]/conv2d_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head1]/Sequential[reg_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFBatchNorm2d[bn]/batch_norm_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head2]/Sequential[reg_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFConv2d[conv]/conv2d_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head2]/Sequential[reg_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFBatchNorm2d[bn]/batch_norm_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head3]/Sequential[reg_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFConv2d[conv]/conv2d_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head3]/Sequential[reg_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFBatchNorm2d[bn]/batch_norm_0
+#
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head1]/Sequential[cls_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFConv2d[conv]/conv2d_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head1]/Sequential[cls_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFBatchNorm2d[bn]/batch_norm_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head2]/Sequential[cls_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFConv2d[conv]/conv2d_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head2]/Sequential[cls_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFBatchNorm2d[bn]/batch_norm_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head3]/Sequential[cls_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFConv2d[conv]/conv2d_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head3]/Sequential[cls_convs]/ConvBNReLU[0]/Sequential[seq]/NNCFBatchNorm2d[bn]/batch_norm_0
+#
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head1]/NNCFConv2d[cls_pred]/conv2d_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head2]/NNCFConv2d[cls_pred]/conv2d_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head3]/NNCFConv2d[cls_pred]/conv2d_0
+#
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head1]/NNCFConv2d[reg_pred]/conv2d_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head2]/NNCFConv2d[reg_pred]/conv2d_0
+#    - YoloNAS_S/NDFLHeads[heads]/YoloNASDFLHead[head3]/NNCFConv2d[reg_pred]/conv2d_0
+
+calib_params:
+  histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", "mse"], "max" calibrators always use "max"
+  percentile: 99.99                     # percentile for all histogram calibrators with method "percentile", other calibrators are not affected
+  num_calib_batches: 128                # number of batches to use for calibration, if None, 512 / batch_size will be used
+  verbose: False                        # if calibrator should be verbose
