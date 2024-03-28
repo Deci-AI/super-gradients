@@ -2,7 +2,6 @@ import copy
 from functools import partial
 from typing import Optional
 
-import torch.jit
 from torch.utils.data import DataLoader
 
 from .calibrator import QuantizationCalibrator
@@ -27,11 +26,14 @@ def openvino_ptq(
 
     device = infer_model_device(model)
 
-    def transform_fn(data_item, device):
+    def transform_fn_to_device(data_item, device):
         images = data_item[0]
         return images.to(device)
 
-    calibration_dataset = nncf.Dataset(calibration_loader, transform_func=partial(transform_fn, device=device))
+    def transform_fn_to_numpy(data_item):
+        images = data_item[0]
+        return images.numpy()
+
     ignored_scope = None
 
     if quantization_skip_layers is not None:
@@ -41,20 +43,23 @@ def openvino_ptq(
     if validation_loader is not None and validation_fn is not None:
         logger.debug("Starting model quantization using NNCF with QC")
 
+        calibration_dataset = nncf.Dataset(calibration_loader, transform_func=transform_fn_to_numpy)
+        validation_dataset = nncf.Dataset(validation_loader, transform_func=transform_fn_to_numpy)
+
         example_input = next(iter(calibration_dataset.get_inference_data([0])))
-        model = torch.jit.trace(model, example_input)
-        model = ov.convert_model(model)
+        model = ov.convert_model(model, example_input=example_input)
 
         quantized_model = nncf.quantize_with_accuracy_control(
             model,
             calibration_dataset=calibration_dataset,
-            validation_dataset=validation_loader,
+            validation_dataset=validation_dataset,
             validation_fn=validation_fn,
             ignored_scope=ignored_scope,
             subset_size=calibration_batches,
         )
     else:
         logger.debug("Starting model quantization using NNCF without QC")
+        calibration_dataset = nncf.Dataset(calibration_loader, transform_func=partial(transform_fn_to_device, device=device))
         quantized_model = nncf.quantize(
             model,
             calibration_dataset=calibration_dataset,

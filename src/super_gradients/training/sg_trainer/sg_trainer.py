@@ -7,6 +7,7 @@ from copy import deepcopy
 from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
 
 import hydra
+import nncf
 import numpy as np
 import torch
 import torch.cuda
@@ -112,6 +113,7 @@ from super_gradients.module_interfaces import (
 from super_gradients.conversion import ExportQuantizationMode, ExportParams
 from super_gradients.common.deprecate import deprecated_parameter, deprecated
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
+import functools
 
 logger = get_logger(__name__)
 
@@ -2478,6 +2480,7 @@ class Trainer:
                 model=model,
                 valid_loader=val_dataloader,
                 valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
+                metric_to_watch=cfg.training_hyperparams.metric_to_watch,
                 calib_loader=calib_dataloader,
                 quantization_params=quantization_params,
                 export_params=export_params,
@@ -2627,6 +2630,7 @@ class Trainer:
         *,
         model: nn.Module,
         valid_loader: DataLoader,
+        metric_to_watch: str,
         valid_metrics_list: List[torchmetrics.Metric] = None,
         calib_loader: DataLoader = None,
         quantization_params: Dict = None,
@@ -2712,8 +2716,43 @@ class Trainer:
         fuse_repvgg_blocks_residual_branches(model)
 
         def validation_fn(model, loader, metric_to_watch):
-            metrics = self.test(model=model, test_loader=loader, test_metrics_list=valid_metrics_list)
-            return metrics[metric_to_watch]
+            """
+            The whole content of this method serves one need - to be compatible with our .test() method
+            :param model:
+            :param loader:
+            :param metric_to_watch:
+            :return:
+            """
+
+            class WrapperAroundCompiledModel:
+                def __init__(self, model):
+                    self.model = model
+
+                def eval(self):
+                    pass
+
+                def to(self, device):
+                    return self
+
+                def __call__(self, input):
+                    outputs = self.model(input.numpy())
+                    outputs = tuple(torch.from_numpy(outputs[k]) for k in self.model.outputs)
+                    return outputs
+
+            from nncf.data.dataset import DataProvider
+            from nncf.quantization.algorithms.accuracy_control.evaluator import IterationCounter
+
+            if isinstance(loader, IterationCounter):
+                loader = loader._iterable
+
+            if isinstance(loader, DataProvider):
+                loader = loader._data_source
+
+            if isinstance(loader, nncf.Dataset):
+                loader = loader._data_source
+
+            metrics = self.test(model=WrapperAroundCompiledModel(model), test_loader=loader, test_metrics_list=valid_metrics_list)
+            return float(metrics[metric_to_watch])
 
         model = openvino_ptq(
             model,
@@ -2721,7 +2760,7 @@ class Trainer:
             calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
             quantization_skip_layers=get_param(selective_quantizer_params, "skip_modules"),
             validation_loader=valid_loader,
-            validation_fn=validation_fn,
+            validation_fn=functools.partial(validation_fn, metric_to_watch=metric_to_watch),
         )
 
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
