@@ -2,6 +2,7 @@ import copy
 from functools import partial
 from typing import Optional
 
+import torch.jit
 from torch.utils.data import DataLoader
 
 from .calibrator import QuantizationCalibrator
@@ -40,8 +41,9 @@ def openvino_ptq(
     if validation_loader is not None and validation_fn is not None:
         logger.debug("Starting model quantization using NNCF with QC")
 
-        example_input = calibration_dataset[0]
-        model = ov.convert_model(model, example_input=example_input)
+        example_input = next(iter(calibration_dataset.get_inference_data([0])))
+        model = torch.jit.trace(model, example_input)
+        model = ov.convert_model(model)
 
         quantized_model = nncf.quantize_with_accuracy_control(
             model,
