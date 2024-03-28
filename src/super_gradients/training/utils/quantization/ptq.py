@@ -21,6 +21,7 @@ def openvino_ptq(
     validation_fn: Optional[None] = None,
 ):
     import nncf
+    import openvino as ov
     from super_gradients.training.utils.utils import infer_model_device
 
     device = infer_model_device(model)
@@ -38,6 +39,10 @@ def openvino_ptq(
 
     if validation_loader is not None and validation_fn is not None:
         logger.debug("Starting model quantization using NNCF with QC")
+
+        example_input = calibration_dataset[0]
+        model = ov.convert_model(model, example_input=example_input)
+
         quantized_model = nncf.quantize_with_accuracy_control(
             model,
             calibration_dataset=calibration_dataset,

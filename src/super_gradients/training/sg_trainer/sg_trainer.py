@@ -2720,8 +2720,8 @@ class Trainer:
             calibration_loader=calib_loader,
             calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
             quantization_skip_layers=get_param(selective_quantizer_params, "skip_modules"),
-            # validation_loader=valid_loader,
-            # validation_fn=validation_fn,
+            validation_loader=valid_loader,
+            validation_fn=validation_fn,
         )
 
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
