@@ -25,7 +25,7 @@ from .modules import (  # noqa: E402
     QuantSkipConnection,
 )  # noqa: E402
 from .use_fb_fake_quant import use_fb_fake_quant  # noqa: E402
-from .ptq import ptq  # noqa: E402
+from .ptq import ptq, openvino_ptq  # noqa: E402
 
 _inject_class_methods_to_default_quant_types()
 
@@ -50,4 +50,5 @@ __all__ = [
     "export_quantized_module_to_onnx",
     "use_fb_fake_quant",
     "ptq",
+    "openvino_ptq",
 ]

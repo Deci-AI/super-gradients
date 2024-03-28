@@ -2414,7 +2414,7 @@ class Trainer:
         num_gpus = core_utils.get_param(cfg, "num_gpus")
         multi_gpu = core_utils.get_param(cfg, "multi_gpu")
         device = core_utils.get_param(cfg, "device")
-        if num_gpus != 1:
+        if num_gpus != 1 and device == "cuda":
             raise NotImplementedError(
                 f"Recipe requests multi_gpu={cfg.multi_gpu} and num_gpus={cfg.num_gpus}. QAT is proven to work correctly only with multi_gpu=OFF and num_gpus=1"
             )
@@ -2674,8 +2674,7 @@ class Trainer:
 
         :return: Validation results of the calibrated model.
         """
-        import_pytorch_quantization_or_install()
-        from super_gradients.training.utils.quantization import SelectiveQuantizer, ptq
+        from super_gradients.training.utils.quantization import openvino_ptq
 
         if deepcopy_model_for_export is False:
             raise RuntimeError(
@@ -2711,23 +2710,18 @@ class Trainer:
 
         # QUANTIZE MODEL
         fuse_repvgg_blocks_residual_branches(model)
-        q_util = SelectiveQuantizer(
-            default_quant_modules_calibrator_weights=get_param(selective_quantizer_params, "calibrator_w"),
-            default_quant_modules_calibrator_inputs=get_param(selective_quantizer_params, "calibrator_i"),
-            default_per_channel_quant_weights=get_param(selective_quantizer_params, "per_channel"),
-            default_learn_amax=get_param(selective_quantizer_params, "learn_amax"),
-            verbose=get_param(calib_params, "verbose"),
-        )
-        q_util.register_skip_quantization(layer_names=get_param(selective_quantizer_params, "skip_modules"))
 
-        model = ptq(
+        def validation_fn(model, loader, metric_to_watch):
+            metrics = self.test(model=model, test_loader=loader, test_metrics_list=valid_metrics_list)
+            return metrics[metric_to_watch]
+
+        model = openvino_ptq(
             model,
-            selective_quantizer=q_util,
             calibration_loader=calib_loader,
-            calibration_method=get_param(calib_params, "histogram_calib_method"),
             calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
-            calibration_percentile=get_param(calib_params, "percentile", 99.99),
-            calibration_verbose=get_param(calib_params, "verbose"),
+            quantization_skip_layers=get_param(selective_quantizer_params, "skip_modules"),
+            # validation_loader=valid_loader,
+            # validation_fn=validation_fn,
         )
 
         # VALIDATE PTQ MODEL AND PRINT SUMMARY

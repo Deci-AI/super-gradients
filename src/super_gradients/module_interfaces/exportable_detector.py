@@ -2,6 +2,8 @@ import abc
 import copy
 import dataclasses
 import gc
+import os
+import tempfile
 from typing import Any
 from typing import Union, Optional, List, Tuple
 
@@ -149,6 +151,7 @@ class ExportableObjectDetectionModel:
         engine: Optional[ExportTargetBackend] = None,
         quantization_mode: Optional[ExportQuantizationMode] = None,
         selective_quantizer: Optional["SelectiveQuantizer"] = None,  # noqa
+        quantization_skip_layers: Optional[List[str]] = None,
         calibration_loader: Optional[DataLoader] = None,
         calibration_method: str = "percentile",
         calibration_batches: int = 16,
@@ -401,16 +404,30 @@ class ExportableObjectDetectionModel:
         contains_quantized_modules = check_model_contains_quantized_modules(model)
 
         if quantization_mode == ExportQuantizationMode.INT8:
-            from super_gradients.training.utils.quantization import ptq
 
-            model = ptq(
-                model,
-                selective_quantizer=selective_quantizer,
-                calibration_loader=calibration_loader,
-                calibration_method=calibration_method,
-                calibration_batches=calibration_batches,
-                calibration_percentile=calibration_percentile,
-            )
+            if engine in {ExportTargetBackend.TENSORRT, ExportTargetBackend.ONNXRUNTIME}:
+                from super_gradients.training.utils.quantization import ptq as tensorrt_ptq
+
+                model = tensorrt_ptq(
+                    model,
+                    selective_quantizer=selective_quantizer,
+                    calibration_loader=calibration_loader,
+                    calibration_method=calibration_method,
+                    calibration_batches=calibration_batches,
+                    calibration_percentile=calibration_percentile,
+                )
+
+            elif engine == ExportTargetBackend.OPENVINO:
+                if calibration_loader is None:
+                    raise ValueError("calibration_loader must be provided for INT8 quantization mode.")
+
+                from super_gradients.training.utils.quantization import openvino_ptq
+
+                model = openvino_ptq(
+                    model, calibration_loader=calibration_loader, calibration_batches=calibration_batches, quantization_skip_layers=quantization_skip_layers
+                )
+            else:
+                raise ValueError(f"Unsupported engine: {engine}. Supported engines for INT8 quantization: tensorrt, onnxruntime, openvino")
 
         elif quantization_mode == ExportQuantizationMode.FP16:
             if contains_quantized_modules:
@@ -510,7 +527,65 @@ class ExportableObjectDetectionModel:
                 onnx.save(model_opt, output)
 
                 logger.debug(f"Ran onnxsim.simplify on {output}")
+        elif engine == ExportTargetBackend.OPENVINO:
+            import openvino as ov
+            from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
 
+            onnx_export_kwargs = onnx_export_kwargs or {}
+            onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
+
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_onnx_file = os.path.join(temp_dir, "temp.onnx")
+
+                export_to_onnx(
+                    model=complete_model,
+                    model_input=onnx_input,
+                    onnx_filename=temp_onnx_file,
+                    input_names=["input"],
+                    output_names=output_names,
+                    onnx_opset=onnx_export_kwargs.get("opset_version", None),
+                    do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
+                    dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
+                    keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
+                    verbose=onnx_export_kwargs.get("verbose", False),
+                )
+
+                # Stitch ONNX graph with NMS postprocessing
+                if attach_nms_postprocessing:
+                    if onnx_simplify:
+                        # If TRT engine is used, we need to run onnxsim.simplify BEFORE attaching NMS,
+                        # because EfficientNMS_TRT is not supported by onnxsim and would lead to a runtime error.
+                        model_opt, simplify_successful = onnxsim.simplify(temp_onnx_file)
+                        if not simplify_successful:
+                            raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+                        onnx.save(model_opt, temp_onnx_file)
+                        logger.debug(f"Ran onnxsim.simplify on model {temp_onnx_file}")
+                        # Disable onnx_simplify to avoid running it second time.
+                        onnx_simplify = False
+
+                    attach_onnx_nms(
+                        onnx_model_path=temp_onnx_file,
+                        output_onnx_model_path=temp_onnx_file,
+                        num_pre_nms_predictions=num_pre_nms_predictions,
+                        max_predictions_per_image=max_predictions_per_image,
+                        nms_threshold=nms_threshold,
+                        confidence_threshold=confidence_threshold,
+                        batch_size=batch_size,
+                        output_predictions_format=output_predictions_format,
+                        device=device,
+                        onnx_export_kwargs=onnx_export_kwargs,
+                    )
+
+                if onnx_simplify:
+                    model_opt, simplify_successful = onnxsim.simplify(output)
+                    if not simplify_successful:
+                        raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+                    onnx.save(model_opt, output)
+
+                    logger.debug(f"Ran onnxsim.simplify on {output}")
+
+                ov_quantized_model = ov.convert_model(temp_onnx_file)
+                ov.save_model(ov_quantized_model, output, compress_to_fp16=False)
         else:
             raise ValueError(f"Unsupported export format: {engine}. Supported formats: onnxruntime, tensorrt")
 

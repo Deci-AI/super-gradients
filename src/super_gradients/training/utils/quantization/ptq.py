@@ -1,4 +1,5 @@
 import copy
+from functools import partial
 from typing import Optional
 
 from torch.utils.data import DataLoader
@@ -9,6 +10,55 @@ from super_gradients.training.utils.utils import check_model_contains_quantized_
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def openvino_ptq(
+    model,
+    calibration_loader,
+    quantization_skip_layers,
+    calibration_batches: int = 16,
+    validation_loader: Optional[DataLoader] = None,
+    validation_fn: Optional[None] = None,
+):
+    import nncf
+    from super_gradients.training.utils.utils import infer_model_device
+
+    device = infer_model_device(model)
+
+    def transform_fn(data_item, device):
+        images = data_item[0]
+        return images.to(device)
+
+    calibration_dataset = nncf.Dataset(calibration_loader, transform_func=partial(transform_fn, device=device))
+    ignored_scope = None
+
+    if quantization_skip_layers is not None:
+        ignored_scope = nncf.IgnoredScope(patterns=list(quantization_skip_layers))
+        logger.debug(f"Quantization skip layers: {quantization_skip_layers}")
+
+    if validation_loader is not None and validation_fn is not None:
+        logger.debug("Starting model quantization using NNCF with QC")
+        quantized_model = nncf.quantize_with_accuracy_control(
+            model,
+            calibration_dataset=calibration_dataset,
+            validation_dataset=validation_loader,
+            validation_fn=validation_fn,
+            ignored_scope=ignored_scope,
+            subset_size=calibration_batches,
+        )
+    else:
+        logger.debug("Starting model quantization using NNCF without QC")
+        quantized_model = nncf.quantize(
+            model,
+            calibration_dataset=calibration_dataset,
+            ignored_scope=ignored_scope,
+            subset_size=calibration_batches,  # TODO: Check whether subset_size is sample size or batch size
+            advanced_parameters=nncf.AdvancedQuantizationParameters(
+                quantization_mode="symmetric",
+            ),
+        )
+    logger.debug("Model quantization using NNCF completed")
+    return quantized_model
 
 
 def ptq(

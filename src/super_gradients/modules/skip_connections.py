@@ -8,6 +8,9 @@ class Residual(nn.Module):
     The module is to be used as a residual skip connection within a single block.
     """
 
+    def __init__(self):
+        super().__init__()
+
     def forward(self, x):
         return x
 
@@ -18,6 +21,9 @@ class SkipConnection(nn.Module):
     This module will be replaced by converters.
     The module is to be used as a skip connection between blocks.
     """
+
+    def __init__(self):
+        super().__init__()
 
     def forward(self, x):
         return x
@@ -30,6 +36,9 @@ class BackboneInternalSkipConnection(SkipConnection):
     The module is to be used as a skip connection between blocks inside the backbone.
     """
 
+    def __init__(self):
+        super().__init__()
+
 
 class HeadInternalSkipConnection(SkipConnection):
     """
@@ -38,6 +47,9 @@ class HeadInternalSkipConnection(SkipConnection):
     The module is to be used as a skip connection between blocks inside the head.
     """
 
+    def __init__(self):
+        super().__init__()
+
 
 class CrossModelSkipConnection(SkipConnection):
     """
@@ -45,3 +57,6 @@ class CrossModelSkipConnection(SkipConnection):
     This module will be replaced by converters.
     The module is to be used as a skip connection between backbone and the head.
     """
+
+    def __init__(self):
+        super().__init__()
