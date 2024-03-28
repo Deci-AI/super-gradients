@@ -47,7 +47,7 @@ def openvino_ptq(
         validation_dataset = nncf.Dataset(validation_loader, transform_func=transform_fn_to_numpy)
 
         example_input = next(iter(calibration_dataset.get_inference_data([0])))
-        model = ov.convert_model(model, example_input=example_input.to(device))
+        model = ov.convert_model(model, example_input=example_input)
 
         quantized_model = nncf.quantize_with_accuracy_control(
             model,
