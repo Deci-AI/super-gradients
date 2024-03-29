@@ -2053,6 +2053,7 @@ class Trainer:
         metrics_progress_verbose=False,
         test_phase_callbacks=None,
         use_ema_net=True,
+        max_batches=None,
     ) -> Dict[str, float]:
         """
         Evaluates the model on given dataloader and metrics.
@@ -2112,6 +2113,7 @@ class Trainer:
             evaluation_type=EvaluationType.TEST,
             silent_mode=silent_mode,
             metrics_progress_verbose=metrics_progress_verbose,
+            max_batches=max_batches,
         )
         self.phase_callback_handler.on_test_loader_end(context)
 
@@ -2736,17 +2738,22 @@ class Trainer:
             if isinstance(loader, nncf.Dataset):
                 loader = loader._data_source
 
-            metrics = self.test(model=WrapperAroundCompiledModel(model), test_loader=loader, test_metrics_list=valid_metrics_list)
+            metrics = self.test(model=WrapperAroundCompiledModel(model), test_loader=loader, test_metrics_list=valid_metrics_list, max_batches=32)
             return float(metrics[metric_to_watch])
 
-        model = openvino_ptq(
-            model,
+        openvino_ptq_args = dict(
+            model=model,
             calibration_loader=calib_loader,
             calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
             quantization_skip_layers=get_param(selective_quantizer_params, "skip_modules"),
-            validation_loader=valid_loader,
-            validation_fn=functools.partial(validation_fn, metric_to_watch=metric_to_watch),
         )
+        if calib_params.openvino.with_quality_control:
+            openvino_ptq_args.update(
+                validation_loader=valid_loader,
+                validation_fn=functools.partial(validation_fn, metric_to_watch=metric_to_watch),
+            )
+
+        model = openvino_ptq(**openvino_ptq_args)
 
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
         logger.info("Validating PTQ model...")

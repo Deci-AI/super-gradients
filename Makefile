@@ -57,5 +57,8 @@ check_notebooks_version_match: $(NOTEBOOKS_TO_CHECK)
 coco2017_yolo_nas_s_ptq_only:
 	python -m super_gradients.qat_from_recipe --config-name=coco2017_yolo_nas_s_ptq_only multi_gpu=Off num_gpus=1
 
+coco2017_yolo_nas_s_ptq_only_gpu:
+	python -m super_gradients.qat_from_recipe --config-name=coco2017_yolo_nas_s_ptq_with_qc multi_gpu=Off num_gpus=1
+
 coco2017_yolo_nas_s_ptq_only_cpu:
-	python -m super_gradients.qat_from_recipe --config-name=coco2017_yolo_nas_s_ptq_only multi_gpu=Off num_gpus=0 +device=cpu
+	python -m super_gradients.qat_from_recipe --config-name=coco2017_yolo_nas_s_ptq_with_qc multi_gpu=Off num_gpus=0 +device=cpu

@@ -66,8 +66,10 @@ def openvino_ptq(
             calibration_dataset=calibration_dataset,
             ignored_scope=ignored_scope,
             subset_size=calibration_batches,  # TODO: Check whether subset_size is sample size or batch size
+            preset=nncf.QuantizationPreset.MIXED,
             advanced_parameters=nncf.AdvancedQuantizationParameters(
-                quantization_mode="symmetric",
+                # quantization_mode="symmetric",
+                smooth_quant_alpha=-1,  # Not sure what it does but it is present in Stable Diffusion V2 example
             ),
         )
     logger.debug("Model quantization using NNCF completed")

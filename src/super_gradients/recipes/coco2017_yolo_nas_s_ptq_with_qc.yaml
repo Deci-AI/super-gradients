@@ -1,0 +1,18 @@
+# YoloNAS-S Detection training on COCO2017 Dataset:
+# This training recipe is for demonstration purposes only. Pretrained models were trained using a different recipe.
+# So it will not be possible to reproduce the results of the pretrained models using this recipe.
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command you want:
+#         yolo_nas_s: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolo_nas_s
+#
+
+defaults:
+  - coco2017_yolo_nas_s_ptq_only
+  - _self_
+
+quantization_params:
+  openvino:
+    with_quality_control: True
