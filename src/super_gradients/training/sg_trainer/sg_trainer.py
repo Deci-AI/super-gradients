@@ -2747,6 +2747,7 @@ class Trainer:
             calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
             quantization_skip_layers=get_param(selective_quantizer_params, "skip_modules"),
         )
+
         if quantization_params["openvino"]["with_quality_control"]:
             openvino_ptq_args.update(
                 validation_loader=valid_loader,
@@ -2755,9 +2756,12 @@ class Trainer:
 
         model = openvino_ptq(**openvino_ptq_args)
 
+        if quantization_params["openvino"]["with_quality_control"]:
+            model = WrapperAroundCompiledModel(model)
+
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
         logger.info("Validating PTQ model...")
-        valid_metrics_dict = self.test(model=WrapperAroundCompiledModel(model), test_loader=valid_loader, test_metrics_list=valid_metrics_list)
+        valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
         results = ["PTQ Model Validation Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
