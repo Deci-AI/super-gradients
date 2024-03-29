@@ -2747,7 +2747,7 @@ class Trainer:
             calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
             quantization_skip_layers=get_param(selective_quantizer_params, "skip_modules"),
         )
-        if calib_params["openvino"]["with_quality_control"]:
+        if quantization_params["openvino"]["with_quality_control"]:
             openvino_ptq_args.update(
                 validation_loader=valid_loader,
                 validation_fn=functools.partial(validation_fn, metric_to_watch=metric_to_watch),
