@@ -58,10 +58,14 @@ def deprecated(deprecated_since: str, removed_from: str, target: Optional[callab
                     message += f"Reason: {reason}.\n"
 
                 if target is not None:
+                    if hasattr(target, "__func__"):  # unwraps `__func__` for @classmethod and @staticmethod decorators
+                        target_func = target.__func__
+                    else:
+                        target_func = target
                     message += (
                         f"Please update your code:\n"
                         f"  [-] from `{old_func.__module__}` import `{old_func.__name__}`\n"
-                        f"  [+] from `{target.__module__}` import `{target.__name__}`"
+                        f"  [+] from `{target_func.__module__}` import `{target_func.__name__}`"
                     )
 
                 if is_still_supported:
@@ -185,7 +189,7 @@ def deprecated_parameter(parameter_name: str, deprecated_since: str, removed_fro
     return decorator
 
 
-def deprecated_training_param(deprecated_tparam_name: str, deprecated_since: str, removed_from: str, new_arg_assigner: Callable, message: str = ""):
+def deprecated_training_param(deprecated_param_name: str, deprecated_since: str, removed_from: str, new_arg_assigner: Callable, message: str = ""):
     """
     Decorator for deprecating training hyperparameters.
 
@@ -208,7 +212,7 @@ def deprecated_training_param(deprecated_tparam_name: str, deprecated_since: str
         self.validate()
 
 
-    :param deprecated_tparam_name: str, the name of the deprecated hyperparameter.
+    :param deprecated_param_name: str, the name of the deprecated hyperparameter.
     :param deprecated_since: str, SG version of deprecation.
     :param removed_from: str, SG version of removal.
     :param new_arg_assigner: Callable, a handler to assign the deprecated parameter value to the updated
@@ -219,20 +223,20 @@ def deprecated_training_param(deprecated_tparam_name: str, deprecated_since: str
 
     def decorator(func):
         def wrapper(*args, **training_params):
-            if training_params.get(deprecated_tparam_name):
+            if training_params.get(deprecated_param_name):
                 import super_gradients
 
                 is_still_supported = parse_version(super_gradients.__version__) < parse_version(removed_from)
                 if is_still_supported:
                     message_prefix = (
-                        f"Training hyperparameter `{deprecated_tparam_name} is deprecated since version `{deprecated_since}` "
+                        f"Training hyperparameter `{deprecated_param_name} is deprecated since version `{deprecated_since}` "
                         f"and will be removed in version `{removed_from}`.\n"
                     )
                     warnings.warn(message_prefix + message, DeprecationWarning)
                     training_params = new_arg_assigner(**training_params)
                 else:
                     message_prefix = (
-                        f"Training hyperparameter `{deprecated_tparam_name} was deprecate since version `{deprecated_since}` "
+                        f"Training hyperparameter `{deprecated_param_name} was deprecate since version `{deprecated_since}` "
                         f"and was removed in version `{removed_from}`.\n"
                     )
                     raise RuntimeError(message_prefix + message)
