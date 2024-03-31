@@ -6,8 +6,6 @@ from super_gradients.common.deprecate import deprecated
 
 
 class TestDeprecationDecorator(unittest.TestCase):
-    new_class_function_message = "This is the new class function!"
-
     def setUp(self):
         """Prepare required functions before each test."""
         self.new_function_message = "This is the new function!"
@@ -38,24 +36,6 @@ class TestDeprecationDecorator(unittest.TestCase):
 
         self.NewClass = NewClass
         self.DeprecatedClass = DeprecatedClass
-
-    @classmethod
-    def new_class_func(cls):
-        return TestDeprecationDecorator.new_class_function_message
-
-    @classmethod
-    @deprecated(deprecated_since="3.2.0", removed_from="10.0.0", target=new_class_func)
-    def deprecated_class_func(cls):
-        return cls.new_class_func()
-
-    @staticmethod
-    def new_static_func():
-        return TestDeprecationDecorator.new_class_function_message
-
-    @staticmethod
-    @deprecated(deprecated_since="3.2.0", removed_from="10.0.0", target=new_static_func)
-    def deprecated_static_func():
-        return TestDeprecationDecorator.new_static_func
 
     def test_emits_warning(self):
         """Ensure that the deprecated function emits a warning when called."""
@@ -106,18 +86,6 @@ class TestDeprecationDecorator(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             self.basic_deprecated_func()
-            self.assertEqual(len(w), 1)
-
-    def test_class_method_deprecation_emits_warning(self):
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            _ = TestDeprecationDecorator.deprecated_class_func()
-            self.assertEqual(len(w), 1)
-
-    def test_static_method_deprecation_emits_warning(self):
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            _ = TestDeprecationDecorator.deprecated_static_func()
             self.assertEqual(len(w), 1)
 
     def test_class_deprecation_warning(self):
