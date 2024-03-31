@@ -6,8 +6,6 @@ from super_gradients.common.deprecate import deprecated
 
 
 class TestDeprecationDecorator(unittest.TestCase):
-    new_class_function_message = "This is the new class function!"
-
     def setUp(self):
         """Prepare required functions before each test."""
         self.new_function_message = "This is the new function!"
@@ -41,7 +39,7 @@ class TestDeprecationDecorator(unittest.TestCase):
 
     @classmethod
     def new_class_func(cls):
-        return TestDeprecationDecorator.new_class_function_message
+        return None
 
     @classmethod
     @deprecated(deprecated_since="3.2.0", removed_from="10.0.0", target=new_class_func)
@@ -50,7 +48,7 @@ class TestDeprecationDecorator(unittest.TestCase):
 
     @staticmethod
     def new_static_func():
-        return TestDeprecationDecorator.new_class_function_message
+        return None
 
     @staticmethod
     @deprecated(deprecated_since="3.2.0", removed_from="10.0.0", target=new_static_func)
