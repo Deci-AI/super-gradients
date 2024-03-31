@@ -1908,7 +1908,7 @@ class Trainer:
 
         # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS
         _best_ckpt_metrics = get_param(self.checkpoint, "_best_ckpt_metrics")
-        if self.load_checkpoint or resume_path:
+        if self.load_checkpoint:
             if _best_ckpt_metrics is None or self.metric_to_watch != _best_ckpt_metrics["tracked_metric_name"]:
                 self._eval_before_resume = True
             else:
