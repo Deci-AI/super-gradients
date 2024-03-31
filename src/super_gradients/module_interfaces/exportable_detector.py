@@ -345,7 +345,15 @@ class ExportableObjectDetectionModel:
 
         # This variable holds the output names of the model.
         # If postprocessing is enabled, it will be set to the output names of the postprocessing module.
-        output_names: Optional[List[str]] = None
+        if "output_names" in onnx_export_kwargs:
+            output_names = onnx_export_kwargs.pop("output_names")
+        else:
+            output_names = None
+
+        if "input_names" in onnx_export_kwargs:
+            input_names = onnx_export_kwargs.pop("input_names")
+        else:
+            input_names = ["input"]
 
         if isinstance(postprocessing, nn.Module):
             # If a user-specified postprocessing module is provided, we will attach is to the model and not
@@ -493,7 +501,7 @@ class ExportableObjectDetectionModel:
                             "`args` key found in onnx_export_kwargs. We explicitly construct dummy input (`args`) inside export() method. "
                             "Overriding args is not supported so please remove it from the `onnx_export_kwargs`."
                         )
-                    torch.onnx.export(model=complete_model, args=onnx_input, f=output, input_names=["input"], output_names=output_names, **onnx_export_kwargs)
+                    torch.onnx.export(model=complete_model, args=onnx_input, f=output, input_names=input_names, output_names=output_names, **onnx_export_kwargs)
 
                 # Stitch ONNX graph with NMS postprocessing
                 if attach_nms_postprocessing:
