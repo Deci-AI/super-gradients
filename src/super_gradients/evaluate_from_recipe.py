@@ -32,7 +32,7 @@ from super_gradients import Trainer, init_trainer
 
 @hydra.main(config_path="recipes", version_base="1.2")
 def _main(cfg: DictConfig) -> None:
-    Trainer.evaluate_from_recipe(cfg)
+    Trainer.evaluate_from_config(cfg)
 
 
 def main() -> None:
