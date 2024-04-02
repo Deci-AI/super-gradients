@@ -338,6 +338,9 @@ class Models:
     YOLO_NAS_POSE_M = "yolo_nas_pose_m"
     YOLO_NAS_POSE_L = "yolo_nas_pose_l"
 
+    RAFT_S = "raft_s"
+    RAFT_L = "raft_l"
+
 
 class ConcatenatedTensorFormats:
     XYXY_LABEL = "XYXY_LABEL"
