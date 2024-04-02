@@ -110,7 +110,7 @@ from super_gradients.module_interfaces import (
     QuantizationResult,
 )
 from super_gradients.conversion import ExportQuantizationMode, ExportParams
-from super_gradients.common.deprecate import deprecated_parameter
+from super_gradients.common.deprecate import deprecated_parameter, deprecated
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 
 logger = get_logger(__name__)
@@ -223,6 +223,8 @@ class Trainer:
 
         self._epoch_start_logging_values = {}
         self._torch_lr_scheduler = None
+        self._eval_before_resume = False
+        self._best_ckpt_metrics = None
 
     @property
     def device(self) -> str:
@@ -326,7 +328,7 @@ class Trainer:
         return cls.train_from_config(cfg)
 
     @classmethod
-    def evaluate_from_recipe(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
+    def evaluate_from_config(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
         """
         Evaluate according to a cfg recipe configuration.
 
@@ -396,13 +398,18 @@ class Trainer:
         return model, valid_metrics_dict
 
     @classmethod
+    @deprecated(deprecated_since="3.6.2", removed_from="3.8.0", target=evaluate_from_config)
+    def evaluate_from_recipe(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
+        return cls.evaluate_from_config(cfg)
+
+    @classmethod
     def evaluate_checkpoint(
         cls,
         experiment_name: str,
         ckpt_name: str = "ckpt_latest.pth",
         ckpt_root_dir: Optional[str] = None,
         run_id: Optional[str] = None,
-    ) -> None:
+    ) -> Tuple[nn.Module, Tuple]:
         """
         Evaluate a checkpoint resulting from one of your previous experiment, using the same parameters (dataset, valid_metrics,...)
         as used during the training of the experiment
@@ -429,7 +436,7 @@ class Trainer:
         cfg = load_experiment_cfg(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)
 
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
-        cls.evaluate_from_recipe(cfg)
+        return cls.evaluate_from_config(cfg)
 
     def _net_to_device(self):
         """
@@ -678,6 +685,7 @@ class Trainer:
             "epoch": epoch,
             "metrics": all_metrics,
             "packages": get_installed_packages(),
+            "_best_ckpt_metrics": self._best_ckpt_metrics,
         }
 
         if optimizer is not None:
@@ -709,6 +717,8 @@ class Trainer:
         ):
             # STORE THE CURRENT metric AS BEST
             self.best_metric = curr_tracked_metric
+
+            self._best_ckpt_metrics = all_metrics
             self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
             # RUN PHASE CALLBACKS
@@ -1489,6 +1499,8 @@ class Trainer:
 
         self._maybe_set_preprocessing_params_for_model_from_dataset()
 
+        self._maybe_eval_before_resume(context, silent_mode)
+
         try:
             # HEADERS OF THE TRAINING PROGRESS
             if not silent_mode:
@@ -1647,6 +1659,34 @@ class Trainer:
 
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
+
+    def _maybe_eval_before_resume(self, context, silent_mode):
+        if self._eval_before_resume:
+            if not silent_mode:
+                logger.info(f"Couldn't fetch {self.metric_to_watch} from the checkpoint.\n Running test on the " f"validation data before resuming training...")
+            if self.ema:
+                keep_model = self.net
+                self.net = self.ema_model.ema
+
+            self.net.eval()
+            self._reset_metrics()
+            self.valid_metrics.to(device_config.device)
+            valid_metrics_dict = self.evaluate(
+                data_loader=self.valid_loader,
+                metrics=self.valid_metrics,
+                evaluation_type=EvaluationType.TEST,
+                silent_mode=silent_mode,
+            )
+            self._save_checkpoint(
+                optimizer=self.optimizer,
+                epoch=self.start_epoch,
+                train_metrics_dict=valid_metrics_dict,
+                validation_results_dict=valid_metrics_dict,
+                context=context,
+            )
+
+            if self.ema:
+                self.net = keep_model
 
     def _maybe_set_preprocessing_params_for_model_from_dataset(self):
         processing_params = self._get_preprocessing_from_valid_loader()
@@ -1872,7 +1912,12 @@ class Trainer:
                 )
 
         # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS
-        self.best_metric = self.checkpoint["acc"] if "acc" in self.checkpoint.keys() else -1
+        _best_ckpt_metrics = get_param(self.checkpoint, "_best_ckpt_metrics")
+        if self.load_checkpoint:
+            if _best_ckpt_metrics is None or self.metric_to_watch != _best_ckpt_metrics["tracked_metric_name"]:
+                self._eval_before_resume = True
+            else:
+                self.best_metric = _best_ckpt_metrics["valid"][self.metric_to_watch]
         self.start_epoch = self.checkpoint["epoch"] if "epoch" in self.checkpoint.keys() else 0
 
     def _prep_for_test(
