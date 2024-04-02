@@ -5,3 +5,6 @@ gitpython>=3.1.0
 ipykernel==6.25
 nbconvert==7.8.0
 pycocotools==2.0.6
+sphinx~=4.0.2
+sphinx-rtd-theme
+coverage~=5.3.1
