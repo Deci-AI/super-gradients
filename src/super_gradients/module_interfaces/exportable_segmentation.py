@@ -331,7 +331,7 @@ class ExportableSegmentationModel:
         else:
             output_names = None
 
-        if "input_names" in onnx_export_kwargs:
+        if onnx_export_kwargs is not None and "input_names" in onnx_export_kwargs:
             input_names = onnx_export_kwargs.pop("input_names")
         else:
             input_names = ["input"]
