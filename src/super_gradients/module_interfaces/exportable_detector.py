@@ -416,9 +416,16 @@ class ExportableObjectDetectionModel:
                     calibration_batches=calibration_batches,
                     calibration_percentile=calibration_percentile,
                 )
-
             elif engine == ExportTargetBackend.OPENVINO:
-                pass
+                from super_gradients.training.utils.quantization import openvino_ptq
+
+                model = openvino_ptq(
+                    model,
+                    calibration_loader=calibration_loader,
+                    calibration_batches=calibration_batches,
+                    quantization_skip_layers=quantization_skip_layers,
+                )
+                logger.debug("Model quantization using OpenVINO PTQ completed")
             else:
                 raise ValueError(f"Unsupported engine: {engine}. Supported engines for INT8 quantization: tensorrt, onnxruntime, openvino")
 
@@ -573,12 +580,12 @@ class ExportableObjectDetectionModel:
                 if quantization_mode == ExportQuantizationMode.INT8:
                     from super_gradients.training.utils.quantization import openvino_ptq_from_onnx
 
-                    ov_model = openvino_ptq_from_onnx(
-                        ov_model,
-                        calibration_loader=calibration_loader,
-                        calibration_batches=calibration_batches,
-                        quantization_skip_layers=quantization_skip_layers,
-                    )
+                    # ov_model = openvino_ptq_from_onnx(
+                    #     ov_model,
+                    #     calibration_loader=calibration_loader,
+                    #     calibration_batches=calibration_batches,
+                    #     quantization_skip_layers=quantization_skip_layers,
+                    # )
                     compress_to_fp16 = False
                 else:
                     compress_to_fp16 = quantization_mode == ExportQuantizationMode.FP16

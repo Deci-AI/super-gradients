@@ -2644,144 +2644,125 @@ class Trainer:
 
         :param model: (torch.nn.Module) Model to perform calibration on. When None, will try to use self.net which is
                       set in previous self.train(..) call (default=None).
-
         :param valid_loader: DataLoader, data loader for validation. Used for validating the calibrated model.
-
         :param calib_loader: DataLoader, data loader for calibration. If None will use valid_loader for calibration.
-
-        :param quantization_params: Mapping, with the following entries:defaults-
-            selective_quantizer_params:
-              calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
-              calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
-              per_channel: True          # per-channel quantization of weights, activations stay per-tensor by default
-              learn_amax: False          # enable learnable amax in all TensorQuantizers using straight-through estimator
-              skip_modules:              # optional list of module names (strings) to skip from quantization
-
-            calib_params:
-              histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators,
-                                                                # acceptable types are ["percentile", "entropy", mse"],
-                                                                # "max" calibrators always use "max"
-
-              percentile: 99.99                     # percentile for all histogram calibrators with method "percentile",
-                                                    # other calibrators are not affected
-
-              num_calib_batches:                    # number of batches to use for calibration, if None, 512 / batch_size will be used
-              verbose: False                        # if calibrator should be verbose
-
-
-              When None, the above default config is used (default=None)
-
-
-
         :param valid_metrics_list:  (list(torchmetrics.Metric)) metrics list for evaluation of the calibrated model.
-
-        :param deepcopy_model_for_export: bool, Whether to export deepcopy(model). Necessary in case further training is
-            performed and prep_model_for_conversion makes the network un-trainable (i.e RepVGG blocks).
 
         :return: Validation results of the calibrated model.
         """
-        from super_gradients.training.utils.quantization import openvino_ptq
 
-        if deepcopy_model_for_export is False:
-            raise RuntimeError(
-                "deepcopy_model_for_export=False is not supported. "
-                "A deepcopy_model_for_export is always considered True and the input model is not modified in-place anymore."
-                "If you need an acess to the quantized model object use `quantized_model` attribute of the return value of the ptq() call."
-            )
-
-        valid_metrics_list = valid_metrics_list or self.valid_metrics
-        calib_loader = calib_loader or valid_loader
-
-        logger.debug("Performing post-training quantization (PTQ)...")
-        logger.debug(f"Experiment name {self.experiment_name}")
-
-        run_id = core_utils.get_param(self.training_params, "run_id", None)
-        logger.debug(f"Experiment run id {run_id}")
-
-        output_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
-        logger.debug(f"Output directory {output_dir_path}")
-
-        os.makedirs(output_dir_path, exist_ok=True)
-
-        if quantization_params is None:
-            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
-            logger.info(f"Using default quantization params: {quantization_params}")
-
-        model = unwrap_model(model)  # Unwrap model in case it is wrapped with DataParallel or DistributedDataParallel
-        model = copy.deepcopy(model)  # Deepcopy model to avoid modifying the original model
-        model = model.to(device_config.device).eval()
-
-        selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
-        calib_params = get_param(quantization_params, "calib_params")
-
-        # QUANTIZE MODEL
-        fuse_repvgg_blocks_residual_branches(model)
-
-        def validation_fn(model, loader, metric_to_watch):
-            """
-            The whole content of this method serves one need - to be compatible with our .test() method
-            :param model:
-            :param loader:
-            :param metric_to_watch:
-            :return:
-            """
-
-            from nncf.data.dataset import DataProvider
-            from nncf.quantization.algorithms.accuracy_control.evaluator import IterationCounter
-
-            if isinstance(loader, IterationCounter):
-                loader = loader._iterable
-
-            if isinstance(loader, DataProvider):
-                loader = loader._data_source
-
-            if isinstance(loader, nncf.Dataset):
-                loader = loader._data_source
-
-            metrics = self.test(model=WrapperAroundCompiledModel(model), test_loader=loader, test_metrics_list=valid_metrics_list, max_batches=32)
-            return float(metrics[metric_to_watch])
-
-        openvino_ptq_args = dict(
+        quantizer: AbstractQuantizer = QuantizerFactory().get(quantization_params.quantizer)
+        quantization_result = quantizer.ptq(
             model=model,
+            trainer=self,
             calibration_loader=calib_loader,
-            calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
-            quantization_skip_layers=get_param(selective_quantizer_params, "skip_modules"),
+            validation_loader=valid_loader,
+            validation_metrics=valid_metrics_list,
         )
+        exporter: AbstractExporter = ExporterFactory().get(export_params.exporter)
 
-        if quantization_params["openvino"]["with_quality_control"]:
-            openvino_ptq_args.update(
-                validation_loader=valid_loader,
-                validation_fn=functools.partial(validation_fn, metric_to_watch=metric_to_watch),
-            )
+        # Have to pass both original model and a quantized model
+        # It may be a different instance than the original model
+        # But we need the original model instance for export (preprocessing & postprocessing)
+        export_result = exporter.export_quantized(original=model, quantized=quantization_result)
+        return export_result
 
-        model = openvino_ptq(**openvino_ptq_args)
-
-        if quantization_params["openvino"]["with_quality_control"]:
-            model = WrapperAroundCompiledModel(model)
-
-        # VALIDATE PTQ MODEL AND PRINT SUMMARY
-        logger.info("Validating PTQ model...")
-        valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
-        results = ["PTQ Model Validation Results"]
-        results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
-        logger.info("\n".join(results))
-
-        if export_params is not None:
-            input_shape_from_loader = tuple(map(int, next(iter(valid_loader))[0].shape))
-            input_shape_with_export_batch_size = (export_params.batch_size,) + input_shape_from_loader[1:]
-
-            if export_params.output_onnx_path is None:
-                export_params.output_onnx_path = os.path.join(
-                    output_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_export_batch_size))}_ptq.onnx"
-                )
-            logger.debug(f"Output ONNX file path {export_params.output_onnx_path}")
-            export_result = self._export_quantized_model(model, export_params, input_shape_from_loader)
-            output_onnx_path = export_params.output_onnx_path
-        else:
-            output_onnx_path = None
-            export_result = None
-
-        return QuantizationResult(quantized_model=model, output_onnx_path=output_onnx_path, valid_metrics_dict=valid_metrics_dict, export_result=export_result)
+        # from super_gradients.training.utils.quantization import openvino_ptq
+        #
+        # if deepcopy_model_for_export is False:
+        #     raise RuntimeError(
+        #         "deepcopy_model_for_export=False is not supported. "
+        #         "A deepcopy_model_for_export is always considered True and the input model is not modified in-place anymore."
+        #         "If you need an acess to the quantized model object use `quantized_model` attribute of the return value of the ptq() call."
+        #     )
+        #
+        # valid_metrics_list = valid_metrics_list or self.valid_metrics
+        # calib_loader = calib_loader or valid_loader
+        #
+        # logger.debug("Performing post-training quantization (PTQ)...")
+        # logger.debug(f"Experiment name {self.experiment_name}")
+        #
+        # run_id = core_utils.get_param(self.training_params, "run_id", None)
+        # logger.debug(f"Experiment run id {run_id}")
+        #
+        # output_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
+        # logger.debug(f"Output directory {output_dir_path}")
+        #
+        # os.makedirs(output_dir_path, exist_ok=True)
+        #
+        # if quantization_params is None:
+        #     quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+        #     logger.info(f"Using default quantization params: {quantization_params}")
+        #
+        # model = unwrap_model(model)  # Unwrap model in case it is wrapped with DataParallel or DistributedDataParallel
+        # model = copy.deepcopy(model)  # Deepcopy model to avoid modifying the original model
+        # model = model.to(device_config.device).eval()
+        #
+        # selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
+        # calib_params = get_param(quantization_params, "calib_params")
+        #
+        # # QUANTIZE MODEL
+        # fuse_repvgg_blocks_residual_branches(model)
+        #
+        # def validation_fn(model, loader, metric_to_watch):
+        #     """
+        #     The whole content of this method serves one need - to be compatible with our .test() method
+        #     :param model:
+        #     :param loader:
+        #     :param metric_to_watch:
+        #     :return:
+        #     """
+        #
+        #     from nncf.data.dataset import DataProvider
+        #     from nncf.quantization.algorithms.accuracy_control.evaluator import IterationCounter
+        #
+        #     if isinstance(loader, IterationCounter):
+        #         loader = loader._iterable
+        #
+        #     if isinstance(loader, DataProvider):
+        #         loader = loader._data_source
+        #
+        #     if isinstance(loader, nncf.Dataset):
+        #         loader = loader._data_source
+        #
+        #     metrics = self.test(model=WrapperAroundCompiledModel(model), test_loader=loader, test_metrics_list=valid_metrics_list, max_batches=32)
+        #     return float(metrics[metric_to_watch])
+        #
+        # openvino_ptq_args = dict(
+        #     model=model,
+        #     calibration_loader=calib_loader,
+        #     calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
+        #     quantization_skip_layers=get_param(selective_quantizer_params, "skip_modules"),
+        # )
+        #
+        # model = openvino_ptq(**openvino_ptq_args)
+        #
+        # if quantization_params["openvino"]["with_quality_control"]:
+        #     model = WrapperAroundCompiledModel(model)
+        #
+        # # VALIDATE PTQ MODEL AND PRINT SUMMARY
+        # logger.info("Validating PTQ model...")
+        # valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
+        # results = ["PTQ Model Validation Results"]
+        # results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
+        # logger.info("\n".join(results))
+        #
+        # if export_params is not None:
+        #     input_shape_from_loader = tuple(map(int, next(iter(valid_loader))[0].shape))
+        #     input_shape_with_export_batch_size = (export_params.batch_size,) + input_shape_from_loader[1:]
+        #
+        #     if export_params.output_onnx_path is None:
+        #         export_params.output_onnx_path = os.path.join(
+        #             output_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_export_batch_size))}_ptq.onnx"
+        #         )
+        #     logger.debug(f"Output ONNX file path {export_params.output_onnx_path}")
+        #     export_result = self._export_quantized_model(model, export_params, input_shape_from_loader)
+        #     output_onnx_path = export_params.output_onnx_path
+        # else:
+        #     output_onnx_path = None
+        #     export_result = None
+        #
+        # return QuantizationResult(quantized_model=model, output_onnx_path=output_onnx_path, valid_metrics_dict=valid_metrics_dict, export_result=export_result)
 
     @staticmethod
     def _export_quantized_model(model: nn.Module, export_params: ExportParams, input_shape_from_dataloader: Tuple[int, int, int, int]) -> Optional[Any]:
