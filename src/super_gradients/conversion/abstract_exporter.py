@@ -11,5 +11,5 @@ class AbstractExporter(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def export_int8(self, model, calibration_dataset):
+    def export_quantized(self, original_model, quantized_model):
         pass

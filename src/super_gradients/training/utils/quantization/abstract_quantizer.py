@@ -1,7 +1,5 @@
 import abc
 from typing import Union, Dict, Any
-
-from super_gradients.module_interfaces import QuantizationResult
 import dataclasses
 from torch import nn
 from torch.utils.data import DataLoader
@@ -29,7 +27,7 @@ class AbstractQuantizer(abc.ABC):
     def ptq(
         self,
         model: nn.Module,
-        trainer: "Trainer",
+        trainer,
         calibration_loader: DataLoader,
         validation_loader: DataLoader,
         validation_metrics,
@@ -40,7 +38,7 @@ class AbstractQuantizer(abc.ABC):
     def qat(
         self,
         model,
-        trainer: "Trainer",
+        trainer,
         calibration_loader: DataLoader,
         validation_loader: DataLoader,
         validation_metrics,

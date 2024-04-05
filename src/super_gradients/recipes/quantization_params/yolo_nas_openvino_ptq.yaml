@@ -1,0 +1,13 @@
+ptq_only: True                 # whether to launch QAT, or leave PTQ only
+quantizer:
+  OpenVinoQuantizer:
+    selective_quantizer_params:
+      skip_patterns:
+        - ".+reg_convs.+"
+        - ".+cls_convs.+"
+        - ".+cls_pred.+"
+        - ".+reg_pred.+"
+
+    calib_params:
+      num_calib_batches: 128                # number of batches to use for calibration, if None whole dataloader will be used
+      verbose: False                        # if calibrator should be verbose

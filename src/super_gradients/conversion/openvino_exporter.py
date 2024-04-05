@@ -1,6 +1,7 @@
 from functools import partial
 from typing import Any, Union
 
+from super_gradients.common.registry.registry import register_exporter
 from super_gradients.conversion.abstract_exporter import AbstractExporter
 import nncf
 import openvino as ov
@@ -8,6 +9,7 @@ from pathlib import Path
 import torch
 
 
+@register_exporter()
 class OpenVINOExporter(AbstractExporter):
     def __init__(self, *, output_file: str, example_input: Any):
         self.output_file = output_file
@@ -41,7 +43,7 @@ class OpenVINOExporter(AbstractExporter):
     def _export_int8_already_calibrated(self, model: ov.Model, calibration_dataset):
         pass
 
-    def _export_int8_non_calibrated(self, model: torch.nn.Module, calibration_dataset):
+    def _export_int8_non_calibrated(self, model: torch.nn.Module, calibration_loader):
         calibration_dataset = nncf.Dataset(calibration_loader, transform_func=partial(transform_fn_to_device, device=device))
         quantized_model = nncf.quantize(
             model,

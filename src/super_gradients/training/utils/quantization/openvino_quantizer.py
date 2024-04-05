@@ -7,6 +7,7 @@ from typing import Union, List
 import nncf
 from nncf import TargetDevice
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.registry.registry import register_quantizer
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.utils.quantization.abstract_quantizer import AbstractQuantizer, QuantizationResult
 from super_gradients.training.utils.utils import infer_model_device
@@ -31,6 +32,7 @@ class OpenVinoCalibrationParams:
     num_calib_batches: int = 128
 
 
+@register_quantizer()
 class OpenVinoQuantizer(AbstractQuantizer):
     def __init__(self, calibration_params: OpenVinoCalibrationParams, selective_quantization_params: OpenVinoSelectiveQuantizationParams):
         super().__init__()
