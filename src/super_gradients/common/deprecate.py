@@ -58,10 +58,14 @@ def deprecated(deprecated_since: str, removed_from: str, target: Optional[callab
                     message += f"Reason: {reason}.\n"
 
                 if target is not None:
+                    if hasattr(target, "__func__"):  # unwraps `__func__` for @classmethod and @staticmethod decorators
+                        target_func = target.__func__
+                    else:
+                        target_func = target
                     message += (
                         f"Please update your code:\n"
                         f"  [-] from `{old_func.__module__}` import `{old_func.__name__}`\n"
-                        f"  [+] from `{target.__module__}` import `{target.__name__}`"
+                        f"  [+] from `{target_func.__module__}` import `{target_func.__name__}`"
                     )
 
                 if is_still_supported:
