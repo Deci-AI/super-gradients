@@ -7,7 +7,8 @@ scipy>=1.6.1
 matplotlib>=3.3.4
 psutil>=5.8.0
 tensorboard>=2.4.1
-setuptools>=65.5.1
+# pinned because of a crash in Snyk
+setuptools>=65.5.1,<67
 torchvision>=0.10.0
 torchmetrics==0.8
 hydra-core>=1.2.0
