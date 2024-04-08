@@ -326,7 +326,7 @@ class ExportableSegmentationModel:
 
         # This variable holds the output names of the model.
         # If postprocessing is enabled, it will be set to the output names of the postprocessing module.
-        if "output_names" in onnx_export_kwargs:
+        if onnx_export_kwargs is not None and "output_names" in onnx_export_kwargs:
             output_names = onnx_export_kwargs.pop("output_names")
         else:
             output_names = None
