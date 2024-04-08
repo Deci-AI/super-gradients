@@ -438,6 +438,7 @@ class Datasets:
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
     COCO_POSE_ESTIMATION_DATASET = "COCOPoseEstimationDataset"
     NYUV2_DEPTH_ESTIMATION_DATASET = "NYUv2DepthEstimationDataset"
+    KITTI_OPTICAL_FLOW_DATASET = "KITTIOpticalFlowDataset"
 
 
 class Processings:

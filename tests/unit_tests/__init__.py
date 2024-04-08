@@ -29,6 +29,7 @@ from tests.unit_tests.test_deprecate import TestDeprecationDecorator
 from tests.unit_tests.test_models_factory import DynamicModelTests
 from tests.unit_tests.test_mixed_precision_cpu import TestMixedPrecisionDisabled
 from tests.unit_tests.test_data_adapters import TestClassificationAdapter, TestDetectionAdapter, TestSegmentationAdapter
+from tests.unit_tests.optical_flow_dataset_test import OpticalFlowDatasetTest
 
 __all__ = [
     "CrashTipTest",
@@ -63,4 +64,5 @@ __all__ = [
     "TestClassificationAdapter",
     "TestDetectionAdapter",
     "TestSegmentationAdapter",
+    "OpticalFlowDatasetTest",
 ]
