@@ -1677,13 +1677,14 @@ class Trainer:
                 evaluation_type=EvaluationType.TEST,
                 silent_mode=silent_mode,
             )
-            self._save_checkpoint(
-                optimizer=self.optimizer,
-                epoch=self.start_epoch,
-                train_metrics_dict=valid_metrics_dict,
-                validation_results_dict=valid_metrics_dict,
-                context=context,
-            )
+            if not self.ddp_silent_mode:
+                self._save_checkpoint(
+                    optimizer=self.optimizer,
+                    epoch=self.start_epoch,
+                    train_metrics_dict=valid_metrics_dict,
+                    validation_results_dict=valid_metrics_dict,
+                    context=context,
+                )
 
             if self.ema:
                 self.net = keep_model
