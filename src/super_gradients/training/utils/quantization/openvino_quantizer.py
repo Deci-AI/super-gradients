@@ -5,7 +5,7 @@ from typing import Optional, Mapping
 from typing import Union, List
 
 import nncf
-from nncf import TargetDevice
+from nncf import TargetDevice, QuantizationPreset
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.registry.registry import register_quantizer
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
@@ -26,6 +26,15 @@ class OpenVinoSelectiveQuantizationParams:
 
 
 @dataclasses.dataclass
+class OpenVinoQuantizationParams:
+    """ """
+
+    target_device: Optional[str] = "ANY"
+    preset: Optional[str] = None
+    fast_bias_correction: bool = True
+
+
+@dataclasses.dataclass
 class OpenVinoCalibrationParams:
     """ """
 
@@ -34,15 +43,23 @@ class OpenVinoCalibrationParams:
 
 @register_quantizer()
 class OpenVinoQuantizer(AbstractQuantizer):
-    def __init__(self, calibration_params: OpenVinoCalibrationParams, selective_quantization_params: OpenVinoSelectiveQuantizationParams):
+    def __init__(
+        self,
+        calib_params: OpenVinoCalibrationParams,
+        quantizer_params: OpenVinoQuantizationParams,
+        selective_quantizer_params: OpenVinoSelectiveQuantizationParams,
+    ):
         super().__init__()
-        if isinstance(calibration_params, Mapping):
-            calibration_params = OpenVinoCalibrationParams(**calibration_params)
-        if isinstance(selective_quantization_params, Mapping):
-            selective_quantization_params = OpenVinoSelectiveQuantizationParams(**selective_quantization_params)
+        if isinstance(calib_params, Mapping):
+            calib_params = OpenVinoCalibrationParams(**calib_params)
+        if isinstance(selective_quantizer_params, Mapping):
+            selective_quantizer_params = OpenVinoSelectiveQuantizationParams(**selective_quantizer_params)
+        if isinstance(quantizer_params, Mapping):
+            quantizer_params = OpenVinoQuantizationParams(**quantizer_params)
 
-        self.selective_quantization_params = selective_quantization_params
-        self.calibration_params = calibration_params
+        self.selective_quantization_params = selective_quantizer_params
+        self.calibration_params = calib_params
+        self.quantizer_params = quantizer_params
 
     def ptq(
         self,
@@ -52,7 +69,8 @@ class OpenVinoQuantizer(AbstractQuantizer):
         validation_loader: DataLoader,
         validation_metrics,
     ):
-        model = copy.deepcopy(model)
+        original_model = model
+        model = copy.deepcopy(model).eval()
         fuse_repvgg_blocks_residual_branches(model)
 
         quantized_model = openvino_ptq(
@@ -61,6 +79,9 @@ class OpenVinoQuantizer(AbstractQuantizer):
             calibration_batches=self.calibration_params.num_calib_batches,
             skip_patterns=self.selective_quantization_params.skip_patterns,
             skip_types=self.selective_quantization_params.skip_types,
+            target_device=self.quantizer_params.target_device,
+            preset=self.quantizer_params.preset,
+            fast_bias_correction=self.quantizer_params.fast_bias_correction,
         )
 
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
@@ -70,29 +91,31 @@ class OpenVinoQuantizer(AbstractQuantizer):
         results += [f"   - {metric:10}: {value}" for metric, value in metrics.items()]
         logger.info("\n".join(results))
 
-        return QuantizationResult(quantized_model=quantized_model, metrics=metrics)
+        return QuantizationResult(original_model=original_model, quantized_model=quantized_model, metrics=metrics)
 
     def qat(self, *args, **kwargs):
         raise NotImplementedError("QAT is not supported for OpenVinoQuantizer")
+
+    def export(self, original_model, quantization_result, exporter):
+        # TODO: Implement export
+        return quantization_result
 
 
 def openvino_ptq(
     model: nn.Module,
     calibration_loader,
-    skip_patterns,
-    skip_types,
-    calibration_batches: int = 16,
+    skip_patterns: Optional[List[str]],
+    skip_types: Optional[List[str]],
+    calibration_batches: int,
+    preset,
+    target_device,
+    fast_bias_correction: bool,
 ):
-
     device = infer_model_device(model)
 
     def transform_fn_to_device(data_item, device):
         images = data_item[0]
         return images.to(device)
-
-    def transform_fn_to_numpy(data_item):
-        images = data_item[0]
-        return images.numpy()
 
     ignored_scope_dict = dict(
         patterns=list(skip_patterns) if skip_patterns is not None else None,
@@ -106,16 +129,21 @@ def openvino_ptq(
 
     logger.debug("Starting model quantization using NNCF without QC")
     calibration_dataset = nncf.Dataset(calibration_loader, transform_func=partial(transform_fn_to_device, device=device))
+    calibration_loader_len = len(calibration_loader)
+    if calibration_batches > calibration_loader_len:
+        logger.warning(
+            f"Calibration batches ({calibration_batches}) is greater than the number of batches in the calibration loader ({calibration_loader_len})."
+        )
+        calibration_batches = calibration_loader_len
+
     quantized_model = nncf.quantize(
         model,
         calibration_dataset=calibration_dataset,
         ignored_scope=ignored_scope,
-        subset_size=calibration_batches,  # TODO: Check whether subset_size is sample size or batch size
-        preset=nncf.QuantizationPreset.MIXED,
-        advanced_parameters=nncf.AdvancedQuantizationParameters(
-            # quantization_mode="symmetric",
-            smooth_quant_alpha=-1,  # Not sure what it does but it is present in Stable Diffusion V2 example
-        ),
+        subset_size=calibration_batches,
+        preset=QuantizationPreset(preset) if preset is not None else None,
+        target_device=TargetDevice(target_device) if target_device is not None else TargetDevice.ANY,
+        fast_bias_correction=fast_bias_correction,
     )
 
     logger.debug("Model quantization using NNCF completed")

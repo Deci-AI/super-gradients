@@ -14,10 +14,13 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.utils.quantization import SelectiveQuantizer, QuantizationCalibrator
 from super_gradients.training.utils.quantization.abstract_quantizer import AbstractQuantizer, QuantizationResult
+
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
 
 logger = get_logger(__name__)
+
+__all__ = ["TRTSelectiveQuantizationParams", "TRTQATParams", "TRTQuantizerCalibrationParams", "TRTQuantizer"]
 
 
 @dataclasses.dataclass
@@ -209,6 +212,10 @@ class TRTQuantizer(AbstractQuantizer):
 
         metrics = trainer.test(model=model, test_loader=validation_loader, test_metrics_list=validation_metrics)
         return QuantizationResult(original_model=model, quantized_model=model, metrics=metrics)
+
+    def export(self, *, original_model, quantization_result, exporter):
+        # TODO: Add export functionality
+        return quantization_result
 
 
 def tensorrt_ptq(

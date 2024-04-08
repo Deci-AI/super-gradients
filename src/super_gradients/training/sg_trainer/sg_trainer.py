@@ -111,19 +111,17 @@ from super_gradients.module_interfaces import (
     QuantizationResult,
 )
 from super_gradients.conversion import ExportQuantizationMode, ExportParams
-from super_gradients.common.deprecate import deprecated_parameter, deprecated
+from super_gradients.common.deprecate import deprecated
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
-from super_gradients.training.utils.quantization.abstract_quantizer import AbstractQuantizer, QuantizationResult
+from super_gradients.training.utils.quantization.abstract_quantizer import AbstractQuantizer
 from super_gradients.conversion.abstract_exporter import AbstractExporter
 
 from super_gradients.training.utils.quantization.tensorrt_quantizer import TRTQuantizer  # noqa
 from super_gradients.training.utils.quantization.openvino_quantizer import OpenVinoQuantizer  # noqa
 
 from super_gradients.conversion.tensorrt_exporter import TRTExporter  # noqa
-from super_gradients.conversion.openvino_exporter import OpenVINOExporter  # noqa
+from super_gradients.conversion.openvino_exporter import OpenVinoExporter  # noqa
 from super_gradients.conversion.onnx_exporter import ONNXRuntimeExporter  # noqa
-
-import functools
 
 logger = get_logger(__name__)
 
@@ -2408,12 +2406,10 @@ class Trainer:
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
-        # export_params = get_param(cfg, "export_params", {})
-        # export_params = ExportParams(**export_params)
-
         if get_param(cfg.checkpoint_params, "checkpoint_path") is None and get_param(cfg.checkpoint_params, "pretrained_weights") is None:
             raise ValueError("Starting checkpoint / pretrained weights are a must for QAT finetuning.")
 
+        # TODO: Move this to a specific quantizer implementation
         num_gpus = core_utils.get_param(cfg, "num_gpus")
         multi_gpu = core_utils.get_param(cfg, "multi_gpu")
         device = core_utils.get_param(cfg, "device")
@@ -2449,6 +2445,7 @@ class Trainer:
 
             calib_dataloader_params = copy.deepcopy(cfg.dataset_params.train_dataloader_params)
             calib_dataloader_params.shuffle = False
+            calib_dataloader_params.drop_last = False
 
         calib_dataloader = dataloaders.get(
             name=calib_dataloader_name,
@@ -2469,128 +2466,33 @@ class Trainer:
             num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
         )
 
-        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
+        # recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=get_param(cfg, "ckpt_root_dir"))
 
         quantizer: AbstractQuantizer = QuantizerFactory().get(cfg.quantization_params.quantizer)
         exporter: AbstractExporter = ExporterFactory().get(cfg.quantization_params.exporter)
 
+        # TODO: Can be further simplified by having TRTPTQQuantizer & TRTQATQuantizer
         if cfg.quantization_params.ptq_only:
-            res = trainer.ptq(
+            quantization_result = quantizer.ptq(
                 model=model,
-                valid_loader=val_dataloader,
-                valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
-                metric_to_watch=cfg.training_hyperparams.metric_to_watch,
-                calib_loader=calib_dataloader,
-                quantizer=quantizer,
-                exporter=exporter,
+                trainer=trainer,
+                validation_loader=val_dataloader,
+                validation_metrics=cfg.training_hyperparams.valid_metrics_list,
+                calibration_loader=calib_dataloader,
             )
         else:
-            res = trainer.qat(
+            quantization_result = quantizer.qat(
                 model=model,
-                calib_loader=calib_dataloader,
-                valid_loader=val_dataloader,
-                valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
+                trainer=trainer,
+                calibration_loader=calib_dataloader,
+                validation_loader=val_dataloader,
+                validation_metrics=cfg.training_hyperparams.valid_metrics_list,
                 train_loader=train_dataloader,
                 training_params=cfg.training_hyperparams,
-                additional_qat_configs_to_log=recipe_logged_cfg,
-                quantizer=quantizer,
-                exporter=exporter,
             )
 
-        return res
-
-    def qat(
-        self,
-        *,
-        model: torch.nn.Module,
-        train_loader: DataLoader,
-        valid_loader: DataLoader,
-        calib_loader: DataLoader,
-        training_params: Mapping,
-        additional_qat_configs_to_log: Dict,
-        valid_metrics_list: List[Metric],
-        quantizer: AbstractQuantizer,
-        exporter: AbstractExporter,
-    ) -> QuantizationResult:
-        """
-        Performs post-training quantization (PTQ), and then quantization-aware training (QAT).
-        Exports the ONNX models (ckpt_best.pth of QAT and the calibrated model) to the checkpoints directory.
-
-        :param calib_loader: DataLoader, data loader for calibration.
-
-        :param model: torch.nn.Module, Model to perform QAT/PTQ on. When None, will try to use the network from
-        previous self.train call(that is, if there was one - will try to use self.ema_model.ema if EMA was used,
-        otherwise self.net)
-
-
-        :param valid_loader: DataLoader, data loader for validation. Used both for validating the calibrated model after PTQ and during QAT.
-            When None, will try to use self.valid_loader if it was set in previous self.train(..) call (default=None).
-
-        :param train_loader: DataLoader, data loader for QA training, can be ignored when quantization_params["ptq_only"]=True (default=None).
-
-        :param training_params: Mapping, training hyper parameters for QAT, same as in super.train(...). When None, will try to use self.training_params
-         which is set in previous self.train(..) call (default=None).
-
-        :param additional_qat_configs_to_log: Dict, Optional dictionary containing configs that will be added to the QA training's
-         sg_logger. Format should be {"Config_title_1": {...}, "Config_title_2":{..}}.
-
-        :param valid_metrics_list:  (list(torchmetrics.Metric)) metrics list for evaluation of the calibrated model.
-        When None, the validation metrics from training_params are used). (default=None).
-
-        :return: An instance of QATResult containing the quantized model, the ONNX path and other relevant information.
-        """
-        quantization_result = quantizer.qat(
-            model=model,
-            trainer=self,
-            calibration_loader=calib_loader,
-            validation_loader=valid_loader,
-            validation_metrics=valid_metrics_list,
-        )
-
-        # Have to pass both original model and a quantized model
-        # It may be a different instance than the original model
-        # But we need the original model instance for export (preprocessing & postprocessing)
-        export_result = exporter.export_quantized(original=model, quantized=quantization_result)
-        return export_result
-
-    def ptq(
-        self,
-        *,
-        model: nn.Module,
-        valid_loader: DataLoader,
-        metric_to_watch: str,
-        valid_metrics_list: List[torchmetrics.Metric] = None,
-        calib_loader: DataLoader = None,
-        quantization_params: Dict = None,
-        export_params: ExportParams = None,
-        quantizer: AbstractQuantizer,
-        exporter: AbstractExporter,
-    ) -> QuantizationResult:
-        """
-        Performs post-training quantization (calibration of the model)..
-
-        :param model: (torch.nn.Module) Model to perform calibration on. When None, will try to use self.net which is
-                      set in previous self.train(..) call (default=None).
-        :param valid_loader: DataLoader, data loader for validation. Used for validating the calibrated model.
-        :param calib_loader: DataLoader, data loader for calibration. If None will use valid_loader for calibration.
-        :param valid_metrics_list:  (list(torchmetrics.Metric)) metrics list for evaluation of the calibrated model.
-
-        :return: Validation results of the calibrated model.
-        """
-
-        quantization_result = quantizer.ptq(
-            model=model,
-            trainer=self,
-            calibration_loader=calib_loader,
-            validation_loader=valid_loader,
-            validation_metrics=valid_metrics_list,
-        )
-
-        # Have to pass both original model and a quantized model
-        # It may be a different instance than the original model
-        # But we need the original model instance for export (preprocessing & postprocessing)
-        export_result = exporter.export_quantized(original_model=model, quantized_model=quantization_result)
+        export_result = quantizer.export(original_model=model, quantization_result=quantization_result, exporter=exporter)
         return export_result
 
     # @staticmethod

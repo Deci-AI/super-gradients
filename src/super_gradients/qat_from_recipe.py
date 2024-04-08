@@ -18,13 +18,14 @@ def _main(cfg: DictConfig) -> None:
     result = Trainer.quantize_from_config(cfg)
 
     print("Validation result of quantized model:")
-    pprint(result.valid_metrics_dict)
+    pprint(result.metrics)
 
-    if result.output_onnx_path is not None:
-        print(f"ONNX model exported to {result.output_onnx_path}")
-
-    if result.export_result is not None:
-        print(result.export_result)
+    # TODO: Add these when export is implemented
+    # if result.output_onnx_path is not None:
+    #     print(f"ONNX model exported to {result.output_onnx_path}")
+    #
+    # if result.export_result is not None:
+    #     print(result.export_result)
 
 
 def main():

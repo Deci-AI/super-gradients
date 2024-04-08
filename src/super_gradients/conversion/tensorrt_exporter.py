@@ -13,5 +13,5 @@ class TRTExporter(AbstractExporter):
     def export_fp32(self, model):
         pass
 
-    def export_quantized(self, original_model, quantized_model):
+    def export_quantized(self, original_model, quantized_result):
         pass

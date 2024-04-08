@@ -10,22 +10,28 @@ import torch
 
 
 @register_exporter()
-class OpenVINOExporter(AbstractExporter):
-    def __init__(self, *, output_file: str, example_input: Any):
-        self.output_file = output_file
-        self.example_input = example_input
+class OpenVinoExporter(AbstractExporter):
+    def __init__(self, *, output_path: str):
+        self.output_path = output_path
+        # self.example_input = example_input
 
     def export_fp32(self, model: Union[torch.nn.Module, str, Path, ov.Model]):
         ov_model = self._get_ov_model_from_input_model(model)
-        ov.save_model(ov_model, self.output_file, compress_to_fp16=False)
+        ov.save_model(ov_model, self.output_path, compress_to_fp16=False)
 
     def export_fp16(self, model: torch.nn.Module):
         ov_model = self._get_ov_model_from_input_model(model)
-        ov.save_model(ov_model, self.output_file, compress_to_fp16=True)
+        ov.save_model(ov_model, self.output_path, compress_to_fp16=True)
 
-    def _get_ov_model_from_input_model(self, model) -> ov.Model:
+    def export_quantized(self, original_model, quantized_model):
+        ov_model = self._get_ov_model_from_input_model(quantized_model)
+        ov.save_model(ov_model, self.output_path, compress_to_fp16=False)
+
+    def _get_ov_model_from_input_model(self, model, example_input=None) -> ov.Model:
         if isinstance(model, torch.nn.Module):
-            ov_model = ov.convert_model(model, input=self.example_input)
+            if example_input is None:
+                raise ValueError("Model conversion from PyTorch requires example input")
+            ov_model = ov.convert_model(model, input=example_input)
         elif isinstance(model, (str, Path)):
             ov_model = ov.convert_model(str(model))
         elif isinstance(model, ov.Model):

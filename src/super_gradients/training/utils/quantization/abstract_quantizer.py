@@ -44,3 +44,7 @@ class AbstractQuantizer(abc.ABC):
         validation_metrics,
     ) -> QuantizationResult:
         pass
+
+    @abc.abstractmethod
+    def export(self, original_model, quantization_result, exporter):
+        pass
