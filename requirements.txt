@@ -13,8 +13,8 @@ torchvision>=0.10.0
 torchmetrics==0.8
 hydra-core>=1.2.0
 onnxruntime>=1.15.0
-# onnx 1.17.0 introduce IR 10 which is not yet supported by onnx runtime & graphsurgeon
-onnx>=1.15.0,<1.17.0
+# onnx 1.16.0 introduce IR 10 which is not yet supported by onnx runtime & graphsurgeon
+onnx==1.15.0
 pillow>=10.2.0
 pip-tools>=6.12.1
 einops==0.3.2
