@@ -37,11 +37,9 @@ class AbstractQuantizer(abc.ABC):
     @abc.abstractmethod
     def qat(
         self,
+        cfg,
         model,
         trainer,
-        calibration_loader: DataLoader,
-        validation_loader: DataLoader,
-        validation_metrics,
     ) -> QuantizationResult:
         pass
 

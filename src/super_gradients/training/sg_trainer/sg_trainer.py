@@ -1,24 +1,22 @@
 import copy
 import inspect
 import os
-import typing
 import warnings
 from copy import deepcopy
-from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
+from typing import Union, Tuple, Mapping, Dict, Any, Optional
 
 import hydra
 import numpy as np
 import torch
 import torch.cuda
 import torch.nn
-import torchmetrics
 from omegaconf import DictConfig, OmegaConf
 
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
-from torchmetrics import MetricCollection, Metric
+from torchmetrics import MetricCollection
 from tqdm import tqdm
 
 from super_gradients import is_distributed
@@ -100,19 +98,14 @@ from super_gradients.training.utils.callbacks import (
 from super_gradients.common.registry.registry import LR_WARMUP_CLS_DICT
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
-from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
+from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
 from super_gradients.module_interfaces import (
-    ExportableObjectDetectionModel,
-    ExportablePoseEstimationModel,
-    ExportableSegmentationModel,
     SupportsInputShapeCheck,
     QuantizationResult,
 )
-from super_gradients.conversion import ExportQuantizationMode, ExportParams
 from super_gradients.common.deprecate import deprecated
-from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.quantization.abstract_quantizer import AbstractQuantizer
 from super_gradients.conversion.abstract_exporter import AbstractExporter
 
@@ -2381,17 +2374,13 @@ class Trainer:
     @classmethod
     def quantize_from_config(cls, cfg: Union[DictConfig, dict]) -> QuantizationResult:
         """
-        Perform quantization aware training (QAT) according to a recipe configuration.
+        Perform model quantization according to a recipe configuration.
 
         This method will instantiate all the objects specified in the recipe, build and quantize the model,
         and calibrate the quantized model. The resulting quantized model and the output of the trainer.train()
         method will be returned.
 
         The quantized model will be exported to ONNX along with other checkpoints.
-
-        The call to self.quantize (see docs in the next method) is done with the created
-         train_loader and valid_loader. If no calibration data loader is passed through cfg.calib_loader,
-         a train data laoder with the validation transforms is used for calibration.
 
         :param cfg: The parsed DictConfig object from yaml recipe files or a dictionary.
         :return: Returns an instaned of PTQResult or QATResult that contains quantized model instance, ONNX path
@@ -2407,51 +2396,13 @@ class Trainer:
         cfg = hydra.utils.instantiate(cfg)
 
         if get_param(cfg.checkpoint_params, "checkpoint_path") is None and get_param(cfg.checkpoint_params, "pretrained_weights") is None:
-            raise ValueError("Starting checkpoint / pretrained weights are a must for QAT finetuning.")
+            raise ValueError("Starting checkpoint / pretrained weights are a must for quantization.")
 
         # TODO: Move this to a specific quantizer implementation
         num_gpus = core_utils.get_param(cfg, "num_gpus")
         multi_gpu = core_utils.get_param(cfg, "multi_gpu")
         device = core_utils.get_param(cfg, "device")
-        if num_gpus != 1 and device == "cuda":
-            raise NotImplementedError(
-                f"Recipe requests multi_gpu={cfg.multi_gpu} and num_gpus={cfg.num_gpus}. QAT is proven to work correctly only with multi_gpu=OFF and num_gpus=1"
-            )
-
         setup_device(device=device, multi_gpu=multi_gpu, num_gpus=num_gpus)
-
-        # INSTANTIATE DATA LOADERS
-        train_dataloader = dataloaders.get(
-            name=get_param(cfg, "train_dataloader"),
-            dataset_params=copy.deepcopy(cfg.dataset_params.train_dataset_params),
-            dataloader_params=copy.deepcopy(cfg.dataset_params.train_dataloader_params),
-        )
-
-        val_dataloader = dataloaders.get(
-            name=get_param(cfg, "val_dataloader"),
-            dataset_params=copy.deepcopy(cfg.dataset_params.val_dataset_params),
-            dataloader_params=copy.deepcopy(cfg.dataset_params.val_dataloader_params),
-        )
-
-        if "calib_dataloader" in cfg:
-            calib_dataloader_name = get_param(cfg, "calib_dataloader")
-            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.calib_dataloader_params)
-            calib_dataset_params = copy.deepcopy(cfg.dataset_params.calib_dataset_params)
-        else:
-            calib_dataloader_name = get_param(cfg, "train_dataloader")
-
-            calib_dataset_params = copy.deepcopy(cfg.dataset_params.train_dataset_params)
-            calib_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
-
-            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.train_dataloader_params)
-            calib_dataloader_params.shuffle = False
-            calib_dataloader_params.drop_last = False
-
-        calib_dataloader = dataloaders.get(
-            name=calib_dataloader_name,
-            dataset_params=calib_dataset_params,
-            dataloader_params=calib_dataloader_params,
-        )
 
         # BUILD MODEL
         model = models.get(
@@ -2474,6 +2425,34 @@ class Trainer:
 
         # TODO: Can be further simplified by having TRTPTQQuantizer & TRTQATQuantizer
         if cfg.quantization_params.ptq_only:
+
+            # INSTANTIATE DATA LOADERS
+            val_dataloader = dataloaders.get(
+                name=get_param(cfg, "val_dataloader"),
+                dataset_params=copy.deepcopy(cfg.dataset_params.val_dataset_params),
+                dataloader_params=copy.deepcopy(cfg.dataset_params.val_dataloader_params),
+            )
+
+            if "calib_dataloader" in cfg:
+                calib_dataloader_name = get_param(cfg, "calib_dataloader")
+                calib_dataloader_params = copy.deepcopy(cfg.dataset_params.calib_dataloader_params)
+                calib_dataset_params = copy.deepcopy(cfg.dataset_params.calib_dataset_params)
+            else:
+                calib_dataloader_name = get_param(cfg, "train_dataloader")
+
+                calib_dataset_params = copy.deepcopy(cfg.dataset_params.train_dataset_params)
+                calib_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
+
+                calib_dataloader_params = copy.deepcopy(cfg.dataset_params.train_dataloader_params)
+                calib_dataloader_params.shuffle = False
+                calib_dataloader_params.drop_last = False
+
+            calib_dataloader = dataloaders.get(
+                name=calib_dataloader_name,
+                dataset_params=calib_dataset_params,
+                dataloader_params=calib_dataloader_params,
+            )
+
             quantization_result = quantizer.ptq(
                 model=model,
                 trainer=trainer,
@@ -2483,13 +2462,9 @@ class Trainer:
             )
         else:
             quantization_result = quantizer.qat(
+                cfg=cfg,
                 model=model,
                 trainer=trainer,
-                calibration_loader=calib_dataloader,
-                validation_loader=val_dataloader,
-                validation_metrics=cfg.training_hyperparams.valid_metrics_list,
-                train_loader=train_dataloader,
-                training_params=cfg.training_hyperparams,
             )
 
         export_result = quantizer.export(original_model=model, quantization_result=quantization_result, exporter=exporter)

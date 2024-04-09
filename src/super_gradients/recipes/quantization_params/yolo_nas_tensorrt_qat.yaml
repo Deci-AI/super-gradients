@@ -1,4 +1,4 @@
-ptq_only: True                 # whether to launch QAT, or leave PTQ only
+ptq_only: False                 # whether to launch QAT, or leave PTQ only
 quantizer:
   TRTQuantizer:
     selective_quantizer_params:
@@ -40,4 +40,4 @@ quantizer:
 
 exporter:
   TRTExporter:
-    output_path: yolo_nas_trt_ptq_int8.onnx
+    output_path: yolo_nas_trt_qat_int8.onnx

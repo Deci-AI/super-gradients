@@ -1,22 +1,20 @@
 import copy
 import dataclasses
 import os
-from typing import Union, List, Mapping, Dict, Optional
+from typing import Union, List, Mapping, Optional
 
 import torch.cuda
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 from super_gradients.common.registry.registry import register_quantizer
 from super_gradients.import_utils import import_pytorch_quantization_or_install
-from super_gradients.training import modify_params_for_qat
-from super_gradients.training.utils.utils import check_model_contains_quantized_modules, get_param
-from torch import nn
-from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
+from super_gradients.training.dataloaders import dataloaders
 from super_gradients.training.utils.quantization import SelectiveQuantizer, QuantizationCalibrator
 from super_gradients.training.utils.quantization.abstract_quantizer import AbstractQuantizer, QuantizationResult
-
+from super_gradients.training.utils.utils import check_model_contains_quantized_modules, get_param
+from torch import nn
 from torch.utils.data import DataLoader
-from torchmetrics import Metric
 
 logger = get_logger(__name__)
 
@@ -91,7 +89,8 @@ class TRTQuantizer(AbstractQuantizer):
     >>>       skip_modules:              # optional list of module names (strings) to skip from quantization
     >>>
     >>>     calib_params:
-    >>>       histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", "mse"], "max" calibrators always use "max"
+    >>>       histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators,
+    >>>                                             # acceptable types are ["percentile", "entropy", "mse"], "max" calibrators always use "max"
     >>>       percentile: 99.99                     # percentile for all histogram calibrators with method "percentile", other calibrators are not affected
     >>>       num_calib_batches: 16                 # number of batches to use for calibration, if None, 512 / batch_size will be used
     >>>       verbose: False                        # if calibrator should be verbose
@@ -119,7 +118,7 @@ class TRTQuantizer(AbstractQuantizer):
     def ptq(
         self,
         model: nn.Module,
-        trainer: "Trainer",
+        trainer,
         calibration_loader: DataLoader,
         validation_loader: DataLoader,
         validation_metrics,
@@ -159,23 +158,23 @@ class TRTQuantizer(AbstractQuantizer):
     def qat(
         self,
         *,
-        model: nn.Module,
-        trainer: "Trainer",
-        train_loader: DataLoader,
-        training_hyperparams,
-        validation_loader: DataLoader,
-        calibration_loader: DataLoader = None,
-        training_params: Mapping,
-        additional_qat_configs_to_log: Dict = None,
-        validation_metrics: List[Metric],
+        cfg,
+        model,
+        trainer,
     ):
+        num_gpus = get_param(cfg, "num_gpus")
+        device = get_param(cfg, "device")
+        if num_gpus != 1 and device == "cuda":
+            raise NotImplementedError(
+                f"Recipe requests multi_gpu={cfg.multi_gpu} and num_gpus={cfg.num_gpus}. QAT is proven to work correctly only with multi_gpu=OFF and num_gpus=1"
+            )
+
         (training_hyperparams, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params,) = modify_params_for_qat(
-            training_hyperparams=training_hyperparams,
+            training_hyperparams=cfg.training_hyperparams,
             train_dataset_params=cfg.dataset_params.train_dataset_params,
             train_dataloader_params=cfg.dataset_params.train_dataloader_params,
             val_dataset_params=cfg.dataset_params.val_dataset_params,
             val_dataloader_params=cfg.dataset_params.val_dataloader_params,
-            quantization_params=cfg.quantization_params,
             batch_size_divisor=self.qat_params.batch_size_divisor,
             disable_phase_callbacks=self.qat_params.disable_phase_callbacks,
             cosine_final_lr_ratio=self.qat_params.cosine_final_lr_ratio,
@@ -185,6 +184,38 @@ class TRTQuantizer(AbstractQuantizer):
             disable_augmentations=self.qat_params.disable_augmentations,
         )
 
+        train_dataloader = dataloaders.get(
+            name=get_param(cfg, "train_dataloader"),
+            dataset_params=copy.deepcopy(train_dataset_params),
+            dataloader_params=copy.deepcopy(train_dataloader_params),
+        )
+
+        validation_loader = dataloaders.get(
+            name=get_param(cfg, "val_dataloader"),
+            dataset_params=copy.deepcopy(val_dataset_params),
+            dataloader_params=copy.deepcopy(val_dataloader_params),
+        )
+
+        if "calib_dataloader" in cfg:
+            calib_dataloader_name = get_param(cfg, "calib_dataloader")
+            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.calib_dataloader_params)
+            calib_dataset_params = copy.deepcopy(cfg.dataset_params.calib_dataset_params)
+        else:
+            calib_dataloader_name = get_param(cfg, "train_dataloader")
+
+            calib_dataset_params = copy.deepcopy(train_dataset_params)
+            calib_dataset_params.transforms = val_dataset_params.transforms
+
+            calib_dataloader_params = copy.deepcopy(train_dataloader_params)
+            calib_dataloader_params.shuffle = False
+            calib_dataloader_params.drop_last = False
+
+        calibration_loader = dataloaders.get(
+            name=calib_dataloader_name,
+            dataset_params=calib_dataset_params,
+            dataloader_params=calib_dataloader_params,
+        )
+        validation_metrics = cfg.training_hyperparams.valid_metrics_list
         ptq_result = self.ptq(
             model=model,
             trainer=trainer,
@@ -192,6 +223,7 @@ class TRTQuantizer(AbstractQuantizer):
             validation_loader=validation_loader,
             validation_metrics=validation_metrics,
         )
+
         # TRAIN
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -204,10 +236,10 @@ class TRTQuantizer(AbstractQuantizer):
 
         trainer.train(
             model=ptq_result.quantized_model,
-            train_loader=train_loader,
+            train_loader=train_dataloader,
             valid_loader=validation_loader,
-            training_params=training_params,
-            additional_configs_to_log=additional_qat_configs_to_log,
+            training_params=training_hyperparams,
+            additional_configs_to_log=cfg,
         )
 
         metrics = trainer.test(model=model, test_loader=validation_loader, test_metrics_list=validation_metrics)
@@ -270,3 +302,145 @@ def tensorrt_ptq(
         calibrator.reset_calibrators(model)
 
     return model
+
+
+def modify_params_for_qat(
+    training_hyperparams,
+    train_dataset_params,
+    val_dataset_params,
+    train_dataloader_params,
+    val_dataloader_params,
+    batch_size_divisor: int = 2,
+    max_epochs_divisor: int = 10,
+    lr_decay_factor: float = 0.01,
+    warmup_epochs_divisor: int = 10,
+    cosine_final_lr_ratio: float = 0.01,
+    disable_phase_callbacks: bool = True,
+    disable_augmentations: bool = False,
+):
+    """
+
+    This method modifies the recipe for QAT to implement rules of thumb based on the regular non-qat recipe.
+    It does so by manipulating the training_hyperparams, train_dataloader_params, val_dataloader_params, train_dataset_params, val_dataset_params.
+    Usage:
+        trainer = Trainer("test_launch_qat_with_minimal_changes")
+        net = ResNet18(num_classes=10, arch_params={})
+        train_params = {...}
+
+        train_dataset_params = {
+            "transforms": [...
+            ]
+        }
+
+        train_dataloader_params = {"batch_size": 256}
+
+        val_dataset_params = {"transforms": [ToTensor(), Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])]}
+
+        val_dataloader_params = {"batch_size": 256}
+
+        train_loader = cifar10_train(dataset_params=train_dataset_params, dataloader_params=train_dataloader_params)
+        valid_loader = cifar10_val(dataset_params=val_dataset_params, dataloader_params=val_dataloader_params)
+
+        trainer.train(
+            model=net,
+            training_params=train_params,
+            train_loader=train_loader,
+            valid_loader=valid_loader,
+        )
+
+        train_params, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params = modify_params_for_qat(
+            train_params, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params
+        )
+
+        train_loader = cifar10_train(dataset_params=train_dataset_params, dataloader_params=train_dataloader_params)
+        valid_loader = cifar10_val(dataset_params=val_dataset_params, dataloader_params=val_dataloader_params)
+
+        trainer.qat(
+            model=net,
+            training_params=train_params,
+            train_loader=train_loader,
+            valid_loader=valid_loader,
+            calib_loader=train_loader,
+        )
+
+    :param val_dataset_params: Dict, validation dataset_params to be passed to dataloaders.get(...) when instantiating the train dataloader.
+    :param train_dataset_params: Dict, train dataset_params to be passed to dataloaders.get(...) when instantiating the validation dataloader.
+    :param val_dataloader_params: Dict, validation dataloader_params to be passed to dataloaders.get(...) when instantiating the validation dataloader.
+    :param train_dataloader_params: Dict, train dataloader_params to be passed to dataloaders.get(...) when instantiating the train dataloader.
+    :param training_hyperparams: Dict, train parameters passed to Trainer.qat(...)
+    :param int batch_size_divisor: Divisor used to calculate the batch size. Default value is 2.
+    :param int max_epochs_divisor: Divisor used to calculate the maximum number of epochs. Default value is 10.
+    :param float lr_decay_factor: Factor used to decay the learning rate, weight decay and warmup. Default value is 0.01.
+    :param int warmup_epochs_divisor: Divisor used to calculate the number of warm-up epochs. Default value is 10.
+    :param float cosine_final_lr_ratio: Ratio used to determine the final learning rate in a cosine annealing schedule. Default value is 0.01.
+    :param bool disable_phase_callbacks: Flag to control to disable phase callbacks, which can interfere with QAT. Default value is True.
+    :param bool disable_augmentations: Flag to control to disable phase augmentations, which can interfere with QAT. Default value is False.
+    :return: modified (copy) training_hyperparams, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params
+    """
+
+    training_hyperparams = copy.deepcopy(training_hyperparams)
+    train_dataloader_params = copy.deepcopy(train_dataloader_params)
+    val_dataloader_params = copy.deepcopy(val_dataloader_params)
+    train_dataset_params = copy.deepcopy(train_dataset_params)
+    val_dataset_params = copy.deepcopy(val_dataset_params)
+
+    if "max_epochs" not in training_hyperparams.keys():
+        raise ValueError("max_epochs is a required field in training_hyperparams for QAT modification.")
+
+    if "initial_lr" not in training_hyperparams.keys():
+        raise ValueError("initial_lr is a required field in training_hyperparams for QAT modification.")
+
+    if "optimizer_params" not in training_hyperparams.keys():
+        raise ValueError("optimizer_params is a required field in training_hyperparams for QAT modification.")
+
+    if "weight_decay" not in training_hyperparams["optimizer_params"].keys():
+        raise ValueError("weight_decay is a required field in training_hyperparams['optimizer_params'] for QAT modification.")
+
+    # Q/DQ Layers take a lot of space for activations in training mode
+    train_dataloader_params["batch_size"] = max(1, train_dataloader_params["batch_size"] // batch_size_divisor)
+    val_dataloader_params["batch_size"] = max(1, val_dataloader_params["batch_size"] // batch_size_divisor)
+
+    logger.info(f"New dataset_params.train_dataloader_params.batch_size: {train_dataloader_params['batch_size']}")
+    logger.info(f"New dataset_params.val_dataloader_params.batch_size: {val_dataloader_params['batch_size']}")
+
+    training_hyperparams["max_epochs"] = max(1, training_hyperparams["max_epochs"] // max_epochs_divisor)
+    logger.warning(f"New number of epochs: {training_hyperparams['max_epochs']}")
+    training_hyperparams["initial_lr"] *= lr_decay_factor
+    if get_param(training_hyperparams, "warmup_initial_lr") is not None:
+        training_hyperparams["warmup_initial_lr"] *= lr_decay_factor
+    else:
+        training_hyperparams["warmup_initial_lr"] = training_hyperparams["initial_lr"] * 0.01
+    training_hyperparams["optimizer_params"]["weight_decay"] *= lr_decay_factor
+    logger.warning(f"New learning rate: {training_hyperparams['initial_lr']}")
+    logger.warning(f"New weight decay: {training_hyperparams['optimizer_params']['weight_decay']}")
+    # as recommended by pytorch-quantization docs
+    if get_param(training_hyperparams, "lr_mode") != "CosineLRScheduler":
+        training_hyperparams["lr_mode"] = "CosineLRScheduler"
+    training_hyperparams["cosine_final_lr_ratio"] = cosine_final_lr_ratio
+    logger.warning(
+        f"lr_mode will be set to cosine for QAT run instead of {get_param(training_hyperparams, 'lr_mode')} with "
+        f"cosine_final_lr_ratio={cosine_final_lr_ratio}"
+    )
+
+    training_hyperparams["lr_warmup_epochs"] = (training_hyperparams["max_epochs"] // warmup_epochs_divisor) or 1
+    logger.warning(f"New lr_warmup_epochs: {training_hyperparams['lr_warmup_epochs']}")
+
+    # do mess with Q/DQ
+    if get_param(training_hyperparams, "average_best_models"):
+        logger.info("Model averaging will be disabled for QAT run.")
+        training_hyperparams["average_best_models"] = False
+    if get_param(training_hyperparams, "ema"):
+        logger.warning("EMA will be disabled for QAT run.")
+        training_hyperparams["ema"] = False
+    if get_param(training_hyperparams, "sync_bn"):
+        logger.warning("SyncBatchNorm will be disabled for QAT run.")
+        training_hyperparams["sync_bn"] = False
+    if disable_phase_callbacks and get_param(training_hyperparams, "phase_callbacks") is not None and len(training_hyperparams["phase_callbacks"]) > 0:
+        logger.warning(f"Recipe contains {len(training_hyperparams['phase_callbacks'])} phase callbacks. All of them will be disabled.")
+        training_hyperparams["phase_callbacks"] = []
+    # no augmentations
+    if disable_augmentations and "transforms" in val_dataset_params:
+        logger.warning("Augmentations will be disabled for QAT run. Using validation transforms instead.")
+        train_dataset_params["transforms"] = val_dataset_params["transforms"]
+
+    return training_hyperparams, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params
