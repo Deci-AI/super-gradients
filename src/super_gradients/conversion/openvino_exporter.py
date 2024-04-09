@@ -1,64 +1,104 @@
-from functools import partial
-from typing import Any, Union
-
-from super_gradients.common.registry.registry import register_exporter
-from super_gradients.conversion.abstract_exporter import AbstractExporter
-import nncf
-import openvino as ov
+import tempfile
+import typing
 from pathlib import Path
+
+import openvino as ov
 import torch
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.registry.registry import register_exporter
+from super_gradients.conversion import ExportParams, ExportTargetBackend
+from super_gradients.conversion.abstract_exporter import AbstractExporter
+from super_gradients.module_interfaces import ExportableObjectDetectionModel, ExportablePoseEstimationModel, ExportableSegmentationModel
+from super_gradients.training.utils.export_utils import infer_image_shape_from_model
+
+logger = get_logger(__name__)
 
 
 @register_exporter()
 class OpenVinoExporter(AbstractExporter):
     def __init__(self, *, output_path: str):
         self.output_path = output_path
-        # self.example_input = example_input
 
-    def export_fp32(self, model: Union[torch.nn.Module, str, Path, ov.Model]):
-        ov_model = self._get_ov_model_from_input_model(model)
-        ov.save_model(ov_model, self.output_path, compress_to_fp16=False)
-
-    def export_fp16(self, model: torch.nn.Module):
-        ov_model = self._get_ov_model_from_input_model(model)
-        ov.save_model(ov_model, self.output_path, compress_to_fp16=True)
-
-    def export_quantized(self, original_model, quantized_model):
-        ov_model = self._get_ov_model_from_input_model(quantized_model)
-        ov.save_model(ov_model, self.output_path, compress_to_fp16=False)
-
-    def _get_ov_model_from_input_model(self, model, example_input=None) -> ov.Model:
-        if isinstance(model, torch.nn.Module):
-            if example_input is None:
-                raise ValueError("Model conversion from PyTorch requires example input")
-            ov_model = ov.convert_model(model, input=example_input)
-        elif isinstance(model, (str, Path)):
+    def export(self, model, export_params: ExportParams):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_onnx_path = Path(temp_dir) / "model.onnx"
+            export_result = self._internal_export(model, temp_onnx_path, export_params, quantized_model=None)
             ov_model = ov.convert_model(str(model))
-        elif isinstance(model, ov.Model):
-            ov_model = model
+            ov.save_model(ov_model, temp_onnx_path, compress_to_fp16=False)
+            return export_result
+
+    def export_quantized(self, original_model, quantization_result, export_params: ExportParams):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_onnx_path = str(Path(temp_dir) / "model.onnx")
+            export_result = self._internal_export(original_model, temp_onnx_path, export_params, quantized_model=quantization_result.quantized_model)
+            ov_model = ov.convert_model(temp_onnx_path)
+            ov.save_model(ov_model, temp_onnx_path, compress_to_fp16=False)
+            return export_result
+
+    def _internal_export(self, model, output_onnx_path, export_params: ExportParams, quantized_model) -> str:
+        from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
+
+        input_image_shape = export_params.input_image_shape
+        if input_image_shape is None:
+            input_image_shape = infer_image_shape_from_model(model)
+        # if input_image_shape is None:
+        #     input_image_shape = input_shape_from_dataloader[2:]
+        # input_channels = infer_image_input_channels(model)
+        # if input_channels is not None and input_channels != input_shape_from_dataloader[1]:
+        #     logger.warning("Inferred input channels does not match with the number of channels from the dataloader")
+
+        input_shape_with_explicit_batch = tuple([export_params.batch_size] + list(input_image_shape[1:]))
+
+        export_result = None
+
+        # A signatures of these two protocols are the same, so we can use the same method and set of parameters for both
+        if isinstance(model, (ExportableObjectDetectionModel, ExportablePoseEstimationModel)):
+            model = typing.cast(ExportableObjectDetectionModel, model)
+            export_result = model.export(
+                output=output_onnx_path,
+                engine=ExportTargetBackend.ONNXRUNTIME,
+                quantized_model=quantized_model,
+                batch_size=export_params.batch_size,
+                input_image_shape=input_image_shape,
+                preprocessing=export_params.preprocessing,
+                postprocessing=export_params.postprocessing,
+                confidence_threshold=export_params.confidence_threshold,
+                nms_threshold=export_params.detection_nms_iou_threshold,
+                onnx_simplify=export_params.onnx_simplify,
+                onnx_export_kwargs=export_params.onnx_export_kwargs,
+                num_pre_nms_predictions=export_params.detection_num_pre_nms_predictions,
+                max_predictions_per_image=export_params.detection_max_predictions_per_image,
+                output_predictions_format=export_params.detection_predictions_format,
+            )
+        elif isinstance(model, ExportableSegmentationModel):
+            model: ExportableSegmentationModel = typing.cast(ExportableSegmentationModel, model)
+            export_result = model.export(
+                output=export_params.output_onnx_path,
+                engine=ExportTargetBackend.ONNXRUNTIME,
+                quantized_model=quantized_model,
+                batch_size=export_params.batch_size,
+                input_image_shape=input_image_shape,
+                preprocessing=export_params.preprocessing,
+                postprocessing=export_params.postprocessing,
+                confidence_threshold=export_params.confidence_threshold,
+                onnx_simplify=export_params.onnx_simplify,
+                onnx_export_kwargs=export_params.onnx_export_kwargs,
+            )
         else:
-            raise ValueError(f"Unsupported model type: {type(model)}")
-        return ov_model
+            device = "cpu"
+            onnx_input = torch.randn(input_shape_with_explicit_batch).to(device=device)
+            onnx_export_kwargs = export_params.onnx_export_kwargs or {}
+            model_to_export = quantized_model or model
+            export_to_onnx(
+                model=model_to_export.to(device),
+                model_input=onnx_input,
+                onnx_filename=export_params.output_onnx_path,
+                input_names=["input"],
+                onnx_opset=onnx_export_kwargs.get("opset_version", None),
+                do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
+                dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
+                keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
+                verbose=onnx_export_kwargs.get("verbose", False),
+            )
 
-    def export_int8(self, model: Union[torch.nn.Module, ov.Model], calibration_dataset):
-        if isinstance(model, torch.nn.Module):
-            return self._export_int8_non_calibrated(model, calibration_dataset)
-        else:
-            return self._export_int8_already_calibrated(model, calibration_dataset)
-
-    def _export_int8_already_calibrated(self, model: ov.Model, calibration_dataset):
-        pass
-
-    def _export_int8_non_calibrated(self, model: torch.nn.Module, calibration_loader):
-        calibration_dataset = nncf.Dataset(calibration_loader, transform_func=partial(transform_fn_to_device, device=device))
-        quantized_model = nncf.quantize(
-            model,
-            calibration_dataset=calibration_dataset,
-            ignored_scope=ignored_scope,
-            subset_size=calibration_batches,  # TODO: Check whether subset_size is sample size or batch size
-            preset=nncf.QuantizationPreset.MIXED,
-            advanced_parameters=nncf.AdvancedQuantizationParameters(
-                # quantization_mode="symmetric",
-                smooth_quant_alpha=-1,  # Not sure what it does but it is present in Stable Diffusion V2 example
-            ),
-        )
+        return export_result

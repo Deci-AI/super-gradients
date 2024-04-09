@@ -42,7 +42,3 @@ class AbstractQuantizer(abc.ABC):
         trainer,
     ) -> QuantizationResult:
         pass
-
-    @abc.abstractmethod
-    def export(self, original_model, quantization_result, exporter):
-        pass

@@ -150,6 +150,7 @@ class ExportableObjectDetectionModel:
         nms_threshold: Optional[float] = None,
         engine: Optional[ExportTargetBackend] = None,
         quantization_mode: Optional[ExportQuantizationMode] = None,
+        quantized_model=None,
         selective_quantizer: Optional["SelectiveQuantizer"] = None,  # noqa
         quantization_skip_layers: Optional[List[str]] = None,
         calibration_loader: Optional[DataLoader] = None,
@@ -401,12 +402,11 @@ class ExportableObjectDetectionModel:
         if hasattr(model, "prep_model_for_conversion"):
             model.prep_model_for_conversion(**prep_model_for_conversion_kwargs)
 
-        contains_quantized_modules = check_model_contains_quantized_modules(model)
+        contains_quantized_modules = check_model_contains_quantized_modules(model) or quantized_model is not None
 
         if quantization_mode == ExportQuantizationMode.INT8:
-
             if engine in {ExportTargetBackend.TENSORRT, ExportTargetBackend.ONNXRUNTIME}:
-                from super_gradients.training.utils.quantization import ptq as tensorrt_ptq
+                from super_gradients.training.utils.quantization.tensorrt_quantizer import tensorrt_ptq
 
                 model = tensorrt_ptq(
                     model,
@@ -417,13 +417,13 @@ class ExportableObjectDetectionModel:
                     calibration_percentile=calibration_percentile,
                 )
             elif engine == ExportTargetBackend.OPENVINO:
-                from super_gradients.training.utils.quantization import openvino_ptq
+                from super_gradients.training.utils.quantization.openvino_quantizer import openvino_ptq
 
                 model = openvino_ptq(
                     model,
                     calibration_loader=calibration_loader,
                     calibration_batches=calibration_batches,
-                    quantization_skip_layers=quantization_skip_layers,
+                    skip_patterns=quantization_skip_layers,
                 )
                 logger.debug("Model quantization using OpenVINO PTQ completed")
             else:
@@ -441,9 +441,10 @@ class ExportableObjectDetectionModel:
 
         # The model.prep_model_for_conversion will be called inside ConvertableCompletePipelineModel once more,
         # but as long as implementation of prep_model_for_conversion is idempotent, it should be fine.
+        # Here we may change the model with a quantized counterpart for export (This is necessary for quantizers that returns completely different model)
         complete_model = (
             ConvertableCompletePipelineModel(
-                model=model, pre_process=preprocessing_module, post_process=postprocessing_module, **prep_model_for_conversion_kwargs
+                model=quantized_model or model, pre_process=preprocessing_module, post_process=postprocessing_module, **prep_model_for_conversion_kwargs
             )
             .to(device)
             .eval()
@@ -578,14 +579,6 @@ class ExportableObjectDetectionModel:
                 ov_model = ov.convert_model(temp_onnx_file)
 
                 if quantization_mode == ExportQuantizationMode.INT8:
-                    from super_gradients.training.utils.quantization import openvino_ptq_from_onnx
-
-                    # ov_model = openvino_ptq_from_onnx(
-                    #     ov_model,
-                    #     calibration_loader=calibration_loader,
-                    #     calibration_batches=calibration_batches,
-                    #     quantization_skip_layers=quantization_skip_layers,
-                    # )
                     compress_to_fp16 = False
                 else:
                     compress_to_fp16 = quantization_mode == ExportQuantizationMode.FP16

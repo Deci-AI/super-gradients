@@ -115,6 +115,7 @@ from super_gradients.training.utils.quantization.openvino_quantizer import OpenV
 from super_gradients.conversion.tensorrt_exporter import TRTExporter  # noqa
 from super_gradients.conversion.openvino_exporter import OpenVinoExporter  # noqa
 from super_gradients.conversion.onnx_exporter import ONNXRuntimeExporter  # noqa
+from super_gradients.conversion import ExportParams
 
 logger = get_logger(__name__)
 
@@ -2398,7 +2399,7 @@ class Trainer:
         if get_param(cfg.checkpoint_params, "checkpoint_path") is None and get_param(cfg.checkpoint_params, "pretrained_weights") is None:
             raise ValueError("Starting checkpoint / pretrained weights are a must for quantization.")
 
-        # TODO: Move this to a specific quantizer implementation
+        # TODO: Should this really be here?
         num_gpus = core_utils.get_param(cfg, "num_gpus")
         multi_gpu = core_utils.get_param(cfg, "multi_gpu")
         device = core_utils.get_param(cfg, "device")
@@ -2422,6 +2423,7 @@ class Trainer:
 
         quantizer: AbstractQuantizer = QuantizerFactory().get(cfg.quantization_params.quantizer)
         exporter: AbstractExporter = ExporterFactory().get(cfg.quantization_params.exporter)
+        export_params: ExportParams = ExportParams(**cfg.quantization_params.export_params)
 
         # TODO: Can be further simplified by having TRTPTQQuantizer & TRTQATQuantizer
         if cfg.quantization_params.ptq_only:
@@ -2467,79 +2469,5 @@ class Trainer:
                 trainer=trainer,
             )
 
-        export_result = quantizer.export(original_model=model, quantization_result=quantization_result, exporter=exporter)
+        export_result = exporter.export_quantized(original_model=model, quantization_result=quantization_result, export_params=export_params)
         return export_result
-
-    # @staticmethod
-    # def _export_quantized_model(model: nn.Module, export_params: ExportParams, input_shape_from_dataloader: Tuple[int, int, int, int]) -> Optional[Any]:
-    #     """
-    #     Internal method to export a quantized model to ONNX. This method used internally by PTQ & QAT steps.
-    #
-    #     :param model: Quantized model
-    #     :param export_params: Parameters controlling the export process.
-    #     :param input_shape_from_dataloader: Example shape of the batch from validation DataLoader.
-    #            It may be used as an example of the input shape during ONNX export.
-    #     :return: An instance of export result object if model supports `model.export()` or None of it's a regular model
-    #     """
-    #     from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
-    #
-    #     input_image_shape = export_params.input_image_shape
-    #     if input_image_shape is None:
-    #         input_image_shape = infer_image_shape_from_model(model)
-    #     if input_image_shape is None:
-    #         input_image_shape = input_shape_from_dataloader[2:]
-    #
-    #     input_channels = infer_image_input_channels(model)
-    #     if input_channels is not None and input_channels != input_shape_from_dataloader[1]:
-    #         logger.warning("Infered input channels does not match with the number of channels from the dataloader")
-    #
-    #     input_shape_with_explicit_batch = tuple([export_params.batch_size] + list(input_image_shape[1:]))
-    #
-    #     export_result = None
-    #     # A signatures of these two protocols are the same so we can use the same method and set of parameters for both
-    #     if isinstance(model, (ExportableObjectDetectionModel, ExportablePoseEstimationModel)):
-    #         model: ExportableObjectDetectionModel = typing.cast(ExportableObjectDetectionModel, model)
-    #         export_result = model.export(
-    #             output=export_params.output_onnx_path,
-    #             engine=export_params.engine,
-    #             quantization_mode=ExportQuantizationMode.INT8,
-    #             input_image_shape=input_image_shape,
-    #             preprocessing=export_params.preprocessing,
-    #             postprocessing=export_params.postprocessing,
-    #             confidence_threshold=export_params.confidence_threshold,
-    #             nms_threshold=export_params.detection_nms_iou_threshold,
-    #             onnx_simplify=export_params.onnx_simplify,
-    #             onnx_export_kwargs=export_params.onnx_export_kwargs,
-    #             num_pre_nms_predictions=export_params.detection_num_pre_nms_predictions,
-    #             max_predictions_per_image=export_params.detection_max_predictions_per_image,
-    #             output_predictions_format=export_params.detection_predictions_format,
-    #         )
-    #     elif isinstance(model, ExportableSegmentationModel):
-    #         model: ExportableSegmentationModel = typing.cast(ExportableSegmentationModel, model)
-    #         export_result = model.export(
-    #             output=export_params.output_onnx_path,
-    #             quantization_mode=ExportQuantizationMode.INT8,
-    #             input_image_shape=input_image_shape,
-    #             preprocessing=export_params.preprocessing,
-    #             postprocessing=export_params.postprocessing,
-    #             confidence_threshold=export_params.confidence_threshold,
-    #             onnx_simplify=export_params.onnx_simplify,
-    #             onnx_export_kwargs=export_params.onnx_export_kwargs,
-    #         )
-    #     else:
-    #         device = "cpu"
-    #         onnx_input = torch.randn(input_shape_with_explicit_batch).to(device="cpu")
-    #         onnx_export_kwargs = export_params.onnx_export_kwargs or {}
-    #         export_to_onnx(
-    #             model=model.to(device),
-    #             model_input=onnx_input,
-    #             onnx_filename=export_params.output_onnx_path,
-    #             input_names=["input"],
-    #             onnx_opset=onnx_export_kwargs.get("opset_version", None),
-    #             do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
-    #             dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
-    #             keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
-    #             verbose=onnx_export_kwargs.get("verbose", False),
-    #         )
-    #
-    #     return export_result

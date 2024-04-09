@@ -64,7 +64,7 @@ class OpenVinoQuantizer(AbstractQuantizer):
     def ptq(
         self,
         model: nn.Module,
-        trainer: "Trainer",
+        trainer,
         calibration_loader: DataLoader,
         validation_loader: DataLoader,
         validation_metrics,
@@ -95,10 +95,6 @@ class OpenVinoQuantizer(AbstractQuantizer):
 
     def qat(self, *args, **kwargs):
         raise NotImplementedError("QAT is not supported for OpenVinoQuantizer")
-
-    def export(self, original_model, quantization_result, exporter):
-        # TODO: Implement export
-        return quantization_result
 
 
 def openvino_ptq(
@@ -146,51 +142,5 @@ def openvino_ptq(
         fast_bias_correction=fast_bias_correction,
     )
 
-    logger.debug("Model quantization using NNCF completed")
-    return quantized_model
-
-
-def openvino_ptq_from_onnx(
-    model,
-    calibration_loader,
-    quantization_skip_layers,
-    calibration_batches: int,
-    validation_loader: Optional[DataLoader] = None,
-    validation_fn: Optional[None] = None,
-):
-    import nncf
-
-    # import openvino as ov
-
-    # if isinstance(model, str):
-    #    onnx_model = onnx.load(model)
-    #    input_name = onnx_model.graph.input[0].name
-    # else:
-    #    input_name = model.graph.input[0].name
-
-    def transform_fn_to_numpy(data_item):
-        images = data_item[0]
-        return images.numpy()[0:1, ...]  # Batch size from calibration loader should match the batch size of the model
-
-    ignored_scope = None
-
-    if quantization_skip_layers is not None:
-        ignored_scope = nncf.IgnoredScope(patterns=list(quantization_skip_layers))
-        logger.debug(f"Quantization skip layers: {quantization_skip_layers}")
-
-    logger.debug("Starting model quantization using NNCF without QC")
-    calibration_dataset = nncf.Dataset(calibration_loader, transform_func=transform_fn_to_numpy)
-    quantized_model = nncf.quantize(
-        model,
-        calibration_dataset=calibration_dataset,
-        ignored_scope=ignored_scope,
-        target_device=TargetDevice.CPU,
-        subset_size=calibration_batches,  # TODO: Check whether subset_size is sample size or batch size
-        preset=nncf.QuantizationPreset.MIXED,
-        advanced_parameters=nncf.AdvancedQuantizationParameters(
-            # quantization_mode="symmetric",
-            smooth_quant_alpha=-1,  # Not sure what it does, but it is present in Stable Diffusion V2 example
-        ),
-    )
     logger.debug("Model quantization using NNCF completed")
     return quantized_model
