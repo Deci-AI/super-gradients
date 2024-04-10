@@ -18,9 +18,11 @@ def quantize_from_config(cfg: DictConfig) -> None:
 
     print("Quantized model saved to", result.exported_model_path)
     print("Validation result of quantized model:")
-    longest_metric_name = max(len(metric) for metric in result.original_metrics.keys())
+    common_metrics = set(result.original_metrics.keys()) & set(result.quantized_metrics.keys())
+    longest_metric_name = max(len(metric) for metric in common_metrics)
     print(f"{str.rjust('Metric',longest_metric_name)} | Original | Quantized | Relative Change")
-    for metric, quantized_value in result.quantized_metrics.items():
+    for metric in common_metrics:
+        quantized_value = result.quantized_metrics[metric]
         original_value = result.original_metrics[metric]
         relative_change = (quantized_value - original_value) / original_value
         print(f"{str.rjust(metric, longest_metric_name)} | {original_value:<8.4f} | {quantized_value:<9.4f} | {100 * relative_change:+.2f}%")
