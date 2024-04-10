@@ -225,6 +225,9 @@ class TRTQuantizer(AbstractQuantizer):
             dataloader_params=calib_dataloader_params,
         )
         validation_metrics = cfg.training_hyperparams.valid_metrics_list
+
+        original_metrics = trainer.test(model=model, test_loader=validation_loader, test_metrics_list=validation_metrics)
+
         ptq_result = self.ptq(
             model=model,
             trainer=trainer,
@@ -251,8 +254,15 @@ class TRTQuantizer(AbstractQuantizer):
             additional_configs_to_log=cfg,
         )
 
-        metrics = trainer.test(model=model, test_loader=validation_loader, test_metrics_list=validation_metrics)
-        return QuantizationResult(original_model=model, quantized_model=model, metrics=metrics)
+        quantized_metrics = trainer.test(model=model, test_loader=validation_loader, test_metrics_list=validation_metrics)
+        return QuantizationResult(
+            original_model=model,
+            quantized_model=model,
+            original_metrics=original_metrics,
+            quantized_metrics=quantized_metrics,
+            export_result=None,
+            exported_model_path=None,
+        )
 
     def export(self, *, original_model, quantization_result, exporter):
         # TODO: Add export functionality
