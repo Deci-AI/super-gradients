@@ -23,8 +23,10 @@ exporter:
 export_params:
     preprocessing: True
     postprocessing: True
+    postprocessing_use_tensorrt_nms: False
+
     batch_size: 1
-    confidence_threshold: 0.01
+    confidence_threshold: 0.2
     onnx_simplify: True
     onnx_export_kwargs: {}
 

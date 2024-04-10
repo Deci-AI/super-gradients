@@ -118,7 +118,6 @@ class SegmentationModelExportResult:
     input_image_dtype: torch.dtype
     input_image_shape: Tuple[int, int]
 
-    engine: ExportTargetBackend
     quantization_mode: Optional[ExportQuantizationMode]
 
     output: str
@@ -501,7 +500,6 @@ class ExportableSegmentationModel:
             input_image_channels=input_image_channels,
             input_image_dtype=input_image_dtype,
             input_image_shape=input_image_shape,
-            engine=engine,
             quantization_mode=quantization_mode,
             output=output,
             usage_instructions="\n".join(usage_instructions),

@@ -1,104 +1,30 @@
-import tempfile
-import typing
-from pathlib import Path
+import shutil
 
 import openvino as ov
-import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.registry.registry import register_exporter
-from super_gradients.conversion import ExportParams, ExportTargetBackend
 from super_gradients.conversion.abstract_exporter import AbstractExporter
-from super_gradients.module_interfaces import ExportableObjectDetectionModel, ExportablePoseEstimationModel, ExportableSegmentationModel
-from super_gradients.training.utils.export_utils import infer_image_shape_from_model
 
 logger = get_logger(__name__)
 
 
 @register_exporter()
 class OpenVinoExporter(AbstractExporter):
-    def __init__(self, *, output_path: str):
-        self.output_path = output_path
-
-    def export(self, model, export_params: ExportParams):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_onnx_path = Path(temp_dir) / "model.onnx"
-            export_result = self._internal_export(model, temp_onnx_path, export_params, quantized_model=None)
-            ov_model = ov.convert_model(str(model))
-            ov.save_model(ov_model, temp_onnx_path, compress_to_fp16=False)
-            return export_result
-
-    def export_quantized(self, original_model, quantization_result, export_params: ExportParams):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_onnx_path = str(Path(temp_dir) / "model.onnx")
-            export_result = self._internal_export(original_model, temp_onnx_path, export_params, quantized_model=quantization_result.quantized_model)
-            ov_model = ov.convert_model(temp_onnx_path)
-            ov.save_model(ov_model, temp_onnx_path, compress_to_fp16=False)
-            return export_result
-
-    def _internal_export(self, model, output_onnx_path, export_params: ExportParams, quantized_model) -> str:
-        from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
-
-        input_image_shape = export_params.input_image_shape
-        if input_image_shape is None:
-            input_image_shape = infer_image_shape_from_model(model)
-        # if input_image_shape is None:
-        #     input_image_shape = input_shape_from_dataloader[2:]
-        # input_channels = infer_image_input_channels(model)
-        # if input_channels is not None and input_channels != input_shape_from_dataloader[1]:
-        #     logger.warning("Inferred input channels does not match with the number of channels from the dataloader")
-
-        input_shape_with_explicit_batch = tuple([export_params.batch_size] + list(input_image_shape[1:]))
-
-        export_result = None
-
-        # A signatures of these two protocols are the same, so we can use the same method and set of parameters for both
-        if isinstance(model, (ExportableObjectDetectionModel, ExportablePoseEstimationModel)):
-            model = typing.cast(ExportableObjectDetectionModel, model)
-            export_result = model.export(
-                output=output_onnx_path,
-                engine=ExportTargetBackend.ONNXRUNTIME,
-                quantized_model=quantized_model,
-                batch_size=export_params.batch_size,
-                input_image_shape=input_image_shape,
-                preprocessing=export_params.preprocessing,
-                postprocessing=export_params.postprocessing,
-                confidence_threshold=export_params.confidence_threshold,
-                nms_threshold=export_params.detection_nms_iou_threshold,
-                onnx_simplify=export_params.onnx_simplify,
-                onnx_export_kwargs=export_params.onnx_export_kwargs,
-                num_pre_nms_predictions=export_params.detection_num_pre_nms_predictions,
-                max_predictions_per_image=export_params.detection_max_predictions_per_image,
-                output_predictions_format=export_params.detection_predictions_format,
-            )
-        elif isinstance(model, ExportableSegmentationModel):
-            model: ExportableSegmentationModel = typing.cast(ExportableSegmentationModel, model)
-            export_result = model.export(
-                output=export_params.output_onnx_path,
-                engine=ExportTargetBackend.ONNXRUNTIME,
-                quantized_model=quantized_model,
-                batch_size=export_params.batch_size,
-                input_image_shape=input_image_shape,
-                preprocessing=export_params.preprocessing,
-                postprocessing=export_params.postprocessing,
-                confidence_threshold=export_params.confidence_threshold,
-                onnx_simplify=export_params.onnx_simplify,
-                onnx_export_kwargs=export_params.onnx_export_kwargs,
-            )
+    def __init__(self, output_path: str, compress_to_fp16: bool = False):
+        if output_path.endswith(".xml") or output_path.endswith(".onnx"):
+            self.output_path = output_path
         else:
-            device = "cpu"
-            onnx_input = torch.randn(input_shape_with_explicit_batch).to(device=device)
-            onnx_export_kwargs = export_params.onnx_export_kwargs or {}
-            model_to_export = quantized_model or model
-            export_to_onnx(
-                model=model_to_export.to(device),
-                model_input=onnx_input,
-                onnx_filename=export_params.output_onnx_path,
-                input_names=["input"],
-                onnx_opset=onnx_export_kwargs.get("opset_version", None),
-                do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
-                dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
-                keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
-                verbose=onnx_export_kwargs.get("verbose", False),
-            )
+            raise ValueError(f"Unsupported output format: {output_path}. Only .onnx or .xml extensions are supported.")
+        self.output_path = output_path
+        self.compress_to_fp16 = compress_to_fp16
 
-        return export_result
+    def export_from_onnx(self, source_onnx: str):
+        if self.output_path.endswith(".xml"):
+            ov_model = ov.convert_model(source_onnx)
+            ov.save_model(ov_model, self.output_path, compress_to_fp16=False)
+        elif self.output_path.endswith(".onnx"):
+            shutil.copy(source_onnx, self.output_path)
+        else:
+            raise ValueError(f"Unsupported output format: {self.output_path}")
+
+        return self.output_path

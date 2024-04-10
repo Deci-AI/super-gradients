@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Union, Dict
+from typing import Union, Dict, Any
 
 from torch import nn
 
@@ -10,7 +10,15 @@ __all__ = ["QuantizationResult"]
 
 @dataclasses.dataclass
 class QuantizationResult:
-    quantized_model: nn.Module
-    output_onnx_path: str
-    valid_metrics_dict: Dict[str, float]
+    """
+    :param original_model: The original model that came in to quantization function.
+    :param quantized_model: The quantized model. The value may not be the same instance or have another class.
+    :param metrics: The metrics of the quantized model computed on validation set.
+    """
+
+    original_model: nn.Module
+    quantized_model: Union[nn.Module, Any]
+    exported_model_path: Union[None, str]
+    quantized_metrics: Dict[str, float]
+    original_metrics: Dict[str, float]
     export_result: Union[None, ObjectDetectionModelExportResult, PoseEstimationModelExportResult] = None

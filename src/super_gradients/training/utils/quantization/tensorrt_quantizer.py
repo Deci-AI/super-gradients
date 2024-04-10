@@ -127,6 +127,8 @@ class TRTQuantizer(AbstractQuantizer):
         model = copy.deepcopy(model).eval()
         fuse_repvgg_blocks_residual_branches(model)
 
+        original_metrics = trainer.test(model=model, test_loader=validation_loader, test_metrics_list=validation_metrics)
+
         q_util = SelectiveQuantizer(
             default_quant_modules_calibrator_weights=self.selective_quantizer_params.calibrator_w,
             default_quant_modules_calibrator_inputs=self.selective_quantizer_params.calibrator_i,
@@ -148,12 +150,19 @@ class TRTQuantizer(AbstractQuantizer):
 
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
         logger.info("Validating PTQ model...")
-        metrics = trainer.test(model=quantized_model, test_loader=validation_loader, test_metrics_list=validation_metrics)
+        quantized_metrics = trainer.test(model=quantized_model, test_loader=validation_loader, test_metrics_list=validation_metrics)
         results = ["PTQ Model Validation Results"]
-        results += [f"   - {metric:10}: {value}" for metric, value in metrics.items()]
+        results += [f"   - {metric:10}: {value}" for metric, value in quantized_metrics.items()]
         logger.info("\n".join(results))
 
-        return QuantizationResult(original_model=original_model, quantized_model=quantized_model, metrics=metrics)
+        return QuantizationResult(
+            original_model=original_model,
+            quantized_model=quantized_model,
+            quantized_metrics=quantized_metrics,
+            original_metrics=original_metrics,
+            exported_model_path=None,
+            export_result=None,
+        )
 
     def qat(
         self,

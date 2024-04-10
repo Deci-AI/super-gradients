@@ -39,5 +39,20 @@ quantizer:
 
 
 exporter:
-  TRTExporter:
+  ONNXExporter:
     output_path: yolo_nas_trt_qat_int8.onnx
+
+export_params:
+    preprocessing: True
+    postprocessing: True
+    postprocessing_use_tensorrt_nms: False
+
+    batch_size: 1
+    confidence_threshold: 0.2
+    onnx_simplify: True
+    onnx_export_kwargs: {}
+
+    detection_nms_iou_threshold: 0.5
+    detection_max_predictions_per_image: 128
+    detection_num_pre_nms_predictions: 1000
+    detection_predictions_format: flat
