@@ -2433,6 +2433,9 @@ class Trainer:
             trainer=trainer,
         )
 
+        # After we quantized a model, next step is to export it to ONNX with pre- & post- processings and
+        # other settings defined in export_params.
+        # Once ONNX file is ready - it can be exported further to target framework or left as is.
         with tempfile.TemporaryDirectory() as td:
             temp_onnx_path = os.path.join(td, "model.onnx")
             if isinstance(model, ExportableObjectDetectionModel):
