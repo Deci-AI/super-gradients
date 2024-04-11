@@ -312,14 +312,14 @@ class TRTQATQuantizer(TRTPTQQuantizer):
         )
         validation_metrics = cfg.training_hyperparams.valid_metrics_list
 
-        original_metrics = copy.deepcopy(trainer).test(model=model, test_loader=validation_loader, test_metrics_list=copy.deepcopy(validation_metrics))
+        original_metrics = trainer.test(model=model, test_loader=validation_loader, test_metrics_list=validation_metrics)
 
         ptq_result = self.ptq(
             model=model,
-            trainer=copy.deepcopy(trainer),
+            trainer=trainer,
             calibration_loader=calibration_loader,
             validation_loader=validation_loader,
-            validation_metrics=copy.deepcopy(validation_metrics),
+            validation_metrics=validation_metrics,
         )
 
         # TRAIN
@@ -332,19 +332,19 @@ class TRTQATQuantizer(TRTPTQQuantizer):
         logger.debug(f"Output directory {output_dir_path}")
         os.makedirs(output_dir_path, exist_ok=True)
 
-        copy.deepcopy(trainer).train(
+        trainer.train(
             model=ptq_result.quantized_model,
             train_loader=train_dataloader,
             valid_loader=validation_loader,
-            training_params=copy.deepcopy(training_hyperparams),
+            training_params=training_hyperparams,
             additional_configs_to_log=cfg,
         )
 
-        quantized_metrics = copy.deepcopy(trainer).test(model=model, test_loader=validation_loader, test_metrics_list=copy.deepcopy(validation_metrics))
+        quantized_metrics = trainer.test(model=ptq_result.quantized_model, test_loader=validation_loader, test_metrics_list=validation_metrics)
         return QuantizationResult(
             original_model=model,
             original_metrics=original_metrics,
-            quantized_model=model,
+            quantized_model=ptq_result.quantized_model,
             quantized_metrics=quantized_metrics,
             calibration_dataloader=calibration_loader,
             export_result=None,
