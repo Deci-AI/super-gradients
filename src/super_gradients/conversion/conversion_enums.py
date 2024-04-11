@@ -8,7 +8,6 @@ class ExportTargetBackend(str, Enum):
 
     ONNXRUNTIME = "onnxruntime"
     TENSORRT = "tensorrt"
-    OPENVINO = "openvino"
 
 
 class DetectionOutputFormatMode(str, Enum):

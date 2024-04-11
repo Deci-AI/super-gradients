@@ -5,21 +5,7 @@ quantizer:
       calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
       per_channel: True          # per-channel quantization of weights, activations stay per-tensor by default
       learn_amax: False          # enable learnable amax in all TensorQuantizers using straight-through estimator
-      skip_modules:              # optional list of module names (strings) to skip from quantization
-        - heads.head1.reg_convs
-        - heads.head1.cls_convs
-        - heads.head1.cls_pred
-        - heads.head1.reg_pred
-
-        - heads.head2.reg_convs
-        - heads.head2.cls_convs
-        - heads.head2.cls_pred
-        - heads.head2.reg_pred
-
-        - heads.head3.reg_convs
-        - heads.head3.cls_convs
-        - heads.head3.cls_pred
-        - heads.head3.reg_pred
+      skip_modules: []
 
     calib_params:
       histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", "mse"], "max" calibrators always use "max"
@@ -29,7 +15,7 @@ quantizer:
 
 exporter:
   ONNXExporter:
-    output_path: yolo_nas_trt_ptq_int8.onnx
+    output_path: ${architecture}_trt_ptq_int8.onnx
 
 # Model-specific parameters
 export_params:

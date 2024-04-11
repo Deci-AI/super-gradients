@@ -1,4 +1,3 @@
-import copy
 import inspect
 import os
 import tempfile
@@ -113,7 +112,7 @@ from super_gradients.conversion.abstract_exporter import AbstractExporter
 from super_gradients.conversion import ExportParams
 from super_gradients.module_interfaces import ExportableObjectDetectionModel, ExportableSegmentationModel, ExportablePoseEstimationModel
 
-from super_gradients.training.utils.quantization.tensorrt_quantizer import TRTQuantizer  # noqa
+from super_gradients.training.utils.quantization.tensorrt_quantizer import TRTPTQQuantizer  # noqa
 from super_gradients.training.utils.quantization.openvino_quantizer import OpenVinoQuantizer  # noqa
 
 from super_gradients.conversion.tensorrt_exporter import TRTExporter  # noqa
@@ -2428,48 +2427,11 @@ class Trainer:
         exporter: AbstractExporter = ExporterFactory().get(cfg.quantization_params.exporter)
         export_params: ExportParams = ExportParams(**cfg.quantization_params.export_params)
 
-        # TODO: Can be further simplified by having TRTPTQQuantizer & TRTQATQuantizer
-        if cfg.quantization_params.ptq_only:
-            # INSTANTIATE DATA LOADERS
-            val_dataloader = dataloaders.get(
-                name=get_param(cfg, "val_dataloader"),
-                dataset_params=copy.deepcopy(cfg.dataset_params.val_dataset_params),
-                dataloader_params=copy.deepcopy(cfg.dataset_params.val_dataloader_params),
-            )
-
-            if "calib_dataloader" in cfg:
-                calib_dataloader_name = get_param(cfg, "calib_dataloader")
-                calib_dataloader_params = copy.deepcopy(cfg.dataset_params.calib_dataloader_params)
-                calib_dataset_params = copy.deepcopy(cfg.dataset_params.calib_dataset_params)
-            else:
-                calib_dataloader_name = get_param(cfg, "train_dataloader")
-
-                calib_dataset_params = copy.deepcopy(cfg.dataset_params.train_dataset_params)
-                calib_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
-
-                calib_dataloader_params = copy.deepcopy(cfg.dataset_params.train_dataloader_params)
-                calib_dataloader_params.shuffle = False
-                calib_dataloader_params.drop_last = False
-
-            calib_dataloader = dataloaders.get(
-                name=calib_dataloader_name,
-                dataset_params=calib_dataset_params,
-                dataloader_params=calib_dataloader_params,
-            )
-
-            quantization_result = quantizer.ptq(
-                model=model,
-                trainer=trainer,
-                validation_loader=val_dataloader,
-                validation_metrics=cfg.training_hyperparams.valid_metrics_list,
-                calibration_loader=calib_dataloader,
-            )
-        else:
-            quantization_result = quantizer.qat(
-                cfg=cfg,
-                model=model,
-                trainer=trainer,
-            )
+        quantization_result = quantizer.quantize(
+            cfg=cfg,
+            model=model,
+            trainer=trainer,
+        )
 
         with tempfile.TemporaryDirectory() as td:
             temp_onnx_path = os.path.join(td, "model.onnx")
@@ -2522,7 +2484,7 @@ class Trainer:
                 from super_gradients.conversion.onnx import export_to_onnx
 
                 device = "cpu"
-                example_input_shape = next(iter(calib_dataloader))[0].size()
+                example_input_shape = next(iter(quantization_result.calibration_dataloader))[0].size()
                 input_shape_with_explicit_batch = tuple(export_params.batch_size, *example_input_shape[1:])
                 onnx_input = torch.randn(input_shape_with_explicit_batch).to(device=device)
                 onnx_export_kwargs = export_params.onnx_export_kwargs or {}
@@ -2542,6 +2504,6 @@ class Trainer:
 
             exported_path = exporter.export_from_onnx(temp_onnx_path)
             quantization_result.export_result = export_result
-            quantization_result.exported_model_path = exported_path
+            quantization_result.export_path = exported_path
 
         return quantization_result

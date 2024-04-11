@@ -10,7 +10,7 @@ import onnx
 import onnxsim
 import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMode
+from super_gradients.conversion import ExportQuantizationMode
 from super_gradients.conversion.conversion_utils import find_compatible_model_device_for_dtype
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
 from super_gradients.import_utils import import_pytorch_quantization_or_install
@@ -166,6 +166,7 @@ class ExportableSegmentationModel:
         output: str,
         confidence_threshold: Optional[float] = None,
         quantization_mode: Optional[ExportQuantizationMode] = None,
+        quantized_model=None,
         selective_quantizer: Optional["SelectiveQuantizer"] = None,  # noqa
         calibration_loader: Optional[DataLoader] = None,
         calibration_method: str = "percentile",
@@ -235,10 +236,6 @@ class ExportableSegmentationModel:
         from super_gradients.conversion.preprocessing_modules import CastTensorTo
 
         usage_instructions = []
-
-        # Hard-coded for now
-        # Will be made a parameter if we decide to support CoreML/OpenVino/TRT export in the future
-        engine = ExportTargetBackend.ONNXRUNTIME
 
         if not isinstance(self, nn.Module):
             raise TypeError(f"Export is only supported for torch.nn.Module. Got type {type(self)}")
@@ -361,9 +358,10 @@ class ExportableSegmentationModel:
         contains_quantized_modules = check_model_contains_quantized_modules(model)
 
         if quantization_mode == ExportQuantizationMode.INT8:
-            from super_gradients.training.utils.quantization import ptq
+            logger.warning("Model quantization using model.export() is deprecated. Please use trainer.quantize_from_recipe() instead.")
+            from super_gradients.training.utils.quantization.tensorrt_quantizer import tensorrt_ptq
 
-            model = ptq(
+            quantized_model = tensorrt_ptq(
                 model,
                 selective_quantizer=selective_quantizer,
                 calibration_loader=calibration_loader,
@@ -383,9 +381,10 @@ class ExportableSegmentationModel:
 
         # The model.prep_model_for_conversion will be called inside ConvertableCompletePipelineModel once more,
         # but as long as implementation of prep_model_for_conversion is idempotent, it should be fine.
+        # Here we may change the model with a quantized counterpart for export (This is necessary for quantizers that returns completely different model)
         complete_model = (
             ConvertableCompletePipelineModel(
-                model=model, pre_process=preprocessing_module, post_process=postprocessing_module, **prep_model_for_conversion_kwargs
+                model=quantized_model or model, pre_process=preprocessing_module, post_process=postprocessing_module, **prep_model_for_conversion_kwargs
             )
             .to(device)
             .eval()
@@ -401,34 +400,30 @@ class ExportableSegmentationModel:
                     "FP16 quantization is done by calling model.half() so you don't need to pass calibration_loader, as it will be ignored."
                 )
 
-        if engine in {ExportTargetBackend.ONNXRUNTIME, ExportTargetBackend.TENSORRT}:
-            from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
+        from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
 
-            onnx_export_kwargs = onnx_export_kwargs or {}
-            onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
+        onnx_export_kwargs = onnx_export_kwargs or {}
+        onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
 
-            export_to_onnx(
-                model=complete_model,
-                model_input=onnx_input,
-                onnx_filename=output,
-                input_names=["input"],
-                output_names=output_names,
-                onnx_opset=onnx_export_kwargs.get("opset_version", None),
-                do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
-                dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
-                keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
-                verbose=onnx_export_kwargs.get("verbose", False),
-            )
+        export_to_onnx(
+            model=complete_model,
+            model_input=onnx_input,
+            onnx_filename=output,
+            input_names=["input"],
+            output_names=output_names,
+            onnx_opset=onnx_export_kwargs.get("opset_version", None),
+            do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
+            dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
+            keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
+            verbose=onnx_export_kwargs.get("verbose", False),
+        )
 
-            if onnx_simplify:
-                model_opt, simplify_successful = onnxsim.simplify(output)
-                if not simplify_successful:
-                    raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
-                onnx.save(model_opt, output)
-
-                logger.debug(f"Ran onnxsim.simplify on {output}")
-        else:
-            raise ValueError(f"Unsupported export format: {engine}. Supported formats: onnxruntime, tensorrt")
+        if onnx_simplify:
+            model_opt, simplify_successful = onnxsim.simplify(output)
+            if not simplify_successful:
+                raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+            onnx.save(model_opt, output)
+            logger.debug(f"Ran onnxsim.simplify on {output}")
 
         # Cleanup memory, not sure whether it is necessary but just in case
         gc.collect()

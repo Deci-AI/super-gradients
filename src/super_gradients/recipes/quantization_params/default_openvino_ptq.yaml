@@ -5,18 +5,14 @@ quantizer:
       preset: mixed
 
     selective_quantizer_params:
-      skip_patterns:
-        - ".+reg_convs.+"
-        - ".+cls_convs.+"
-        - ".+cls_pred.+"
-        - ".+reg_pred.+"
+      skip_patterns: []
 
     calib_params:
       num_calib_batches: 128                # number of batches to use for calibration, if None whole dataloader will be used
 
 exporter:
   OpenVinoExporter:
-    output_path: yolo_nas_openvino_int8.xml
+    output_path: ${architecture}_openvino_int8.xml
 
 # Model-specific parameters
 export_params:

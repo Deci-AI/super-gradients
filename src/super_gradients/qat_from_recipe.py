@@ -16,7 +16,7 @@ from super_gradients.module_interfaces import QuantizationResult
 def quantize_from_config(cfg: DictConfig) -> None:
     result: QuantizationResult = Trainer.quantize_from_config(cfg)
 
-    print("Quantized model saved to", result.exported_model_path)
+    print("Quantized model saved to", result.export_path)
     print("Validation result of quantized model:")
     common_metrics = set(result.original_metrics.keys()) & set(result.quantized_metrics.keys())
     longest_metric_name = max(len(metric) for metric in common_metrics)

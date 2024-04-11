@@ -10,7 +10,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.registry.registry import register_quantizer
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.utils.quantization.abstract_quantizer import AbstractQuantizer, QuantizationResult
-from super_gradients.training.utils.utils import infer_model_device
+from super_gradients.training.utils.utils import infer_model_device, get_param
 from torch import nn
 from torch.utils.data import DataLoader
 
@@ -61,6 +61,48 @@ class OpenVinoQuantizer(AbstractQuantizer):
         self.calibration_params = calib_params
         self.quantizer_params = quantizer_params
 
+    def quantize(
+        self,
+        cfg,
+        model,
+        trainer,
+    ) -> QuantizationResult:
+        from super_gradients.training.dataloaders import dataloaders
+
+        val_dataloader = dataloaders.get(
+            name=get_param(cfg, "val_dataloader"),
+            dataset_params=copy.deepcopy(cfg.dataset_params.val_dataset_params),
+            dataloader_params=copy.deepcopy(cfg.dataset_params.val_dataloader_params),
+        )
+
+        if "calib_dataloader" in cfg:
+            calib_dataloader_name = get_param(cfg, "calib_dataloader")
+            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.calib_dataloader_params)
+            calib_dataset_params = copy.deepcopy(cfg.dataset_params.calib_dataset_params)
+        else:
+            calib_dataloader_name = get_param(cfg, "train_dataloader")
+
+            calib_dataset_params = copy.deepcopy(cfg.dataset_params.train_dataset_params)
+            calib_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
+
+            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.train_dataloader_params)
+            calib_dataloader_params.shuffle = False
+            calib_dataloader_params.drop_last = False
+
+        calib_dataloader = dataloaders.get(
+            name=calib_dataloader_name,
+            dataset_params=calib_dataset_params,
+            dataloader_params=calib_dataloader_params,
+        )
+
+        return self.ptq(
+            model=model,
+            trainer=trainer,
+            validation_loader=val_dataloader,
+            validation_metrics=cfg.training_hyperparams.valid_metrics_list,
+            calibration_loader=calib_dataloader,
+        )
+
     def ptq(
         self,
         model: nn.Module,
@@ -95,10 +137,11 @@ class OpenVinoQuantizer(AbstractQuantizer):
 
         return QuantizationResult(
             original_model=original_model,
+            original_metrics=original_metrics,
             quantized_model=quantized_model,
             quantized_metrics=quantized_metrics,
-            original_metrics=original_metrics,
-            exported_model_path=None,
+            calibration_dataloader=calibration_loader,
+            export_path=None,
             export_result=None,
         )
 

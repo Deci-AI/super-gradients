@@ -102,7 +102,7 @@ class ObjectDetectionModelExportResult:
     input_image_dtype: torch.dtype
     input_image_shape: Tuple[int, int]
 
-    engine: ExportTargetBackend
+    engine: Union[ExportTargetBackend, None]
     quantization_mode: Optional[ExportQuantizationMode]
 
     output: str
@@ -371,7 +371,7 @@ class ExportableObjectDetectionModel:
                     f"shape {input_shape}. Setting num_pre_nms_predictions to {number_of_predictions}"
                 )
                 num_pre_nms_predictions = number_of_predictions
-                # We have to re-created the postprocessing_module with the new value of num_pre_nms_predictions
+                # We have to re-instantiate the postprocessing_module with the new value of num_pre_nms_predictions
                 postprocessing_kwargs["num_pre_nms_predictions"] = num_pre_nms_predictions
                 postprocessing_module: AbstractObjectDetectionDecodingModule = model.get_decoding_module(**postprocessing_kwargs)
 
@@ -417,22 +417,6 @@ class ExportableObjectDetectionModel:
                 calibration_batches=calibration_batches,
                 calibration_percentile=calibration_percentile,
             )
-            # elif engine == ExportTargetBackend.OPENVINO:
-            #     from super_gradients.training.utils.quantization.openvino_quantizer import openvino_ptq
-            #
-            #     quantized_model = openvino_ptq(
-            #         model,
-            #         calibration_loader=calibration_loader,
-            #         calibration_batches=calibration_batches,
-            #         skip_patterns=quantization_skip_layers,
-            #         skip_types=None,
-            #         preset=None,
-            #         target_device=None,
-            #         fast_bias_correction=True,
-            #     )
-            #     logger.debug("Model quantization using OpenVINO PTQ completed")
-            # else:
-            #     raise ValueError(f"Unsupported engine: {engine}. Supported engines for INT8 quantization: tensorrt, onnxruntime, openvino")
         elif quantization_mode == ExportQuantizationMode.FP16:
             if contains_quantized_modules:
                 raise RuntimeError("Model contains quantized modules for INT8 mode. " "FP16 quantization is not supported for such models.")
