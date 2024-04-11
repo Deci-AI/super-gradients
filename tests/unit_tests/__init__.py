@@ -30,6 +30,7 @@ from tests.unit_tests.test_models_factory import DynamicModelTests
 from tests.unit_tests.test_mixed_precision_cpu import TestMixedPrecisionDisabled
 from tests.unit_tests.test_data_adapters import TestClassificationAdapter, TestDetectionAdapter, TestSegmentationAdapter
 from tests.unit_tests.optical_flow_dataset_test import OpticalFlowDatasetTest
+from tests.unit_tests.optical_flow_transforms_test import OpticalFlowTransformsTest
 
 __all__ = [
     "CrashTipTest",
@@ -65,4 +66,5 @@ __all__ = [
     "TestDetectionAdapter",
     "TestSegmentationAdapter",
     "OpticalFlowDatasetTest",
+    "OpticalFlowTransformsTest",
 ]

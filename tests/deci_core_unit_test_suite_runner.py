@@ -91,6 +91,7 @@ from tests.unit_tests.detection_metrics_distance_based_test import TestDetection
 from tests.unit_tests.class_balancer_test import ClassBalancerTest
 from tests.unit_tests.class_balanced_sampler_test import ClassBalancedSamplerTest
 from tests.unit_tests.optical_flow_dataset_test import OpticalFlowDatasetTest
+from tests.unit_tests.optical_flow_transforms_test import OpticalFlowTransformsTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -194,6 +195,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ClassBalancedSamplerTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationModelExport))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(OpticalFlowDatasetTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(OpticalFlowTransformsTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

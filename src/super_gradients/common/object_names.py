@@ -82,6 +82,13 @@ class Transforms:
     DetectionNormalize = "DetectionNormalize"
     DetectionPadIfNeeded = "DetectionPadIfNeeded"
     DetectionLongestMaxSize = "DetectionLongestMaxSize"
+    # Optical flow transforms
+    OpticalFlowColorJitter = "OpticalFlowColorJitter"
+    OpticalFlowOcclusion = "OpticalFlowOcclusion"
+    OpticalFlowRandomRescale = "OpticalFlowRandomRescale"
+    OpticalFlowRandomFlip = "OpticalFlowRandomFlip"
+    OpticalFlowCrop = "OpticalFlowCrop"
+    OpticalFlowToTensor = "OpticalFlowToTensor"
     #
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
     RandAugmentTransform = "RandAugmentTransform"

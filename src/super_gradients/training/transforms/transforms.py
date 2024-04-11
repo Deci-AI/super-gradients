@@ -21,8 +21,9 @@ from super_gradients.training.datasets.data_formats import ConcatenatedTensorFor
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyxy_to_xywh
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
-from super_gradients.training.samples import DetectionSample, SegmentationSample
+from super_gradients.training.samples import DetectionSample, SegmentationSample, OpticalFlowSample
 from super_gradients.training.transforms.detection import DetectionPadIfNeeded, AbstractDetectionTransform, LegacyDetectionTransformMixin
+from super_gradients.training.transforms.optical_flow import AbstractOpticalFlowTransform
 from super_gradients.training.transforms.segmentation.abstract_segmentation_transform import AbstractSegmentationTransform
 from super_gradients.training.transforms.segmentation.legacy_segmentation_transform_mixin import LegacySegmentationTransformMixin
 from super_gradients.training.transforms.utils import (
@@ -1658,3 +1659,183 @@ def _max_targets_deprication(max_targets: Optional[int] = None):
             "If you are using collate_fn provided by SG, it is safe to simply drop this argument.",
             DeprecationWarning,
         )
+
+
+@register_transform(Transforms.OpticalFlowColorJitter)
+class OpticalFlowColorJitter(AbstractOpticalFlowTransform):
+    def __init__(self, brightness=0.4, contrast=0.4, saturation=0.4, hue=0.16, prob=0.5):
+        self.color_jitter = _transforms.ColorJitter(brightness=brightness, contrast=contrast, saturation=saturation, hue=hue)
+        self.prob = prob
+
+    def __call__(self, sample: OpticalFlowSample) -> OpticalFlowSample:
+        img1, img2 = sample.images[0], sample.images[1]
+
+        if np.random.rand() < self.prob:
+            img1 = self.color_jitter(Image.fromarray(img1))
+            img2 = self.color_jitter(Image.fromarray(img2))
+
+        images = np.stack([img1, img2])
+
+        return OpticalFlowSample(images=images, flow_map=sample.flow_map, valid=sample.valid)
+
+
+@register_transform(Transforms.OpticalFlowOcclusion)
+class OpticalFlowOcclusion(AbstractOpticalFlowTransform):
+    def __init__(self, prob=0.5, bounds=(10, 30)):
+        """Occlusion augmentation"""
+        self.prob = prob
+        self.bounds = bounds
+
+    def __call__(self, sample: OpticalFlowSample) -> OpticalFlowSample:
+        img1, img2 = sample.images[0], sample.images[1]
+        ht, wd = img1.shape[:2]
+
+        if np.random.rand() < self.prob:
+            mean_color = np.mean(img2)
+
+            for _ in range(np.random.randint(1, 3)):
+                x0 = np.random.randint(0, wd)
+                y0 = np.random.randint(0, ht)
+                dx = np.random.randint(self.bounds[0], self.bounds[1])
+                dy = np.random.randint(self.bounds[0], self.bounds[1])
+                img2[y0 : y0 + dy, x0 : x0 + dx, :] = mean_color
+
+        images = np.stack([img1, img2])
+
+        return OpticalFlowSample(images=images, flow_map=sample.flow_map, valid=sample.valid)
+
+
+@register_transform(Transforms.OpticalFlowRandomRescale)
+class OpticalFlowRandomRescale(AbstractOpticalFlowTransform):
+    def __init__(self, min_scale=0.9, max_scale=1.2, prob=0.5):
+        """Random rescale"""
+        self.scale = np.random.uniform(min_scale, max_scale)
+        self.prob = prob
+
+    def __call__(self, sample: OpticalFlowSample) -> OpticalFlowSample:
+        img1, img2 = sample.images[0], sample.images[1]
+        flow_map = sample.flow_map
+        valid = sample.valid
+
+        if np.random.rand() < self.prob:
+            img1 = cv2.resize(img1, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_LINEAR)
+            img2 = cv2.resize(img2, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_LINEAR)
+            flow_map, valid = self.resize_sparse_flow_map(flow_map, valid, fx=self.scale, fy=self.scale)
+
+        images = np.stack([img1, img2])
+
+        return OpticalFlowSample(images=images, flow_map=flow_map, valid=sample.valid)
+
+    @staticmethod
+    def resize_sparse_flow_map(flow, valid, fx=1.0, fy=1.0):
+        ht, wd = flow.shape[:2]
+        coords = np.meshgrid(np.arange(wd), np.arange(ht))
+        coords = np.stack(coords, axis=-1)
+
+        coords = coords.reshape(-1, 2).astype(np.float32)
+        flow = flow.reshape(-1, 2).astype(np.float32)
+        valid = valid.reshape(-1).astype(np.float32)
+
+        coords0 = coords[valid >= 1]
+        flow0 = flow[valid >= 1]
+
+        ht1 = int(round(ht * fy))
+        wd1 = int(round(wd * fx))
+
+        coords1 = coords0 * [fx, fy]
+        flow1 = flow0 * [fx, fy]
+
+        xx = np.round(coords1[:, 0]).astype(np.int32)
+        yy = np.round(coords1[:, 1]).astype(np.int32)
+
+        v = (xx > 0) & (xx < wd1) & (yy > 0) & (yy < ht1)
+        xx = xx[v]
+        yy = yy[v]
+        flow1 = flow1[v]
+
+        flow_img = np.zeros([ht1, wd1, 2], dtype=np.float32)
+        valid_img = np.zeros([ht1, wd1], dtype=np.int32)
+
+        flow_img[yy, xx] = flow1
+        valid_img[yy, xx] = 1
+
+        return flow_img, valid_img
+
+
+@register_transform(Transforms.OpticalFlowRandomFlip)
+class OpticalFlowRandomFlip(AbstractOpticalFlowTransform):
+    def __init__(self, h_flip_prob=0.5, v_flip_prob=0.1):
+        """Random flip"""
+        self.h_flip_prob = h_flip_prob
+        self.v_flip_prob = v_flip_prob
+
+    def __call__(self, sample: OpticalFlowSample) -> OpticalFlowSample:
+        img1, img2 = sample.images[0], sample.images[1]
+        flow_map = sample.flow_map
+        valid = sample.valid
+
+        if np.random.rand() < self.h_flip_prob:  # h-flip
+            img1 = img1[:, ::-1]
+            img2 = img2[:, ::-1]
+            flow_map = flow_map[:, ::-1] * [-1.0, 1.0]
+            valid = valid[:, ::-1]
+
+        if np.random.rand() < self.v_flip_prob:  # v-flip
+            img1 = img1[::-1, :]
+            img2 = img2[::-1, :]
+            flow_map = flow_map[::-1, :] * [1.0, -1.0]
+            valid = valid[::-1, :]
+
+        images = np.stack([img1, img2])
+
+        return OpticalFlowSample(images=images, flow_map=flow_map, valid=valid)
+
+
+@register_transform(Transforms.OpticalFlowCrop)
+class OpticalFlowCrop(AbstractOpticalFlowTransform):
+    def __init__(self, crop_size: Tuple[int, int], mode: str = "center"):
+        """crops the images and the flow map"""
+        self.crop_size = crop_size
+        self.mode = mode
+
+    def __call__(self, sample: OpticalFlowSample) -> OpticalFlowSample:
+        img1, img2 = sample.images[0], sample.images[1]
+        flow_map = sample.flow_map
+        valid = sample.valid
+
+        h, w = img1.shape[:2]
+
+        if self.mode == "random":
+            x1 = random.randint(0, w - self.crop_size[0])
+            y1 = random.randint(0, h - self.crop_size[1])
+        elif self.mode == "center":
+            x1 = int(round((w - self.crop_size[0]) / 2.0))
+            y1 = int(round((h - self.crop_size[1]) / 2.0))
+
+        img1 = img1[y1 : y1 + self.crop_size[1], x1 : x1 + self.crop_size[0]]
+        img2 = img2[y1 : y1 + self.crop_size[1], x1 : x1 + self.crop_size[0]]
+        flow_map = flow_map[y1 : y1 + self.crop_size[1], x1 : x1 + self.crop_size[0]]
+        valid = valid[y1 : y1 + self.crop_size[1], x1 : x1 + self.crop_size[0]]
+
+        images = np.stack([img1, img2])
+
+        return OpticalFlowSample(images=images, flow_map=flow_map, valid=valid)
+
+
+@register_transform(Transforms.OpticalFlowToTensor)
+class OpticalFlowToTensor(AbstractOpticalFlowTransform):
+    """
+    Converts OpticalFlowSample images and flow map to PyTorch tensors and normalize the images from [0, 255] range
+    to [0, 1] range.
+    """
+
+    @resolve_param("image_output_dtype", TorchDtypeFactory())
+    def __init__(self, image_output_dtype=torch.float32):
+        self.image_output_dtype = image_output_dtype
+
+    def __call__(self, sample: OpticalFlowSample) -> OpticalFlowSample:
+        sample.images = torch.from_numpy(sample.images).permute(0, 3, 1, 2).to(self.image_output_dtype).div(255)
+        sample.flow_map = torch.from_numpy(sample.flow_map).permute(2, 0, 1)
+        sample.valid = torch.from_numpy(sample.valid)
+
+        return sample

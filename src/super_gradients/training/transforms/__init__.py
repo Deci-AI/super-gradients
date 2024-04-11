@@ -11,6 +11,12 @@ from super_gradients.training.transforms.transforms import (
     DetectionTargetsFormatTransform,
     Standardize,
     DetectionTransform,
+    OpticalFlowColorJitter,
+    OpticalFlowOcclusion,
+    OpticalFlowRandomRescale,
+    OpticalFlowRandomFlip,
+    OpticalFlowCrop,
+    OpticalFlowToTensor,
 )
 from super_gradients.training.transforms.keypoints import (
     AbstractKeypointTransform,
@@ -37,6 +43,7 @@ from super_gradients.common.object_names import Transforms
 from super_gradients.common.registry.registry import TRANSFORMS
 from super_gradients.common.registry.albumentation import ALBUMENTATIONS_TRANSFORMS, ALBUMENTATIONS_COMP_TRANSFORMS, imported_albumentations_failure
 from super_gradients.training.transforms.detection import AbstractDetectionTransform, DetectionPadIfNeeded, DetectionLongestMaxSize
+from super_gradients.training.transforms.optical_flow import AbstractOpticalFlowTransform
 
 __all__ = [
     "TRANSFORMS",
@@ -76,6 +83,13 @@ __all__ = [
     "DetectionPadIfNeeded",
     "DetectionLongestMaxSize",
     "AbstractDetectionTransform",
+    "AbstractOpticalFlowTransform",
+    "OpticalFlowColorJitter",
+    "OpticalFlowOcclusion",
+    "OpticalFlowRandomRescale",
+    "OpticalFlowRandomFlip",
+    "OpticalFlowCrop",
+    "OpticalFlowToTensor",
 ]
 
 cv2.setNumThreads(0)
