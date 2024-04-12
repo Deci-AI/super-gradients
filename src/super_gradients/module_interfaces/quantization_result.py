@@ -2,12 +2,11 @@ import dataclasses
 from typing import Union, Dict, Any
 
 from torch import nn
+from torch.utils.data import DataLoader
 
-from super_gradients.module_interfaces import PoseEstimationModelExportResult, ObjectDetectionModelExportResult, SegmentationModelExportResult
+# from super_gradients.module_interfaces import PoseEstimationModelExportResult, ObjectDetectionModelExportResult, SegmentationModelExportResult
 
 __all__ = ["QuantizationResult"]
-
-from torch.utils.data import DataLoader
 
 
 @dataclasses.dataclass
@@ -30,4 +29,4 @@ class QuantizationResult:
     calibration_dataloader: DataLoader
 
     export_path: Union[None, str]
-    export_result: Union[None, ObjectDetectionModelExportResult, PoseEstimationModelExportResult, SegmentationModelExportResult] = None
+    export_result: Union[None, Any] = None

@@ -359,7 +359,9 @@ class Trainer:
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
-        if cfg.checkpoint_params.checkpoint_path is None:
+        if cfg.checkpoint_params.pretrained_weights is not None:
+            pass
+        elif cfg.checkpoint_params.checkpoint_path is None:
             logger.info(
                 "`checkpoint_params.checkpoint_path` was not provided. The recipe will be evaluated using checkpoints_dir.training_hyperparams.ckpt_name"
             )

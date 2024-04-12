@@ -168,6 +168,9 @@ class TRTPTQQuantizer(AbstractQuantizer):
         fuse_repvgg_blocks_residual_branches(model)
 
         original_metrics = trainer.test(model=model, test_loader=validation_loader, test_metrics_list=validation_metrics)
+        results = ["Original Model Validation Results"]
+        results += [f"   - {metric:10}: {value}" for metric, value in original_metrics.items()]
+        logger.info("\n".join(results))
 
         q_util = SelectiveQuantizer(
             default_quant_modules_calibrator_weights=self.selective_quantizer_params.calibrator_w,
