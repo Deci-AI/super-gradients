@@ -113,10 +113,7 @@ from super_gradients.conversion import ExportParams
 from super_gradients.module_interfaces import ExportableObjectDetectionModel, ExportableSegmentationModel, ExportablePoseEstimationModel
 
 from super_gradients.training.utils.quantization.tensorrt_quantizer import TRTPTQQuantizer  # noqa
-from super_gradients.training.utils.quantization.openvino_quantizer import OpenVinoQuantizer  # noqa
-
 from super_gradients.conversion.tensorrt_exporter import TRTExporter  # noqa
-from super_gradients.conversion.openvino_exporter import OpenVinoExporter  # noqa
 from super_gradients.conversion.onnx_exporter import ONNXExporter  # noqa
 
 logger = get_logger(__name__)
