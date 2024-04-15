@@ -2486,7 +2486,7 @@ class Trainer:
                     input_image_shape=export_params.input_image_shape,
                     preprocessing=export_params.preprocessing,
                     postprocessing=export_params.postprocessing,
-                    postprocessing_use_tensorrt_nms=export_params.postprocessing_use_tensorrt_nms,
+                    postprocessing_use_tensorrt_nms=export_params.detection_postprocessing_use_tensorrt_nms,
                     confidence_threshold=export_params.confidence_threshold,
                     nms_threshold=export_params.detection_nms_iou_threshold,
                     onnx_simplify=export_params.onnx_simplify,

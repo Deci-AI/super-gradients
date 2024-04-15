@@ -58,7 +58,6 @@ class ExportParams:
     input_image_shape: Optional[Tuple[int, int]] = None
     preprocessing: bool = True
     postprocessing: bool = True
-    postprocessing_use_tensorrt_nms: bool = False
     confidence_threshold: Optional[float] = None
 
     onnx_export_kwargs: Optional[dict] = None
@@ -69,3 +68,4 @@ class ExportParams:
     detection_max_predictions_per_image: Optional[int] = None
     detection_predictions_format: DetectionOutputFormatMode = DetectionOutputFormatMode.BATCH_FORMAT
     detection_num_pre_nms_predictions: int = 1000
+    detection_postprocessing_use_tensorrt_nms: bool = False
