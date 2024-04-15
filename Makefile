@@ -53,15 +53,3 @@ NOTEBOOKS_TO_CHECK += notebooks/Segmentation_Model_Export.ipynb
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
 check_notebooks_version_match: $(NOTEBOOKS_TO_CHECK)
 	python tests/verify_notebook_version.py $^
-
-coco2017_yolo_nas_s_ptq_only_cpu:
-	python -m super_gradients.qat_from_recipe --config-name=coco2017_yolo_nas_s_ptq_only multi_gpu=Off num_gpus=0 +device=cpu
-
-coco2017_yolo_nas_s_ptq_only_gpu:
-	python -m super_gradients.qat_from_recipe --config-name=coco2017_yolo_nas_s_ptq_only multi_gpu=Off num_gpus=1
-
-coco2017_yolo_nas_s_ptq_with_qc_gpu:
-	python -m super_gradients.qat_from_recipe --config-name=coco2017_yolo_nas_s_ptq_with_qc multi_gpu=Off num_gpus=1
-
-coco2017_yolo_nas_s_ptq_with_qc_cpu:
-	python -m super_gradients.qat_from_recipe --config-name=coco2017_yolo_nas_s_ptq_with_qc multi_gpu=Off num_gpus=0 +device=cpu

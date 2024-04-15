@@ -14,7 +14,6 @@ defaults:
   - dataset_params: coco_detection_yolo_nas_dataset_params
   - arch_params: yolo_nas_s_arch_params
   - checkpoint_params: default_checkpoint_params
-  - quantization_params:
   - _self_
   - variable_setup
 
