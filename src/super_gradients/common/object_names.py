@@ -17,6 +17,7 @@ class Losses:
     DEKR_LOSS = "DEKRLoss"
     RESCORING_LOSS = "RescoringLoss"
     YOLONAS_POSE_LOSS = "YoloNASPoseLoss"
+    OPTICAL_FLOW_LOSS = "OpticalFlowLoss"
 
 
 class Metrics:
@@ -44,6 +45,7 @@ class Metrics:
     DepthMSE = "DepthMSE"
     DepthRMSE = "DepthRMSE"
     DepthMSLE = "DepthMSLE"
+    EPE = "EPE"
 
 
 class Transforms:
