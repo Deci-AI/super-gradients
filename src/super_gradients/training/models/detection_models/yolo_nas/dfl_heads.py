@@ -207,6 +207,7 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             reg_distri_list.append(torch.permute(reg_distri.flatten(2), [0, 2, 1]))
 
             reg_dist_reduced = torch.permute(reg_distri.reshape([-1, 4, self.reg_max + 1, height_mul_width]), [0, 2, 3, 1])
+
             # OpenVINO cannot handle this:
             # reg_dist_reduced = torch.nn.functional.conv2d(torch.nn.functional.softmax(reg_dist_reduced, dim=1), weight=self.proj_conv).squeeze(1)
             # So we do it with multiplication instead
