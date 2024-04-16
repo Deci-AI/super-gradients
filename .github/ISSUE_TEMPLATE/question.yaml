@@ -7,6 +7,9 @@ body:
     value: >
       ### Before submitting a question, please make sure it hasn't been already addressed by searching through [existing documentation](https://docs.deci.ai/super-gradients/documentation/source/welcome.html) or in ah [open issues](https://github.com/Deci-AI/super-gradients/issues?q=is%3Aissue+sort%3Acreated-desc+).
 
+      #### You can also try using our AI helper to get a fast answer
+      
+      [![Tri asking our AI helper](https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/try_ai.png)](https://docs.deci.ai/super-gradients/latest/documentation/source/welcome.html?autoClick=true)
 - type: textarea
   attributes:
     label: 💡 Your Question
