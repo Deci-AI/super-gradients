@@ -110,7 +110,7 @@ class TRTPTQQuantizer(AbstractQuantizer):
         self.calib_params = calib_params
         self.selective_quantizer_params = selective_quantizer_params
 
-    def quantize(
+    def quantize_from_config(
         self,
         cfg,
         model,
@@ -242,7 +242,7 @@ class TRTQATQuantizer(TRTPTQQuantizer):
             qat_params = TRTQATParams(**qat_params)
         self.qat_params = qat_params
 
-    def quantize(
+    def quantize_from_config(
         self,
         *,
         cfg,
@@ -341,6 +341,44 @@ class TRTQATQuantizer(TRTPTQQuantizer):
             valid_loader=validation_loader,
             training_params=training_hyperparams,
             additional_configs_to_log=cfg,
+        )
+
+        quantized_metrics = trainer.test(model=ptq_result.quantized_model, test_loader=validation_loader, test_metrics_list=validation_metrics)
+        return QuantizationResult(
+            original_model=model,
+            original_metrics=original_metrics,
+            quantized_model=ptq_result.quantized_model,
+            quantized_metrics=quantized_metrics,
+            calibration_dataloader=calibration_loader,
+            export_result=None,
+            export_path=None,
+        )
+
+    def quantize_explicit(
+        self,
+        model,
+        trainer,
+        training_hyperparams,
+        train_loader: DataLoader,
+        validation_loader: DataLoader,
+        validation_metrics,
+        calibration_loader: DataLoader,
+    ):
+        original_metrics = trainer.test(model=model, test_loader=validation_loader, test_metrics_list=validation_metrics)
+
+        ptq_result = self.ptq(
+            model=model,
+            trainer=trainer,
+            calibration_loader=calibration_loader,
+            validation_loader=validation_loader,
+            validation_metrics=validation_metrics,
+        )
+
+        trainer.train(
+            model=ptq_result.quantized_model,
+            train_loader=train_loader,
+            valid_loader=validation_loader,
+            training_params=training_hyperparams,
         )
 
         quantized_metrics = trainer.test(model=ptq_result.quantized_model, test_loader=validation_loader, test_metrics_list=validation_metrics)

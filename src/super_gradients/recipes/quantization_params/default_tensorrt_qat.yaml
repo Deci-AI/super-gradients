@@ -30,7 +30,6 @@ exporter:
 export_params:
     preprocessing: True
     postprocessing: True
-    postprocessing_use_tensorrt_nms: False
 
     batch_size: 1
     confidence_threshold: 0.2
@@ -41,3 +40,4 @@ export_params:
     detection_max_predictions_per_image: 128
     detection_num_pre_nms_predictions: 1000
     detection_predictions_format: flat
+    detection_postprocessing_use_tensorrt_nms: False
