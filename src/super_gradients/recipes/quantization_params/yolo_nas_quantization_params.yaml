@@ -1,0 +1,19 @@
+defaults:
+  - default_quantization_params
+
+selective_quantizer_params:
+  skip_modules: # optional list of module names (strings) to skip from quantization
+    - heads.head1.reg_convs
+    - heads.head1.cls_convs
+    - heads.head1.cls_pred
+    - heads.head1.reg_pred
+
+    - heads.head2.reg_convs
+    - heads.head2.cls_convs
+    - heads.head2.cls_pred
+    - heads.head2.reg_pred
+
+    - heads.head3.reg_convs
+    - heads.head3.cls_convs
+    - heads.head3.cls_pred
+    - heads.head3.reg_pred
