@@ -2543,6 +2543,7 @@ class Trainer:
 
         if quantization_params is None:
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+            quantization_params.ptq_only = True
             logger.info(f"Using default quantization params: {quantization_params}")
 
         if quantizer is None:
@@ -2591,6 +2592,7 @@ class Trainer:
 
         if quantization_params is None:
             quantization_params = load_recipe("quantization_params/default_tensorrt_qat").quantization_params
+            quantization_params.ptq_only = False
             logger.info(f"Using default quantization params: {quantization_params}")
 
         if quantizer is None:
