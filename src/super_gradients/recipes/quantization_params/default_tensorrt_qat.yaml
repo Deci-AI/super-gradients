@@ -22,9 +22,9 @@ quantizer:
       disable_phase_callbacks: True         # Flag to control to disable phase callbacks, which can interfere with QAT. Default value is True.
       disable_augmentations: True           # Flag to control to disable phase augmentations, which can interfere with QAT. Default value is False.
 
-exporter:
-  ONNXExporter:
-    output_path: ${architecture}_trt_qat_int8.onnx
+exporter: ONNXExporter
+
+output_path: # ${architecture}_trt_qat_int8.onnx
 
 # Model-specific parameters
 export_params:
@@ -41,3 +41,5 @@ export_params:
     detection_num_pre_nms_predictions: 1000
     detection_predictions_format: flat
     detection_postprocessing_use_tensorrt_nms: False
+
+    input_image_shape: [480, 512]

@@ -13,3 +13,5 @@ calib_params:
   percentile: 99.99                     # percentile for all histogram calibrators with method "percentile", other calibrators are not affected
   num_calib_batches: 16                 # number of batches to use for calibration, if None, 512 / batch_size will be used
   verbose: False                        # if calibrator should be verbose
+
+output_path: # Can be empty, in this case exported ONNX path will have generic name {model_class_name}_{input_shape}.onnx

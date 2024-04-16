@@ -114,7 +114,6 @@ from super_gradients.conversion import ExportParams
 from super_gradients.module_interfaces import ExportableObjectDetectionModel, ExportableSegmentationModel, ExportablePoseEstimationModel
 
 from super_gradients.training.utils.quantization.tensorrt_quantizer import TRTPTQQuantizer, TRTQATQuantizer  # noqa
-from super_gradients.conversion.tensorrt_exporter import TRTExporter  # noqa
 from super_gradients.conversion.onnx_exporter import ONNXExporter  # noqa
 
 logger = get_logger(__name__)
@@ -2480,7 +2479,16 @@ class Trainer:
         )
 
         exporter, export_params = trainer._get_exporter_from_config(quantization_result, cfg.quantization_params)
-        return cls._export_quantized_model(quantization_result, exporter, export_params)
+
+        output_path = cfg.quantization_params.output_path or trainer._make_up_quantized_model_path_for_export(
+            model=quantization_result.quantized_model,
+            export_params=export_params,
+            calibration_dataloader=quantization_result.calibration_dataloader,
+            suffix="_int8",
+        )
+        output_path = trainer._append_experiment_name(output_path)
+
+        return cls._export_quantized_model(quantization_result, exporter, export_params, output_path)
 
     def ptq(
         self,
@@ -2534,7 +2542,7 @@ class Trainer:
         logger.debug("Performing post-training quantization (PTQ)...")
 
         if quantization_params is None:
-            quantization_params = load_recipe("quantization_params/default_tensorrt_ptq").quantization_params
+            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             logger.info(f"Using default quantization params: {quantization_params}")
 
         if quantizer is None:
@@ -2551,7 +2559,16 @@ class Trainer:
         )
 
         exporter, export_params = self._get_exporter_from_config(quantization_result, quantization_params)
-        return self._export_quantized_model(quantization_result, exporter, export_params)
+
+        output_path = quantization_params.output_path or self._make_up_quantized_model_path_for_export(
+            model=quantization_result.quantized_model,
+            export_params=export_params,
+            calibration_dataloader=quantization_result.calibration_dataloader,
+            suffix="_int8_ptq",
+        )
+        output_path = self._append_experiment_name(output_path)
+
+        return self._export_quantized_model(quantization_result, exporter, export_params, output_path)
 
     def qat(
         self,
@@ -2590,7 +2607,15 @@ class Trainer:
         )
 
         exporter, export_params = self._get_exporter_from_config(quantization_result, quantization_params)
-        return self._export_quantized_model(quantization_result, exporter, export_params)
+        output_path = quantization_params.output_path or self._make_up_quantized_model_path_for_export(
+            model=quantization_result.quantized_model,
+            export_params=export_params,
+            calibration_dataloader=quantization_result.calibration_dataloader,
+            suffix="_int8_qat",
+        )
+        output_path = self._append_experiment_name(output_path)
+
+        return self._export_quantized_model(quantization_result, exporter, export_params, output_path)
 
     def _get_exporter_from_config(self, quantization_result: QuantizationResult, quantization_params: DictConfig) -> Tuple[AbstractExporter, ExportParams]:
         export_params_dict = {}
@@ -2602,22 +2627,7 @@ class Trainer:
         if "exporter" in quantization_params:
             exporter: AbstractExporter = ExporterFactory().get(quantization_params.exporter)
         else:
-            onnx_fname = self._make_up_quantized_model_path_for_export(
-                model=quantization_result.original_model, export_params=export_params, calibration_dataloader=quantization_result.calibration_dataloader
-            )
-
-            if not os.path.abspath(onnx_fname):
-                logger.debug(f"Experiment name {self.experiment_name}")
-                run_id = core_utils.get_param(self.training_params, "run_id", None)
-                logger.debug(f"Experiment run id {run_id}")
-
-                output_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
-                logger.debug(f"Output directory {output_dir_path}")
-
-                os.makedirs(output_dir_path, exist_ok=True)
-                onnx_fname = os.path.join(output_dir_path, onnx_fname)
-
-            exporter = ONNXExporter(onnx_fname)
+            exporter = ONNXExporter()
 
         return exporter, export_params
 
@@ -2649,7 +2659,7 @@ class Trainer:
 
         return quantizer
 
-    def _make_up_quantized_model_path_for_export(self, model: nn.Module, export_params, calibration_dataloader) -> str:
+    def _make_up_quantized_model_path_for_export(self, model: nn.Module, export_params, calibration_dataloader, suffix: Optional[str]) -> str:
         """
         Helper method to generate a meaningful filename for exported ONNX model.
         This method comes into play when explicit output filename is not provided.
@@ -2661,17 +2671,43 @@ class Trainer:
         """
         example_input_shape = next(iter(calibration_dataloader))[0].size()
 
-        input_shape_with_explicit_batch = tuple(export_params.batch_size, *example_input_shape[1:])
+        input_shape_with_explicit_batch = tuple([export_params.batch_size, *example_input_shape[1:]])
         if export_params.input_image_shape is not None:
             input_shape_with_explicit_batch = input_shape_with_explicit_batch[: -len(export_params.input_image_shape)] + export_params.input_image_shape
 
-        shape_str = "_".join(input_shape_with_explicit_batch)
+        shape_str = "_".join(map(str, input_shape_with_explicit_batch))
         model_name = model.__class__.__name__.lower()
-        model_fname = f"{model_name}_{shape_str}_int8.onnx"
+        model_fname = f"{model_name}_{shape_str}{suffix}.onnx"
+
         return model_fname
 
+    def _append_experiment_name(self, maybe_relative_path: str) -> str:
+        """
+        Append an experiment name and (maybe) run id to a relative path.
+        This method is helpful when you want to add some file to a latest experiment run folder
+
+        :param maybe_relative_path: Input file path
+        :return: A file path with experiment name and run id appended
+        """
+        if os.path.isabs(maybe_relative_path):
+            return maybe_relative_path
+
+        logger.debug(f"Experiment name {self.experiment_name}")
+        run_id = core_utils.get_param(self.training_params, "run_id", None)
+        if run_id is None:
+            run_id = get_latest_run_id(checkpoints_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name)
+
+        logger.debug(f"Experiment run id {run_id}")
+        output_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
+        logger.debug(f"Output directory {output_dir_path}")
+
+        os.makedirs(output_dir_path, exist_ok=True)
+        return os.path.join(output_dir_path, maybe_relative_path)
+
     @classmethod
-    def _export_quantized_model(cls, quantization_result: QuantizationResult, exporter: AbstractExporter, export_params: ExportParams) -> QuantizationResult:
+    def _export_quantized_model(
+        cls, quantization_result: QuantizationResult, exporter: AbstractExporter, export_params: ExportParams, output_path
+    ) -> QuantizationResult:
         # After we quantized a model, next step is to export it to ONNX with pre- & post- processings and
         # other settings defined in export_params.
         # Once ONNX file is ready - it can be exported further to target framework or left as is.
@@ -2745,7 +2781,7 @@ class Trainer:
                 )
                 export_result = None
 
-            exported_path = exporter.export_from_onnx(temp_onnx_path)
+            exported_path = exporter.export_from_onnx(temp_onnx_path, output_path)
             quantization_result.export_result = export_result
             quantization_result.export_path = exported_path
 
