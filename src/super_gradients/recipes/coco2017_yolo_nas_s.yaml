@@ -20,16 +20,19 @@ defaults:
 train_dataloader: coco2017_train_yolo_nas
 val_dataloader: coco2017_val_yolo_nas
 
-load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: True
+  checkpoint_num_classes: 80
+  checkpoint_path: /home/ofri.masad/PycharmProjects/super-gradients/checkpoints/yolo_nas_s_average_model_coco_pretrained365_n.pth
 resume: False
 
-dataset_params:
-  train_dataloader_params:
-    batch_size: 12
+#dataset_params:
+#  train_dataloader_params:
+#    batch_size: 12
 
 next_stage_start_epoch: ???
 
-num_branches: 2
+num_branches: 4
 arch_params:
   num_classes: 80
   num_branches: ${num_branches}

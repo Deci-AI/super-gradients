@@ -10,6 +10,10 @@ import hydra
 
 from super_gradients import Trainer, init_trainer
 
+import additional_transforms
+
+__all__ = ["additional_transforms"]
+
 
 @hydra.main(config_path="recipes", version_base="1.2")
 def _main(cfg: DictConfig) -> None:
