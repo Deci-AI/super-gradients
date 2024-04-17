@@ -2108,6 +2108,7 @@ class Trainer:
         :param metrics_progress_verbose: (bool) controls the verbosity of metrics progress (default=False). Slows down the program.
         :param use_ema_net (bool) whether to perform test on self.ema_model.ema (when self.ema_model.ema exists,
             otherwise self.net will be tested) (default=True)
+        :param max_batches: (int) maximum number of batches to evaluate on. If None, will evaluate on the whole dataset.
         :return: results tuple (tuple) containing the loss items and metric values.
 
         All of the above args will override Trainer's corresponding attribute when not equal to None. Then evaluation
@@ -2232,7 +2233,7 @@ class Trainer:
         :param silent_mode: (bool) controls verbosity
         :param metrics_progress_verbose: (bool) controls the verbosity of metrics progress (default=False).
             Slows down the program significantly.
-
+        :param max_batches: (int) maximum number of batches to evaluate on. If None, will evaluate on the whole dataset.
         :return: results tuple (tuple) containing the loss items and metric values.
         """
 
