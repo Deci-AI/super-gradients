@@ -1,11 +1,9 @@
 import copy
 import dataclasses
-import os
-from typing import Union, List, Mapping
+from typing import Union, List, Mapping, Optional
 
-import torch.cuda
+import torchmetrics
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 from super_gradients.common.registry.registry import register_quantizer
 from super_gradients.import_utils import import_pytorch_quantization_or_install
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
@@ -150,6 +148,24 @@ class TRTPTQQuantizer(AbstractQuantizer):
             validation_loader=val_dataloader,
             validation_metrics=cfg.training_hyperparams.valid_metrics_list,
             calibration_loader=calib_dataloader,
+        )
+
+    def quantize_explicit(
+        self,
+        model: nn.Module,
+        trainer,
+        training_hyperparams: Optional[Mapping],
+        train_loader: Optional[DataLoader],
+        validation_loader: DataLoader,
+        validation_metrics: List[torchmetrics.Metric],
+        calibration_loader: DataLoader,
+    ):
+        return self.ptq(
+            model=model,
+            trainer=trainer,
+            calibration_loader=calibration_loader,
+            validation_loader=validation_loader,
+            validation_metrics=validation_metrics,
         )
 
     def ptq(
@@ -315,43 +331,14 @@ class TRTQATQuantizer(TRTPTQQuantizer):
         )
         validation_metrics = cfg.training_hyperparams.valid_metrics_list
 
-        original_metrics = trainer.test(model=model, test_loader=validation_loader, test_metrics_list=validation_metrics)
-
-        ptq_result = self.ptq(
+        return self.quantize_explicit(
             model=model,
             trainer=trainer,
-            calibration_loader=calibration_loader,
+            training_hyperparams=training_hyperparams,
+            train_loader=train_dataloader,
             validation_loader=validation_loader,
             validation_metrics=validation_metrics,
-        )
-
-        # TRAIN
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-
-        run_id = get_param(trainer.training_params, "run_id", None)
-        logger.debug(f"Experiment run id {run_id}")
-        output_dir_path = get_checkpoints_dir_path(ckpt_root_dir=trainer.ckpt_root_dir, experiment_name=trainer.experiment_name, run_id=run_id)
-        logger.debug(f"Output directory {output_dir_path}")
-        os.makedirs(output_dir_path, exist_ok=True)
-
-        trainer.train(
-            model=ptq_result.quantized_model,
-            train_loader=train_dataloader,
-            valid_loader=validation_loader,
-            training_params=training_hyperparams,
-            additional_configs_to_log=cfg,
-        )
-
-        quantized_metrics = trainer.test(model=ptq_result.quantized_model, test_loader=validation_loader, test_metrics_list=validation_metrics)
-        return QuantizationResult(
-            original_model=model,
-            original_metrics=original_metrics,
-            quantized_model=ptq_result.quantized_model,
-            quantized_metrics=quantized_metrics,
-            calibration_dataloader=calibration_loader,
-            export_result=None,
-            export_path=None,
+            calibration_loader=calibration_loader,
         )
 
     def quantize_explicit(

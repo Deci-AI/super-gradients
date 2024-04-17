@@ -1,7 +1,6 @@
 import inspect
 import torchmetrics
 import os
-import tempfile
 import warnings
 from copy import deepcopy
 from typing import Union, Tuple, Mapping, Dict, Any, Optional, List
@@ -11,6 +10,7 @@ import numpy as np
 import torch
 import torch.cuda
 import torch.nn
+from pathlib import Path
 from omegaconf import DictConfig, OmegaConf
 
 from torch import nn
@@ -2591,7 +2591,7 @@ class Trainer:
         logger.debug("Performing post-training quantization (QAT)...")
 
         if quantization_params is None:
-            quantization_params = load_recipe("quantization_params/default_tensorrt_qat").quantization_params
+            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             quantization_params.ptq_only = False
             logger.info(f"Using default quantization params: {quantization_params}")
 
@@ -2626,6 +2626,12 @@ class Trainer:
 
         export_params = ExportParams(**export_params_dict)
 
+        # Currently all our quantization recipes are for ONNX export only
+        # and "exporter" section is absent there. But one day we may decide
+        # to add an option of exporting a model to CoreML or TFLite
+        # And then we would need to implement a CoreMLExporter that
+        # would take ONNX graph and produce a CoreML model.
+        # So we keep this code here for future compatibility.
         if "exporter" in quantization_params:
             exporter: AbstractExporter = ExporterFactory().get(quantization_params.exporter)
         else:
@@ -2714,77 +2720,84 @@ class Trainer:
         # other settings defined in export_params.
         # Once ONNX file is ready - it can be exported further to target framework or left as is.
         model = quantization_result.original_model
-        with tempfile.TemporaryDirectory() as td:
-            temp_onnx_path = os.path.join(td, "model.onnx")
-            if isinstance(quantization_result.original_model, ExportableObjectDetectionModel):
-                model = typing.cast(ExportableObjectDetectionModel, model)
-                export_result = model.export(
-                    output=temp_onnx_path,
-                    quantized_model=quantization_result.quantized_model,
-                    input_image_shape=export_params.input_image_shape,
-                    preprocessing=export_params.preprocessing,
-                    postprocessing=export_params.postprocessing,
-                    postprocessing_use_tensorrt_nms=export_params.detection_postprocessing_use_tensorrt_nms,
-                    confidence_threshold=export_params.confidence_threshold,
-                    nms_threshold=export_params.detection_nms_iou_threshold,
-                    onnx_simplify=export_params.onnx_simplify,
-                    onnx_export_kwargs=export_params.onnx_export_kwargs,
-                    num_pre_nms_predictions=export_params.detection_num_pre_nms_predictions,
-                    max_predictions_per_image=export_params.detection_max_predictions_per_image,
-                    output_predictions_format=export_params.detection_predictions_format,
-                )
-            elif isinstance(quantization_result.original_model, ExportablePoseEstimationModel):
-                model = typing.cast(ExportablePoseEstimationModel, model)
-                export_result = model.export(
-                    output=temp_onnx_path,
-                    quantized_model=quantization_result.quantized_model,
-                    input_image_shape=export_params.input_image_shape,
-                    preprocessing=export_params.preprocessing,
-                    postprocessing=export_params.postprocessing,
-                    confidence_threshold=export_params.confidence_threshold,
-                    nms_threshold=export_params.detection_nms_iou_threshold,
-                    onnx_simplify=export_params.onnx_simplify,
-                    onnx_export_kwargs=export_params.onnx_export_kwargs,
-                    num_pre_nms_predictions=export_params.detection_num_pre_nms_predictions,
-                    max_predictions_per_image=export_params.detection_max_predictions_per_image,
-                    output_predictions_format=export_params.detection_predictions_format,
-                )
-            elif isinstance(model, ExportableSegmentationModel):
-                model: ExportableSegmentationModel = typing.cast(ExportableSegmentationModel, model)
-                export_result = model.export(
-                    output=temp_onnx_path,
-                    quantized_model=quantization_result.quantized_model,
-                    input_image_shape=export_params.input_image_shape,
-                    preprocessing=export_params.preprocessing,
-                    postprocessing=export_params.postprocessing,
-                    confidence_threshold=export_params.confidence_threshold,
-                    onnx_simplify=export_params.onnx_simplify,
-                    onnx_export_kwargs=export_params.onnx_export_kwargs,
-                )
-            else:
-                from super_gradients.conversion.onnx import export_to_onnx
 
-                device = "cpu"
-                example_input_shape = next(iter(quantization_result.calibration_dataloader))[0].size()
-                input_shape_with_explicit_batch = tuple(export_params.batch_size, *example_input_shape[1:])
-                onnx_input = torch.randn(input_shape_with_explicit_batch).to(device=device)
-                onnx_export_kwargs = export_params.onnx_export_kwargs or {}
-                model_to_export = quantization_result.quantized_model
-                export_to_onnx(
-                    model=model_to_export.to(device),
-                    model_input=onnx_input,
-                    onnx_filename=temp_onnx_path,
-                    input_names=["input"],
-                    onnx_opset=onnx_export_kwargs.get("opset_version", None),
-                    do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
-                    dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
-                    keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
-                    verbose=onnx_export_kwargs.get("verbose", False),
-                )
-                export_result = None
+        # If the output path is not an ONNX path but something like .xml /  .engine / .coreml
+        # Then we need to export to ONNX first and then export to the target format
+        output_path = str(output_path)
+        if output_path.lower().endswith(".onnx"):
+            intermediate_onnx_path = output_path
+        else:
+            intermediate_onnx_path = str(Path(output_path).with_suffix(".onnx"))
 
-            exported_path = exporter.export_from_onnx(temp_onnx_path, output_path)
-            quantization_result.export_result = export_result
-            quantization_result.export_path = exported_path
+        if isinstance(quantization_result.original_model, ExportableObjectDetectionModel):
+            model = typing.cast(ExportableObjectDetectionModel, model)
+            export_result = model.export(
+                output=intermediate_onnx_path,
+                quantized_model=quantization_result.quantized_model,
+                input_image_shape=export_params.input_image_shape,
+                preprocessing=export_params.preprocessing,
+                postprocessing=export_params.postprocessing,
+                postprocessing_use_tensorrt_nms=export_params.detection_postprocessing_use_tensorrt_nms,
+                confidence_threshold=export_params.confidence_threshold,
+                nms_threshold=export_params.detection_nms_iou_threshold,
+                onnx_simplify=export_params.onnx_simplify,
+                onnx_export_kwargs=export_params.onnx_export_kwargs,
+                num_pre_nms_predictions=export_params.detection_num_pre_nms_predictions,
+                max_predictions_per_image=export_params.detection_max_predictions_per_image,
+                output_predictions_format=export_params.detection_predictions_format,
+            )
+        elif isinstance(quantization_result.original_model, ExportablePoseEstimationModel):
+            model = typing.cast(ExportablePoseEstimationModel, model)
+            export_result = model.export(
+                output=intermediate_onnx_path,
+                quantized_model=quantization_result.quantized_model,
+                input_image_shape=export_params.input_image_shape,
+                preprocessing=export_params.preprocessing,
+                postprocessing=export_params.postprocessing,
+                confidence_threshold=export_params.confidence_threshold,
+                nms_threshold=export_params.detection_nms_iou_threshold,
+                onnx_simplify=export_params.onnx_simplify,
+                onnx_export_kwargs=export_params.onnx_export_kwargs,
+                num_pre_nms_predictions=export_params.detection_num_pre_nms_predictions,
+                max_predictions_per_image=export_params.detection_max_predictions_per_image,
+                output_predictions_format=export_params.detection_predictions_format,
+            )
+        elif isinstance(model, ExportableSegmentationModel):
+            model: ExportableSegmentationModel = typing.cast(ExportableSegmentationModel, model)
+            export_result = model.export(
+                output=intermediate_onnx_path,
+                quantized_model=quantization_result.quantized_model,
+                input_image_shape=export_params.input_image_shape,
+                preprocessing=export_params.preprocessing,
+                postprocessing=export_params.postprocessing,
+                confidence_threshold=export_params.confidence_threshold,
+                onnx_simplify=export_params.onnx_simplify,
+                onnx_export_kwargs=export_params.onnx_export_kwargs,
+            )
+        else:
+            from super_gradients.conversion.onnx import export_to_onnx
+
+            device = "cpu"
+            example_input_shape = next(iter(quantization_result.calibration_dataloader))[0].size()
+            input_shape_with_explicit_batch = tuple(export_params.batch_size, *example_input_shape[1:])
+            onnx_input = torch.randn(input_shape_with_explicit_batch).to(device=device)
+            onnx_export_kwargs = export_params.onnx_export_kwargs or {}
+            model_to_export = quantization_result.quantized_model
+            export_to_onnx(
+                model=model_to_export.to(device),
+                model_input=onnx_input,
+                onnx_filename=intermediate_onnx_path,
+                input_names=["input"],
+                onnx_opset=onnx_export_kwargs.get("opset_version", None),
+                do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
+                dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
+                keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
+                verbose=onnx_export_kwargs.get("verbose", False),
+            )
+            export_result = None
+
+        exported_path = exporter.export_from_onnx(intermediate_onnx_path, output_path)
+        quantization_result.export_result = export_result
+        quantization_result.export_path = exported_path
 
         return quantization_result

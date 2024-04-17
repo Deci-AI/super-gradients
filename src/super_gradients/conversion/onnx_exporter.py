@@ -13,5 +13,6 @@ class ONNXExporter(AbstractExporter):
         pass
 
     def export_from_onnx(self, source_onnx: str, output_file: str) -> str:
-        shutil.copy(source_onnx, output_file)
+        if source_onnx != output_file:
+            shutil.copy(source_onnx, output_file)
         return output_file

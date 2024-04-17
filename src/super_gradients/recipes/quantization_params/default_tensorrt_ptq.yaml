@@ -13,9 +13,7 @@ quantizer:
       num_calib_batches: 128                # number of batches to use for calibration, if None, 512 / batch_size will be used
       verbose: False                        # if calibrator should be verbose
 
-exporter: ONNXExporter
-
-output_path: ${architecture}_trt_ptq_int8.onnx
+output_path: # ${architecture}_trt_ptq_int8.onnx
 
 # Model-specific parameters
 export_params:
