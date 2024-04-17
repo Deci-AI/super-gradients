@@ -39,5 +39,3 @@ export_params:
     detection_num_pre_nms_predictions: 1000
     detection_predictions_format: flat
     detection_postprocessing_use_tensorrt_nms: False
-
-    input_image_shape: [480, 512]
