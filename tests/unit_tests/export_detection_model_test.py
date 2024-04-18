@@ -160,7 +160,6 @@ class TestDetectionModelExport(unittest.TestCase):
                     out_path,
                     input_image_shape=None,  # Force .export() to infer image shape from the model itself
                     postprocessing_use_tensorrt_nms=False,
-                    postprocessing_use_tensorrt_nms=False,
                     output_predictions_format=output_predictions_format,
                     nms_threshold=nms_threshold,
                     confidence_threshold=confidence_threshold,
