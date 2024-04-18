@@ -8,7 +8,7 @@ from super_gradients.common.registry.registry import register_quantizer
 from super_gradients.import_utils import import_pytorch_quantization_or_install
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.dataloaders import dataloaders
-from super_gradients.training.utils.quantization.abstract_quantizer import AbstractQuantizer, QuantizationResult
+from super_gradients.training.quantization.abstract_quantizer import AbstractQuantizer, QuantizationResult
 from super_gradients.training.utils.utils import get_param
 from torch import nn
 from torch.utils.data import DataLoader
@@ -176,8 +176,8 @@ class TRTPTQQuantizer(AbstractQuantizer):
         validation_loader: DataLoader,
         validation_metrics,
     ):
-        from .tensorrt.functional import tensorrt_ptq
-        from .selective_quantization_utils import SelectiveQuantizer
+        from super_gradients.training.utils.quantization.tensorrt.functional import tensorrt_ptq
+        from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 
         original_model = model
         model = copy.deepcopy(model).eval()

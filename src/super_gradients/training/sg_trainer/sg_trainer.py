@@ -107,13 +107,12 @@ from super_gradients.module_interfaces import (
     QuantizationResult,
 )
 from super_gradients.common.deprecate import deprecated
-from super_gradients.training.utils.quantization.abstract_quantizer import AbstractQuantizer
+from super_gradients.training.quantization import AbstractQuantizer, TRTPTQQuantizer, TRTQATQuantizer  # noqa
 from super_gradients.conversion.abstract_exporter import AbstractExporter
 
 from super_gradients.conversion import ExportParams
 from super_gradients.module_interfaces import ExportableObjectDetectionModel, ExportableSegmentationModel, ExportablePoseEstimationModel
 
-from super_gradients.training.utils.quantization.tensorrt_quantizer import TRTPTQQuantizer, TRTQATQuantizer  # noqa
 from super_gradients.conversion.onnx_exporter import ONNXExporter  # noqa
 
 logger = get_logger(__name__)
