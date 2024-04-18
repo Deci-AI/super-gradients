@@ -366,7 +366,6 @@ class ExportableSegmentationModel:
         contains_quantized_modules = check_model_contains_quantized_modules(model)
 
         if quantization_mode == ExportQuantizationMode.INT8:
-            logger.warning("Model quantization using model.export() is deprecated. Please use trainer.quantize_from_recipe() instead.")
             from super_gradients.training.utils.quantization.tensorrt.functional import tensorrt_ptq
 
             quantized_model = tensorrt_ptq(

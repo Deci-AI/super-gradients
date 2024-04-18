@@ -391,8 +391,7 @@ class ExportablePoseEstimationModel:
         contains_quantized_modules = check_model_contains_quantized_modules(model) or quantized_model is not None
 
         if quantization_mode == ExportQuantizationMode.INT8 and quantized_model is None:
-            logger.warning("Model quantization using model.export() is deprecated. Please use trainer.quantize_from_recipe() instead.")
-            from super_gradients.training.quantization.tensorrt_quantizer import tensorrt_ptq
+            from super_gradients.training.utils.quantization.tensorrt.functional import tensorrt_ptq
 
             quantized_model = tensorrt_ptq(
                 model,
