@@ -253,6 +253,8 @@ class TRTQATQuantizer(TRTPTQQuantizer):
         calib_params: Union[TRTQuantizerCalibrationParams, Mapping],
         qat_params: Union[TRTQATParams, Mapping, None] = None,
     ):
+        import_pytorch_quantization_or_install()
+
         super().__init__(selective_quantizer_params=selective_quantizer_params, calib_params=calib_params)
         if isinstance(qat_params, Mapping):
             qat_params = TRTQATParams(**qat_params)
