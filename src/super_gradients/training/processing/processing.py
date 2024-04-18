@@ -964,8 +964,8 @@ def default_yolo_nas_coco_processing_params() -> dict:
 
     image_processor = ComposeProcessing(
         [
-            DetectionLongestMaxSizeRescale(output_shape=(636, 636)),
-            DetectionCenterPadding(output_shape=(640, 640), pad_value=114),
+            DetectionLongestMaxSizeRescale(output_shape=(1280, 1280)),
+            DetectionCenterPadding(output_shape=(1280, 1280), pad_value=114),
             StandardizeImage(max_value=255.0),
             ImagePermute(permutation=(2, 0, 1)),
         ]
