@@ -2778,7 +2778,10 @@ class Trainer:
 
             device = "cpu"
             example_input_shape = next(iter(quantization_result.calibration_dataloader))[0].size()
-            input_shape_with_explicit_batch = tuple(export_params.batch_size, *example_input_shape[1:])
+            input_shape_with_explicit_batch = tuple([export_params.batch_size, *example_input_shape[1:]])
+            if export_params.input_image_shape is not None:
+                input_shape_with_explicit_batch = input_shape_with_explicit_batch[: -len(export_params.input_image_shape)] + export_params.input_image_shape
+
             onnx_input = torch.randn(input_shape_with_explicit_batch).to(device=device)
             onnx_export_kwargs = export_params.onnx_export_kwargs or {}
             model_to_export = quantization_result.quantized_model
