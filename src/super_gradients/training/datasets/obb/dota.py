@@ -5,7 +5,8 @@ from typing import Tuple, Union, Optional, List
 import cv2
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
+from super_gradients.training.utils.visualization.utils import generate_color_mapping
+from torch.utils.data import Dataset
 from tqdm import tqdm
 
 
@@ -22,10 +23,10 @@ class OBBSample:
     :param additional_samples: (Optional) List of additional samples for the same image.
     """
 
-    __slots__ = ["image", "boxes_cxcywhr", "labels", "is_crowd", "additional_samples"]
+    __slots__ = ["image", "rboxes_cxcywhr", "labels", "is_crowd", "additional_samples"]
 
     image: Union[np.ndarray, torch.Tensor]
-    boxes_cxcywhr: np.ndarray
+    rboxes_cxcywhr: np.ndarray
     labels: np.ndarray
     is_crowd: np.ndarray
     additional_samples: Optional[List["OBBSample"]]
@@ -57,7 +58,7 @@ class OBBSample:
             raise ValueError("Labels must be in [N] format. Shape of input labels is {labels.shape}")
 
         self.image = image
-        self.boxes_cxcywhr = boxes_cxcywhr
+        self.rboxes_cxcywhr = boxes_cxcywhr
         self.labels = labels
         self.is_crowd = is_crowd
         self.additional_samples = additional_samples
@@ -86,7 +87,7 @@ class OBBSample:
         :param mask:   A boolean or integer mask of samples to keep for given sample.
         :return:       A DetectionSample after filtering (caller instance).
         """
-        self.boxes_cxcywhr = self.boxes_cxcywhr[mask]
+        self.rboxes_cxcywhr = self.rboxes_cxcywhr[mask]
         self.labels = self.labels[mask]
         if self.is_crowd is not None:
             self.is_crowd = self.is_crowd[mask]
@@ -100,7 +101,7 @@ class OBBSample:
         :param min_rbox_area: Minimal rotated box area of the box to keep.
         :return:              A OBBSample after filtering (caller instance).
         """
-        area = self.boxes_cxcywhr[..., 2:4].prod(axis=-1)
+        area = self.rboxes_cxcywhr[..., 2:4].prod(axis=-1)
         keep_mask = area > min_rbox_area
         return self.filter_by_mask(keep_mask)
 
@@ -116,7 +117,7 @@ class OrientedBoxesCollate:
 
         for sample in batch:
             images.append(torch.from_numpy(np.transpose(sample.image, [2, 0, 1])))
-            all_boxes.append(torch.from_numpy(sample.boxes_cxcywhr))
+            all_boxes.append(torch.from_numpy(sample.rboxes_cxcywhr))
             all_labels.append(torch.from_numpy(sample.labels))
             all_crowd_masks.append(torch.from_numpy(sample.is_crowd))
 
@@ -214,7 +215,7 @@ class DOTAOBBDataset(Dataset):
             classes.append(parts[8])
             difficult.append(int(parts[9]))
 
-        return np.array(coords, dtype=np.float32), np.array(classes, dtype=np.object_), np.array(difficult, dtype=int)
+        return np.array(coords, dtype=np.float32).reshape(-1, 4, 2), np.array(classes, dtype=np.object_), np.array(difficult, dtype=int)
 
     @classmethod
     def chip_image(cls, img, coords, classes, difficult, tile_size, tile_step, min_visibility=0.4, min_area=4):
@@ -223,10 +224,10 @@ class DOTAOBBDataset(Dataset):
         multiple chips are clipped: each portion that is in a chip is labeled. For example,
         half a building will be labeled if it is cut off in a chip.
 
-        :parma img: the image to be chipped in array format
-        :parma coords: an (N,4,2) array of oriented box coordinates for that image
-        :parma classes: an (N,1) array of classes for each bounding box
-        :parma tile_size: an (W,H) tuple indicating width and height of chips
+        :param img: the image to be chipped in array format
+        :param coords: an (N,4,2) array of oriented box coordinates for that image
+        :param classes: an (N,1) array of classes for each bounding box
+        :param tile_size: an (W,H) tuple indicating width and height of chips
 
         Output:
             An image array of shape (M,W,H,C), where M is the number of chips,
@@ -369,7 +370,7 @@ class DOTAOBBDataset(Dataset):
                                 f"{poly[0,0]:.2f} {poly[0,1]:.2f} {poly[1,0]:.2f} {poly[1,1]:.2f} {poly[2,0]:.2f} {poly[2,1]:.2f} {poly[3,0]:.2f} {poly[3,1]:.2f} {category} {diff}\n"  # noqa
                             )
 
-                            if True:
+                            if False:
                                 # Draw on the tile image
                                 poly = poly.reshape(-1, 2)
                                 poly = poly.astype(np.int32)
@@ -382,7 +383,7 @@ if __name__ == "__main__":
     # DOTAOBBDataset.slice_dataset_into_tiles(
     #     data_dir="h:/DOTA/DOTA-v2.0/train",
     #     output_dir="h:/DOTA/DOTA-v2.0-tiles/train",
-    #     ann_dir="ann-obb",
+    #     ann_subdir_name="ann-obb",
     #     tile_size=1024,
     #     tile_step=1024,
     #     scale_factors=(1,),
@@ -390,16 +391,16 @@ if __name__ == "__main__":
     #     min_area=32,
     # )
     #
-    DOTAOBBDataset.slice_dataset_into_tiles(
-        data_dir="h:/DOTA/DOTA-v2.0/val",
-        output_dir="h:/DOTA/DOTA-v2.0-tiles/val",
-        output_ann_dir="ann-obb",
-        tile_size=1024,
-        tile_step=1024,
-        scale_factors=(1,),
-        min_visibility=0.5,
-        min_area=32,
-    )
+    # DOTAOBBDataset.slice_dataset_into_tiles(
+    #     data_dir="h:/DOTA/DOTA-v2.0/val",
+    #     output_dir="h:/DOTA/DOTA-v2.0-tiles/val",
+    #     ann_subdir_name="ann-obb",
+    #     tile_size=1024,
+    #     tile_step=1024,
+    #     scale_factors=(1,),
+    #     min_visibility=0.5,
+    #     min_area=32,
+    # )
 
     class_names = [
         "plane",
@@ -422,17 +423,35 @@ if __name__ == "__main__":
         "helipad",
     ]
 
+    class_colors = generate_color_mapping(num_classes=len(class_names))
+
     # ds = DOTAOBBDataset(data_dir="h:/DOTA/DOTA-v2.0-tiles/train", transforms=[], class_names=class_names)
     # num_samples = len(ds)
     # print("Train dataset", num_samples)
     # for i in tqdm(range(num_samples)):
     #     sample = ds[i]
-
+    #
     ds = DOTAOBBDataset(data_dir="h:/DOTA/DOTA-v2.0-tiles/val", transforms=[], class_names=class_names)
-    num_samples = len(ds)
-    print("Val dataset", num_samples)
-    for i in tqdm(range(num_samples)):
-        sample = ds[i]
+    # from super_gradients.training.utils.visualization.obb import OBBVisualization
+    # num_samples = len(ds)
+    # print("Val dataset", num_samples)
+    # for i in tqdm(range(num_samples)):
+    #     sample = ds[i]
+    #     overlay = OBBVisualization.draw_obb(
+    #         image=sample.image,
+    #         labels=sample.labels,
+    #         scores=None,
+    #         rboxes_cxcywhr=sample.rboxes_cxcywhr,
+    #         class_labels=class_names,
+    #         class_colors=class_colors,
+    #         show_labels=True,
+    #         show_confidence=False,
+    #         label_prefix="GT:",
+    #     )
+    #     cv2.imshow("Overlay", overlay)
+    #     cv2.waitKey(-1)
+
+    from torch.utils.data import DataLoader
 
     loader = DataLoader(ds, batch_size=32, collate_fn=OrientedBoxesCollate())
     for batch in tqdm(loader):

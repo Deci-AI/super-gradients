@@ -1,25 +1,22 @@
 import typing
-from typing import Optional, Tuple, Callable, List, Union
+from typing import Optional, Tuple, List, Union
 
 import numpy as np
 import torch
-from omegaconf import ListConfig
 from torch import Tensor
 from torchmetrics import Metric
 
 from super_gradients.common.registry.registry import register_callback
-from super_gradients.module_interfaces.obb_predictions import AbstractOBBPostPredictionCallback, OBBPredictions
-from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy
 from super_gradients.training.utils.callbacks.callbacks import ExtremeBatchCaseVisualizationCallback
 from super_gradients.training.utils.visualization.obb import OBBVisualization
-from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
+from super_gradients.training.utils.visualization.utils import generate_color_mapping
 
 # These imports are required for type hints and not used anywhere else
 # Wrapping them under typing.TYPE_CHECKING is a legit way to avoid circular imports
 # while still having type hints
 if typing.TYPE_CHECKING:
-    from super_gradients.training.samples import PoseEstimationSample
-    from super_gradients.module_interfaces import PoseEstimationPredictions
+    from super_gradients.training.datasets.obb.dota import OBBSample
+    from super_gradients.module_interfaces.obb_predictions import AbstractOBBPostPredictionCallback, OBBPredictions
 
 
 @register_callback("ExtremeBatchPoseEstimationVisualizationCallback")
@@ -77,18 +74,15 @@ class ExtremeBatchOBBVisualizationCallback(ExtremeBatchCaseVisualizationCallback
 
     :param freq: int, epoch frequency to perform all of the above (default=1).
 
-    :param classes: List[str], a list of class names corresponding to the class indices for display.
-     When None, will try to fetch this through a "classes" attribute of the valdiation dataset. If such attribute does
-      not exist an error will be raised (default=None).
 
-    :param normalize_targets: bool, whether to scale the target bboxes. If the bboxes returned by the validation data loader
-     are in pixel values range, this needs to be set to True (default=False)
 
     """
 
     def __init__(
         self,
-        post_prediction_callback: AbstractOBBPostPredictionCallback,
+        post_prediction_callback: "AbstractOBBPostPredictionCallback",
+        class_names: List[str],
+        class_colors=None,
         metric: Optional[Metric] = None,
         metric_component_name: Optional[str] = None,
         loss_to_monitor: Optional[str] = None,
@@ -98,6 +92,9 @@ class ExtremeBatchOBBVisualizationCallback(ExtremeBatchCaseVisualizationCallback
         enable_on_train_loader: bool = False,
         enable_on_valid_loader: bool = True,
     ):
+        if class_colors is None:
+            class_colors = generate_color_mapping(num_classes=len(class_names))
+
         super().__init__(
             metric=metric,
             metric_component_name=metric_component_name,
@@ -107,6 +104,8 @@ class ExtremeBatchOBBVisualizationCallback(ExtremeBatchCaseVisualizationCallback
             enable_on_train_loader=enable_on_train_loader,
             enable_on_valid_loader=enable_on_valid_loader,
         )
+        self.class_names = list(class_names)
+        self.class_colors = class_colors
         self.post_prediction_callback = post_prediction_callback
         self.max_images = max_images
 
@@ -130,48 +129,44 @@ class ExtremeBatchOBBVisualizationCallback(ExtremeBatchCaseVisualizationCallback
     def _visualize_batch(
         cls,
         image_tensor: np.ndarray,
-        rboxes: List[Union[None, np.ndarray, Tensor]],
-        scores: Optional[List[Union[None, np.ndarray, Tensor]]],
-        is_crowd: Optional[List[Union[None, np.ndarray, Tensor]]],
-        class_colors,
-        class_labels,
+        rboxes: List[Union[np.ndarray, Tensor]],
+        labels: List[Union[np.ndarray, Tensor]],
+        scores: Optional[List[Union[np.ndarray, Tensor]]],
+        class_colors: List[Tuple[int, int, int]],
+        class_names: List[str],
     ) -> List[np.ndarray]:
         """
         Generate list of samples visualization of a batch of images with keypoints and bounding boxes.
 
         :param image_tensor:             Images batch of [Batch Size, 3, H, W] shape with values in [0, 255] range.
                                          The images should be scaled to [0, 255] range and converted to uint8 type beforehead.
-        :param keypoints:                Keypoints in XY format. Shape [Num Instances, Num Joints, 2]. Can be None.
-        :param bboxes:                   Bounding boxes in XYXY format. Shape [Num Instances, 4]. Can be None.
         :param scores:                   Keypoint scores. Shape [Num Instances, Num Joints]. Can be None.
-        :param is_crowd:                 Whether each sample is crowd or not. Shape [Num Instances]. Can be None.
-        :param keypoint_colors:          Keypoint colors. Shape [Num Joints, 3]
-        :param edge_colors:              Edge colors between joints. Shape [Num Links, 3]
-        :param edge_links:               Edge links between joints. Shape [Num Links, 2]
-        :param show_keypoint_confidence: Whether to show confidence for each keypoint. Requires `scores` to be not None.
         :return:                         List of visualization images.
         """
 
         out_images = []
         for i in range(image_tensor.shape[0]):
-            bboxes_i = rboxes[i]
+            rboxes_i = rboxes[i]
+            labels_i = labels[i]
             scores_i = scores[i] if scores is not None else None
-            is_crowd_i = is_crowd[i] if is_crowd is not None else None
 
-            if torch.is_tensor(bboxes_i):
-                rboxes_i = bboxes_i.detach().cpu().numpy()
+            if torch.is_tensor(rboxes_i):
+                rboxes_i = rboxes_i.detach().cpu().numpy()
+            if torch.is_tensor(labels_i):
+                labels_i = labels_i.detach().cpu().numpy()
             if torch.is_tensor(scores_i):
                 scores_i = scores_i.detach().cpu().numpy()
-            if torch.is_tensor(is_crowd_i):
-                is_crowd_i = is_crowd_i.detach().cpu().numpy()
 
             res_image = image_tensor[i]
             res_image = OBBVisualization.draw_obb(
                 image=res_image,
-                rboxes=rboxes_i,
+                rboxes_cxcywhr=rboxes_i,
+                labels=labels_i,
                 scores=scores_i,
-                classs_colors=class_colors,
-                class_labels=class_labels,
+                class_colors=class_colors,
+                class_labels=class_names,
+                show_confidence=True,
+                show_labels=True,
             )
 
             out_images.append(res_image)
@@ -192,23 +187,26 @@ class ExtremeBatchOBBVisualizationCallback(ExtremeBatchCaseVisualizationCallback
             )
 
         inputs = self.universal_undo_preprocessing_fn(self.extreme_batch)
-        gt_samples: List[OBBSample] = self.extreme_additional_batch_items["gt_samples"]
-        predictions: List[OBBPredictions] = self.post_prediction_callback(self.extreme_preds)
+        gt_samples: List["OBBSample"] = self.extreme_additional_batch_items["gt_samples"]
+        predictions: List["OBBPredictions"] = self.post_prediction_callback(self.extreme_preds)
 
         images_to_save_preds = self._visualize_batch(
             image_tensor=inputs,
-            bboxes=[p.rboxes_cxcywhr for p in predictions],
+            rboxes=[p.rboxes_cxcywhr for p in predictions],
+            labels=[p.labels for p in predictions],
             scores=[p.scores for p in predictions],
-            is_crowd=None,
+            class_colors=self.class_colors,
+            class_names=self.class_names,
         )
         images_to_save_preds = np.stack(images_to_save_preds)
 
         images_to_save_gt = self._visualize_batch(
             image_tensor=inputs,
-            keypoints=[gt.joints for gt in gt_samples],
-            bboxes=[xywh_to_xyxy(gt.bboxes_xywh, image_shape=None) if gt.bboxes_xywh is not None else None for gt in gt_samples],
+            rboxes=[gt.rboxes_cxcywhr for gt in gt_samples],
+            labels=[gt.labels for gt in gt_samples],
             scores=None,
-            is_crowd=[gt.is_crowd for gt in gt_samples],
+            class_colors=self.class_colors,
+            class_names=self.class_names,
         )
         images_to_save_gt = np.stack(images_to_save_gt)
 
