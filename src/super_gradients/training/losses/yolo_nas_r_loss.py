@@ -1,18 +1,15 @@
 import dataclasses
-from typing import Mapping, Tuple, Union, List, Optional
+from typing import Mapping, Tuple
 
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
-from super_gradients.common.registry.registry import register_loss
 from super_gradients.common.environment.ddp_utils import get_world_size, is_distributed
-
-from super_gradients.training.utils.bbox_utils import batch_distance2bbox
-
-from .ppyolo_loss import GIoULoss, batch_iou_similarity, check_points_inside_bboxes, gather_topk_anchors, compute_max_iou_anchor
-
+from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_collate_fn import undo_flat_collate_tensors_with_batch_index
+from super_gradients.training.utils.bbox_utils import batch_distance2bbox
+from .ppyolo_loss import GIoULoss, check_points_inside_bboxes, gather_topk_anchors, compute_max_iou_anchor
 from ..models.detection_models.yolo_nas_r.yolo_nas_r_ndfl_heads import YoloNASRLogits
 
 
@@ -99,7 +96,7 @@ class YoloNASOBBBoxesAssignmentResult:
     assigned_crowd: Tensor
 
 
-class YoloNASOBBAssigner(nn.Module):
+class YoloNASRAssigner(nn.Module):
     """
     Task-aligned assigner repurposed from YoloNAS for OBB OD task
     """
@@ -247,7 +244,7 @@ class YoloNASOBBAssigner(nn.Module):
 
 
 @register_loss()
-class YoloNASOBBLoss(nn.Module):
+class YoloNASRLoss(nn.Module):
     """
     Loss for training YoloNAS-R model
     """
@@ -265,14 +262,11 @@ class YoloNASOBBLoss(nn.Module):
         average_losses_in_ddp: bool = False,
     ):
         """
-        :param oks_sigmas:                 OKS sigmas for pose estimation. Array of [Num Keypoints].
         :param classification_loss_type:   Classification loss type. One of "focal" or "bce"
         :param regression_iou_loss_type:   Regression IoU loss type. One of "giou" or "ciou"
         :param classification_loss_weight: Classification loss weight
         :param iou_loss_weight:            IoU loss weight
         :param dfl_loss_weight:            DFL loss weight
-        :param pose_cls_loss_weight:       Pose classification loss weight
-        :param pose_reg_loss_weight:       Pose regression loss weight
         :param average_losses_in_ddp:      Whether to average losses in DDP mode. In theory, enabling this option
                                            should have the positive impact on model accuracy since it would smooth out
                                            influence of batches with small number of objects.
@@ -286,7 +280,7 @@ class YoloNASOBBLoss(nn.Module):
 
         self.iou_loss = {"giou": GIoULoss, "ciou": CIoULoss}[regression_iou_loss_type]()
         self.num_classes = 1  # We have only one class in pose estimation task
-        self.assigner = YoloNASOBBAssigner(
+        self.assigner = YoloNASRAssigner(
             topk=bbox_assigner_topk,
             alpha=bbox_assigned_alpha,
             beta=bbox_assigned_beta,

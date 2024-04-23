@@ -9,8 +9,14 @@ from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_ndfl
 
 
 def rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float):
-    # TODO Implement
-    raise NotImplementedError()
+    """
+    Perform NMS on rotated boxes.
+    :param rboxes_cxcywhr: [N,5] Rotated boxes in CXCYWHR format
+    :param scores: [N] Confidence scores
+    :param iou_threshold: IOU threshold for NMS
+    :return: Indices of boxes to keep
+    """
+    raise NotImplementedError("Implement this function")
 
 
 class YoloNASRPostPredictionCallback(AbstractPoseEstimationPostPredictionCallback):
@@ -21,13 +27,13 @@ class YoloNASRPostPredictionCallback(AbstractPoseEstimationPostPredictionCallbac
 
     def __init__(
         self,
-        pose_confidence_threshold: float,
+        score_threshold: float,
         nms_iou_threshold: float,
         pre_nms_max_predictions: int,
         post_nms_max_predictions: int,
     ):
         """
-        :param pose_confidence_threshold: Pose detection confidence threshold
+        :param score_threshold: Detection confidence threshold
         :param nms_iou_threshold:         IoU threshold for NMS step.
         :param pre_nms_max_predictions:   Number of predictions participating in NMS step
         :param post_nms_max_predictions:  Maximum number of boxes to return after NMS step
@@ -36,7 +42,7 @@ class YoloNASRPostPredictionCallback(AbstractPoseEstimationPostPredictionCallbac
             raise ValueError("post_nms_max_predictions must be less than pre_nms_max_predictions")
 
         super().__init__()
-        self.pose_confidence_threshold = pose_confidence_threshold
+        self.score_threshold = score_threshold
         self.nms_iou_threshold = nms_iou_threshold
         self.pre_nms_max_predictions = pre_nms_max_predictions
         self.post_nms_max_predictions = post_nms_max_predictions
@@ -61,7 +67,7 @@ class YoloNASRPostPredictionCallback(AbstractPoseEstimationPostPredictionCallbac
             # pred_scores [Anchors, 1] confidence scores [0..1]
 
             pred_bboxes_conf = pred_bboxes_conf.squeeze(-1)  # [Anchors]
-            conf_mask = pred_bboxes_conf >= self.pose_confidence_threshold  # [Anchors]
+            conf_mask = pred_bboxes_conf >= self.score_threshold  # [Anchors]
 
             pred_bboxes_conf = pred_bboxes_conf[conf_mask].float()
             pred_rboxes_cxcywhr = pred_rboxes_cxcywhr[conf_mask].float()
