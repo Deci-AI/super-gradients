@@ -16,8 +16,8 @@ class OBBVisualization:
         class_colors: Union[List[Tuple], np.ndarray],
         show_labels: bool = True,
         show_confidence: bool = True,
-        thickness=2,
-        opacity=0.5,
+        thickness: int = 2,
+        opacity: float = 0.5,
         label_prefix: str = "",
     ):
         """
@@ -37,6 +37,9 @@ class OBBVisualization:
 
         :return: [H, W, 3] - Image with bounding boxes drawn
         """
+        if len(class_labels) != len(class_colors):
+            raise ValueError("Number of class labels and colors should match")
+
         overlay = image.copy()
         num_boxes = len(rboxes_cxcywhr)
 
@@ -54,7 +57,7 @@ class OBBVisualization:
 
         for i in range(num_boxes):
             cx, cy, w, h, r = rboxes_cxcywhr[i]
-            rect = (cx, cy), (w, h), r
+            rect = (cx, cy), (w, h), np.rad2deg(r)
             box = cv2.boxPoints(rect)  # [4, 2]
             class_index = labels[i]
             color = tuple(class_colors[class_index])
@@ -64,7 +67,7 @@ class OBBVisualization:
                 class_label = class_labels[class_index]
                 label_title = f"{label_prefix}{class_label}"
                 if show_confidence:
-                    conf = scores[class_index]
+                    conf = scores[i]
                     label_title = f"{label_title} {conf:.2f}"
 
                 text_size, centerline = cv2.getTextSize(label_title, font_face, font_scale, thickness)

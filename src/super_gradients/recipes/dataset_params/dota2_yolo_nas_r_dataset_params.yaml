@@ -1,3 +1,4 @@
+num_classes: 18
 class_names:
   - plane
   - ship
@@ -20,8 +21,8 @@ class_names:
 
 train_dataset_params:
   data_dir: h:\DOTA\DOTA-v2.0-tiles\train # root path to coco data
-  subdir: images/train2017 # sub directory path of data_dir containing the train data.
   transforms: []
+  class_names: ${dataset_params.class_names}
 #    - DetectionRandomAffine:
 #        degrees: 0                    # rotation degrees, randomly sampled from [-degrees, degrees]
 #        translate: 0.25               # image translation fraction
@@ -56,16 +57,19 @@ train_dataset_params:
 
 
 train_dataloader_params:
-  batch_size: 25
+  dataset: DOTAOBBDataset
+  batch_size: 16
   num_workers: 8
   shuffle: True
   drop_last: True
   pin_memory: True
+  persistent_workers: True
   collate_fn: OrientedBoxesCollate
 
 val_dataset_params:
   data_dir: h:\DOTA\DOTA-v2.0-tiles\val
   transforms: []
+  class_names: ${dataset_params.class_names}
 #    - DetectionRGB2BGR:
 #        prob: 1
 #    - DetectionPadToSize:
@@ -79,11 +83,13 @@ val_dataset_params:
 #        output_format: LABEL_CXCYWH
 
 val_dataloader_params:
-  batch_size: 25
+  dataset: DOTAOBBDataset
+  batch_size: 16
   num_workers: 8
   drop_last: False
   shuffle: False
   pin_memory: True
+  persistent_workers: True
   collate_fn: OrientedBoxesCollate
 
 _convert_: all

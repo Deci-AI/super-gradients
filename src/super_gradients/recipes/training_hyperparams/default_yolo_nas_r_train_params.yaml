@@ -17,7 +17,7 @@ cosine_final_lr_ratio: 0.1
 zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
 
-save_ckpt_epoch_list: [ 100, 200, 250 ]
+save_ckpt_epoch_list: [ ]
 
 loss: YoloNASRLoss
 criterion_params: {}
@@ -29,44 +29,49 @@ optimizer_params:
 ema: True
 ema_params:
   decay: 0.9997
-  decay_type: threshold
+  decay_type: exp
+  beta: 50
 
-mixed_precision: False
-sync_bn: True
+mixed_precision: True
+sync_bn: False
 
 # This is how you can enable visualization of predictions during training
 # A batch with the largest loss will be visualized for train and valid loaders
 # Visualization images will be logged using configured logger
 phase_callbacks:
   - ExtremeBatchOBBVisualizationCallback:
-      loss_to_monitor: "PPYoloELoss/loss"
-      max: True
+      loss_to_monitor: "YoloNASRLoss/loss"
+      max: False
+      freq: 1
       enable_on_train_loader: True
       enable_on_valid_loader: True
       class_names: ${dataset_params.class_names}
       post_prediction_callback:
         _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
         score_threshold: 0.25
-        nms_top_k: 300
-        max_predictions: 30
-        nms_threshold: 0.7
+        pre_nms_max_predictions: 1000
+        post_nms_max_predictions: 100
+        nms_iou_threshold: 0.7
 
-valid_metrics_list:
-  - OBBDetectionMetrics:
-      score_thres: 0.1
-      top_k_predictions: 300
-      class_names: ${dataset_params.class_names}
-      post_prediction_callback:
-        _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
-        score_threshold: 0.25
-        nms_top_k: 300
-        max_predictions: 30
-        nms_threshold: 0.7
+valid_metrics_list: []
+#  - OBBDetectionMetrics:
+#      score_thres: 0.1
+#      top_k_predictions: 300
+#      class_names: ${dataset_params.class_names}
+#      post_prediction_callback:
+#        _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
+#        score_threshold: 0.25
+#        pre_nms_max_predictions: 1000
+#        post_nms_max_predictions: 100
+#        nms_iou_threshold: 0.7
 
 
 pre_prediction_callback:
 
-metric_to_watch: 'mAP@0.50:0.95'
-greater_metric_to_watch_is_better: True
+metric_to_watch: 'YoloNASRLoss/loss'
+greater_metric_to_watch_is_better: False
+
+#metric_to_watch: 'mAP@0.50:0.95'
+#greater_metric_to_watch_is_better: True
 
 _convert_: all

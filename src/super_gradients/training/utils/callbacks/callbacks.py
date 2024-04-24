@@ -1121,7 +1121,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
 
         self.enable_on_train_loader = enable_on_train_loader
         self.enable_on_valid_loader = enable_on_valid_loader
-        self.max_images = max_images
+        self.max_images = int(max_images)
 
     def _set_tag_attr(self, loss_to_monitor, max, metric, metric_component_name):
         if metric_component_name:

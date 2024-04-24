@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:
     from super_gradients.module_interfaces.obb_predictions import AbstractOBBPostPredictionCallback, OBBPredictions
 
 
-@register_callback("ExtremeBatchPoseEstimationVisualizationCallback")
+@register_callback()
 class ExtremeBatchOBBVisualizationCallback(ExtremeBatchCaseVisualizationCallback):
     """
     ExtremeBatchOBBVisualizationCallback
@@ -88,7 +88,7 @@ class ExtremeBatchOBBVisualizationCallback(ExtremeBatchCaseVisualizationCallback
         loss_to_monitor: Optional[str] = None,
         max: bool = False,
         freq: int = 1,
-        max_images: Optional[int] = None,
+        max_images: int = -1,
         enable_on_train_loader: bool = False,
         enable_on_valid_loader: bool = True,
     ):

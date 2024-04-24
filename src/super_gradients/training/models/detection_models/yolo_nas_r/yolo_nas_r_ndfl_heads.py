@@ -1,30 +1,44 @@
 import dataclasses
-from typing import Tuple, Union, List, Callable, Optional
-
-import torch
-from omegaconf import DictConfig
-from torch import nn, Tensor
+from typing import Tuple, Union, List, Callable
 
 import super_gradients.common.factories.detection_modules_factory as det_factory
+import torch
+from omegaconf import DictConfig
 from super_gradients.common.registry import register_detection_module
 from super_gradients.module_interfaces import SupportsReplaceNumClasses
 from super_gradients.modules.base_modules import BaseDetectionModule
-from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell
 from super_gradients.training.utils import HpmStruct, torch_version_is_greater_or_equal
-from super_gradients.training.utils.bbox_utils import batch_distance2bbox
-from super_gradients.training.utils.utils import infer_model_dtype, infer_model_device
+from torch import nn, Tensor
 
 
-# Declare type aliases for better readability
-# We cannot use typing.TypeAlias since it is not supported in python 3.7
 @dataclasses.dataclass
-class YoloNasRDecodedPredictions:
+class YoloNASRDecodedPredictions:
+    """
+    :param boxes_cxcywhr: Tensor of shape [B, Anchors, 5] with predicted boxes in CXCYWHR format
+    :param scores: Tensor of shape [B, Anchors, C] with predicted scores for class
+    """
+
     boxes_cxcywhr: Tensor
     scores: Tensor
 
 
 @dataclasses.dataclass
 class YoloNASRLogits:
+    """
+    :param score_logits: Tensor of shape [B, Anchors, C] with predicted scores for class
+    :param size_dist: Tensor of shape [B, Anchors, 2 * (reg_max + 1)] with predicted size distribution.
+           Non-multiplied by stride.
+    :param size_reduced: Tensor of shape [B, Anchors, 2] with predicted size distribution.
+           None-multiplied by stride.
+    :param angles: Tensor of shape [B, Anchors, 1] with predicted angles (in radians).
+    :param offsets: Tensor of shape [B, Anchors, 2] with predicted offsets.
+           Non-multiplied by stride.
+    :param anchor_points: Tensor of shape [Anchors, 2] with anchor points.
+           Non-multiplied by stride.
+    :param strides: Tensor of shape [Anchors] with strides.
+    :param reg_max: Number of bins in the regression head
+    """
+
     score_logits: Tensor
     size_dist: Tensor
     size_reduced: Tensor
@@ -32,12 +46,13 @@ class YoloNASRLogits:
     offsets: Tensor
     anchor_points: Tensor
     strides: Tensor
+    reg_max: int
 
-    def as_decoded(self) -> YoloNasRDecodedPredictions:
+    def as_decoded(self) -> YoloNASRDecodedPredictions:
         sizes = self.size_reduced * self.strides  # [B, Anchors, 2]
-        centers = (self.offsets + self.anchor_points.unsqueeze(0).unsqueeze(2)) * self.strides.unsqueeze(0).unsqueeze(2)
+        centers = (self.offsets + self.anchor_points) * self.strides
 
-        return YoloNasRDecodedPredictions(boxes_cxcywhr=torch.cat([centers, sizes, self.angles], dim=-1), scores=self.score_logits.sigmoid())
+        return YoloNASRDecodedPredictions(boxes_cxcywhr=torch.cat([centers, sizes, self.angles], dim=-1), scores=self.score_logits.sigmoid())
 
 
 @register_detection_module()
@@ -50,14 +65,10 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         grid_cell_scale: float = 5.0,
         grid_cell_offset: float = 0.5,
         reg_max: int = 16,
-        inference_mode: bool = False,
-        eval_size: Optional[Tuple[int, int]] = None,
         width_mult: float = 1.0,
-        pose_offset_multiplier: float = 1.0,
-        compensate_grid_cell_offset: bool = True,
     ):
         """
-        Initializes the NDFLHeads module.
+        Initializes the YoloNASRNDFLHeads module.
 
         :param num_classes: Number of detection classes
         :param in_channels: Number of channels for each feature map (See width_mult)
@@ -66,16 +77,7 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         :param grid_cell_offset: A fixed offset that is added to the grid cell coordinates.
                This offset represents a 'center' of the cell and is 0.5 by default.
         :param reg_max: Number of bins in the regression head
-        :param eval_size: (rows, cols) Size of the image for evaluation. Setting this value can be beneficial for inference speed,
-               since anchors will not be regenerated for each forward call.
         :param width_mult: A scaling factor applied to in_channels.
-        :param pose_offset_multiplier: A scaling factor applied to the pose regression offset. This multiplier is
-               meant to reduce absolute magnitude of weights in pose regression layers.
-               Default value is 1.0.
-        :param compensate_grid_cell_offset: (bool) Controls whether to subtract anchor cell offset from the pose regression.
-               If True, predicted pose coordinates decoded as (offsets + anchors - grid_cell_offset) * stride.
-               If False, predicted pose coordinates decoded as (offsets + anchors) * stride.
-               Default value is True.
 
         """
         in_channels = [max(round(c * width_mult), 1) for c in in_channels]
@@ -86,16 +88,10 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         self.grid_cell_scale = grid_cell_scale
         self.grid_cell_offset = grid_cell_offset
         self.reg_max = reg_max
-        self.eval_size = eval_size
-        self.pose_offset_multiplier = pose_offset_multiplier
-        self.compensate_grid_cell_offset = compensate_grid_cell_offset
-        self.inference_mode = inference_mode
 
         # Do not apply quantization to this tensor
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj, persistent=False)
-
-        self._init_weights()
 
         factory = det_factory.DetectionModulesFactory()
         heads_list = self._insert_heads_list_params(heads_list, factory, num_classes, reg_max)
@@ -134,30 +130,16 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             heads_list[i] = factory.insert_module_param(heads_list[i], "reg_max", reg_max)
         return heads_list
 
-    @torch.jit.ignore
-    def _init_weights(self):
-        if self.eval_size:
-            device = infer_model_device(self)
-            dtype = infer_model_dtype(self)
-
-            anchor_points, stride_tensor = self._generate_anchors(dtype=dtype, device=device)
-            self.anchor_points = anchor_points
-            self.stride_tensor = stride_tensor
-
     def forward(self, feats: Tuple[Tensor, ...]) -> Union[YoloNASRLogits, Tuple[Tensor, Tensor]]:
         """
         Runs the forward for all the underlying heads and concatenate the predictions to a single result.
         :param feats: List of feature maps from the neck of different strides
-        :return: Return value depends on the mode:
-        If tracing, a tuple of 4 tensors (decoded predictions) is returned:
-        - pred_bboxes [B, Num Anchors, 4] - Predicted boxes in XYXY format
-        - pred_scores [B, Num Anchors, 1] - Predicted scores for each box
-        - pred_pose_coords [B, Num Anchors, Num Keypoints, 2] - Predicted poses in XY format
-        - pred_pose_scores [B, Num Anchors, Num Keypoints] - Predicted scores for each keypoint
+        :return: In regular eager mode returns YoloNASRLogits dataclass with all the intermediate outputs
+                 for model training & evaluation.
+                 When in tracing mode, returns a tuple (pred_bboxes, pred_scores) with decoded predictions.
+                 pred_bboxes [B, Num Anchors, 5] - Predicted boxes in CXCYWHR format
+                 pred_scores [B, Num Anchors, C] - Predicted class probabilities [0..1]
 
-        In training/eval mode, a tuple of 2 tensors returned:
-        - decoded predictions - they are the same as in tracing mode
-        - raw outputs - a tuple of 8 elements in total, this is needed for training the model.
         """
 
         cls_score_list, reg_distri_list, reg_dist_reduced_list = [], [], []
@@ -202,9 +184,10 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             anchor_points=anchor_points_inference,
             strides=stride_tensor,
             angles=rot_list,
+            reg_max=self.reg_max,
         )
 
-        if torch.jit.is_tracing() or self.inference_mode:
+        if torch.jit.is_tracing():
             decoded = logits.as_decoded()
             return decoded.boxes_cxcywhr, decoded.scores
 

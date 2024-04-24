@@ -1,13 +1,15 @@
 import dataclasses
 from pathlib import Path
-from typing import Tuple, Union, Optional, List
+from typing import Tuple, Union, Optional, List, Iterable
 
 import cv2
 import numpy as np
 import torch
-from super_gradients.training.utils.visualization.utils import generate_color_mapping
+from super_gradients.common.registry import register_dataset, register_collate_function
 from torch.utils.data import Dataset
 from tqdm import tqdm
+
+__all__ = ["OBBSample", "OrientedBoxesCollate", "DOTAOBBDataset"]
 
 
 @dataclasses.dataclass
@@ -106,6 +108,7 @@ class OBBSample:
         return self.filter_by_mask(keep_mask)
 
 
+@register_collate_function()
 class OrientedBoxesCollate:
     def __call__(self, batch: List[OBBSample]):
         from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_collate_fn import flat_collate_tensors_with_batch_index
@@ -118,21 +121,25 @@ class OrientedBoxesCollate:
         for sample in batch:
             images.append(torch.from_numpy(np.transpose(sample.image, [2, 0, 1])))
             all_boxes.append(torch.from_numpy(sample.rboxes_cxcywhr))
-            all_labels.append(torch.from_numpy(sample.labels))
-            all_crowd_masks.append(torch.from_numpy(sample.is_crowd))
+            all_labels.append(torch.from_numpy(sample.labels.reshape((-1, 1))))
+            all_crowd_masks.append(torch.from_numpy(sample.is_crowd.reshape((-1, 1))))
+            sample.image = None
 
         images = torch.stack(images)
 
-        boxes = flat_collate_tensors_with_batch_index(all_boxes)
-        labels = flat_collate_tensors_with_batch_index(all_labels)
+        boxes = flat_collate_tensors_with_batch_index(all_boxes).float()
+        labels = flat_collate_tensors_with_batch_index(all_labels).long()
         is_crowd = flat_collate_tensors_with_batch_index(all_crowd_masks)
 
         extras = {"gt_samples": batch}
         return images, (boxes, labels, is_crowd), extras
 
 
+@register_dataset()
 class DOTAOBBDataset(Dataset):
-    def __init__(self, data_dir, transforms, class_names, images_subdir="images", ann_subdir="ann-obb"):
+    def __init__(
+        self, data_dir, transforms, class_names: Iterable[str], difficult_labels_are_crowd: bool = False, images_subdir="images", ann_subdir="ann-obb"
+    ):
         super().__init__()
 
         images_dir = Path(data_dir) / images_subdir
@@ -143,8 +150,9 @@ class DOTAOBBDataset(Dataset):
         self.difficult = []
         self.transforms = transforms
         self.class_names = list(class_names)
+        self.difficult_labels_are_crowd = difficult_labels_are_crowd
 
-        for label_path in labels:
+        for label_path in tqdm(labels, desc=f"Parsing annotations in {ann_dir}"):
             coords, classes, difficult = self.parse_annotation_file(label_path)
             self.coords.append(coords)
             self.classes.append(np.array([self.class_names.index(c) for c in classes], dtype=int))
@@ -159,23 +167,33 @@ class DOTAOBBDataset(Dataset):
         classes = self.classes[index]
         difficult = self.difficult[index]
 
-        cxcywhr = np.array([self.poly_to_rbox(poly) for poly in coords], dtype=np.float32).reshape(-1, 5)
+        # TODO: Change this
+        # Hard-coded image normalization
+        # No data augmentation
+        image = (image / 255).astype(np.float32)
+
+        cxcywhr = np.array([self.poly_to_rbox(poly) for poly in coords], dtype=np.float32)
 
         sample = OBBSample(
             image=image,
-            boxes_cxcywhr=cxcywhr,
-            labels=classes,
-            is_crowd=difficult,
+            boxes_cxcywhr=cxcywhr.reshape(-1, 5),
+            labels=classes.reshape(-1),
+            is_crowd=difficult.reshape(-1),
         )
         return sample
 
     @classmethod
     def poly_to_rbox(cls, poly):
+        """
+        Convert polygon to rotated bounding box
+        :param poly: Input polygon in [N,2] format
+        :return: Rotated box in CXCYWHR format
+        """
         rect = cv2.minAreaRect(poly)
         cx, cy = rect[0]
         w, h = rect[1]
         angle = rect[2]
-        return cx, cy, w, h, angle
+        return cx, cy, w, h, np.deg2rad(angle)
 
     @classmethod
     def find_images_and_labels(cls, images_dir, ann_dir):
@@ -377,82 +395,3 @@ class DOTAOBBDataset(Dataset):
                                 cv2.polylines(tile_image, [poly], isClosed=True, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
 
                     cv2.imwrite(str(tile_image_path), tile_image)
-
-
-if __name__ == "__main__":
-    # DOTAOBBDataset.slice_dataset_into_tiles(
-    #     data_dir="h:/DOTA/DOTA-v2.0/train",
-    #     output_dir="h:/DOTA/DOTA-v2.0-tiles/train",
-    #     ann_subdir_name="ann-obb",
-    #     tile_size=1024,
-    #     tile_step=1024,
-    #     scale_factors=(1,),
-    #     min_visibility=0.5,
-    #     min_area=32,
-    # )
-    #
-    # DOTAOBBDataset.slice_dataset_into_tiles(
-    #     data_dir="h:/DOTA/DOTA-v2.0/val",
-    #     output_dir="h:/DOTA/DOTA-v2.0-tiles/val",
-    #     ann_subdir_name="ann-obb",
-    #     tile_size=1024,
-    #     tile_step=1024,
-    #     scale_factors=(1,),
-    #     min_visibility=0.5,
-    #     min_area=32,
-    # )
-
-    class_names = [
-        "plane",
-        "ship",
-        "storage-tank",
-        "baseball-diamond",
-        "tennis-court",
-        "basketball-court",
-        "ground-track-field",
-        "harbor",
-        "bridge",
-        "large-vehicle",
-        "small-vehicle",
-        "helicopter",
-        "roundabout",
-        "soccer-ball-field",
-        "swimming-pool",
-        "container-crane",
-        "airport",
-        "helipad",
-    ]
-
-    class_colors = generate_color_mapping(num_classes=len(class_names))
-
-    # ds = DOTAOBBDataset(data_dir="h:/DOTA/DOTA-v2.0-tiles/train", transforms=[], class_names=class_names)
-    # num_samples = len(ds)
-    # print("Train dataset", num_samples)
-    # for i in tqdm(range(num_samples)):
-    #     sample = ds[i]
-    #
-    ds = DOTAOBBDataset(data_dir="h:/DOTA/DOTA-v2.0-tiles/val", transforms=[], class_names=class_names)
-    # from super_gradients.training.utils.visualization.obb import OBBVisualization
-    # num_samples = len(ds)
-    # print("Val dataset", num_samples)
-    # for i in tqdm(range(num_samples)):
-    #     sample = ds[i]
-    #     overlay = OBBVisualization.draw_obb(
-    #         image=sample.image,
-    #         labels=sample.labels,
-    #         scores=None,
-    #         rboxes_cxcywhr=sample.rboxes_cxcywhr,
-    #         class_labels=class_names,
-    #         class_colors=class_colors,
-    #         show_labels=True,
-    #         show_confidence=False,
-    #         label_prefix="GT:",
-    #     )
-    #     cv2.imshow("Overlay", overlay)
-    #     cv2.waitKey(-1)
-
-    from torch.utils.data import DataLoader
-
-    loader = DataLoader(ds, batch_size=32, collate_fn=OrientedBoxesCollate())
-    for batch in tqdm(loader):
-        pass
