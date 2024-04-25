@@ -7,6 +7,23 @@ from super_gradients.module_interfaces.obb_predictions import OBBPredictions, Ab
 from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_ndfl_heads import YoloNASRLogits
 
 
+def optimized_rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float):
+    from super_gradients.training.losses.yolo_nas_r_loss import pairwise_cxcywhr_iou
+
+    order_by_conf_desc = torch.argsort(scores, descending=True)
+    rboxes_cxcywhr = rboxes_cxcywhr[order_by_conf_desc]
+    device = rboxes_cxcywhr.device
+    keep = torch.ones(len(rboxes_cxcywhr), dtype=torch.bool, device=device)
+    iou = pairwise_cxcywhr_iou(rboxes_cxcywhr, rboxes_cxcywhr)
+    iou = torch.triu(iou, diagonal=1)
+
+    for i in range(len(rboxes_cxcywhr)):
+        mask = keep & (iou[i] > iou_threshold)
+        keep[mask] = False
+
+    return order_by_conf_desc[keep]
+
+
 def rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float):
     """
     Perform NMS on rotated boxes.
@@ -17,7 +34,7 @@ def rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float):
     """
     from super_gradients.training.losses.yolo_nas_r_loss import cxcywhr_iou
 
-    idxs = torch.argsort(scores)
+    idxs = torch.argsort(scores, descending=True)
     pick = []
     device = rboxes_cxcywhr.device
 
@@ -108,7 +125,7 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
                 pred_cls_label = pred_cls_label[topk_candidates.indices]
 
             # NMS
-            idx_to_keep = rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
+            idx_to_keep = optimized_rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
 
             pred_rboxes = pred_rboxes[idx_to_keep]  # [Instances,]
             pred_cls_conf = pred_cls_conf[idx_to_keep]  # [Instances,]

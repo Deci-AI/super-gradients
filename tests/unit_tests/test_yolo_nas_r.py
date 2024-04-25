@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from super_gradients.training.losses.yolo_nas_r_loss import cxcywhr_iou
-from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback import rboxes_nms
+from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback import rboxes_nms, optimized_rboxes_nms
 from super_gradients.training.utils.visualization.obb import OBBVisualization
 
 
@@ -56,18 +56,48 @@ class TestYoloNasR(unittest.TestCase):
         keep = rboxes_nms(boxes, scores, 0.5)
         print(keep)
 
+    def test_optimized_rboxes_nms(self):
+        boxes = torch.tensor(
+            [
+                [1, 1, 2, 2, 0],
+                [10, 10, 10, 10, 1],
+                [1, 1, 2, 2, 0],
+            ]
+        )
+
+        keep1 = rboxes_nms(boxes, torch.tensor([0.8, 0.9, 0.3]), 0.5)
+        keep2 = optimized_rboxes_nms(boxes, torch.tensor([0.8, 0.9, 0.3]), 0.5)
+        print(keep1)
+        print(keep2)
+
     def test_profile_nms(self):
         boxes = torch.randn([1024, 5])
         s = cv2.getTickCount()
-        rboxes_nms(boxes, torch.rand([1024]), 0.5)
+        keep1 = rboxes_nms(boxes, torch.rand([1024]), 0.5)
+        f = cv2.getTickCount()
+        print((f - s) / cv2.getTickFrequency())
+
+        boxes = torch.randn([1024, 5])
+        s = cv2.getTickCount()
+        keep2 = optimized_rboxes_nms(boxes, torch.rand([1024]), 0.5)
+        f = cv2.getTickCount()
+        print((f - s) / cv2.getTickFrequency())
+
+        self.assertTrue(torch.all(keep1 == keep2))
+
+        boxes = torch.randn([1024, 5]).cuda()
+        s = cv2.getTickCount()
+        keep1 = rboxes_nms(boxes, torch.rand([1024]).cuda(), 0.5)
         f = cv2.getTickCount()
         print((f - s) / cv2.getTickFrequency())
 
         boxes = torch.randn([1024, 5]).cuda()
         s = cv2.getTickCount()
-        rboxes_nms(boxes, torch.rand([1024]).cuda(), 0.5)
+        keep2 = optimized_rboxes_nms(boxes, torch.rand([1024]).cuda(), 0.5)
         f = cv2.getTickCount()
         print((f - s) / cv2.getTickFrequency())
+
+        self.assertTrue(torch.all(keep1 == keep2))
 
 
 if __name__ == "__main__":
