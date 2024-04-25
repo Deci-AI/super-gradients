@@ -20,7 +20,7 @@ batch_accumulate: 1
 save_ckpt_epoch_list: [ ]
 
 loss: YoloNASRLoss
-criterion_params: {}
+criterion_params: { }
 
 optimizer: AdamW
 optimizer_params:
@@ -46,24 +46,38 @@ phase_callbacks:
       enable_on_train_loader: True
       enable_on_valid_loader: True
       class_names: ${dataset_params.class_names}
+
       post_prediction_callback:
         _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
+        output_device: cpu
         score_threshold: 0.25
         pre_nms_max_predictions: 1000
         post_nms_max_predictions: 100
-        nms_iou_threshold: 0.7
+        nms_iou_threshold: 0.6
 
-valid_metrics_list: []
-#  - OBBDetectionMetrics:
-#      score_thres: 0.1
-#      top_k_predictions: 300
+valid_metrics_list:
+  - OBBDetectionMetrics_050:
+      num_cls: ${dataset_params.num_classes}
+      class_names: ${dataset_params.class_names}
+      recall_thres: [ 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
+      post_prediction_callback:
+        _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
+        output_device: cpu
+        score_threshold: 0.1
+        pre_nms_max_predictions: 1000
+        post_nms_max_predictions: 100
+        nms_iou_threshold: 0.6
+
+#  - OBBDetectionMetrics_050_095:
+#      num_cls: ${dataset_params.num_classes}
 #      class_names: ${dataset_params.class_names}
 #      post_prediction_callback:
 #        _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
-#        score_threshold: 0.25
+#        output_device: cpu
+#        score_threshold: 0.1
 #        pre_nms_max_predictions: 1000
 #        post_nms_max_predictions: 100
-#        nms_iou_threshold: 0.7
+#        nms_iou_threshold: 0.6
 
 
 pre_prediction_callback:

@@ -23,6 +23,19 @@ class OBBPredictions:
     labels: Union[Tensor, np.ndarray]
     rboxes_cxcywhr: Union[Tensor, np.ndarray]
 
+    def __init__(self, rboxes_cxcywhr, scores, labels):
+        if len(rboxes_cxcywhr) != len(scores) or len(rboxes_cxcywhr) != len(labels):
+            raise ValueError(f"rboxes_cxcywhr, scores and labels must have the same length. Got: {len(rboxes_cxcywhr)}, {len(scores)}, {len(labels)}")
+        if rboxes_cxcywhr.ndim != 2 or rboxes_cxcywhr.shape[1] != 5:
+            raise ValueError(f"rboxes_cxcywhr must have shape [N, 5]. Got: {rboxes_cxcywhr.shape}")
+
+        self.scores = scores
+        self.labels = labels
+        self.rboxes_cxcywhr = rboxes_cxcywhr
+
+    def __len__(self):
+        return len(self.scores)
+
 
 class AbstractOBBPostPredictionCallback(abc.ABC):
     """

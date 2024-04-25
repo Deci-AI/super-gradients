@@ -1,5 +1,6 @@
 import unittest
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -54,6 +55,19 @@ class TestYoloNasR(unittest.TestCase):
         scores = torch.rand([2])
         keep = rboxes_nms(boxes, scores, 0.5)
         print(keep)
+
+    def test_profile_nms(self):
+        boxes = torch.randn([1024, 5])
+        s = cv2.getTickCount()
+        rboxes_nms(boxes, torch.rand([1024]), 0.5)
+        f = cv2.getTickCount()
+        print((f - s) / cv2.getTickFrequency())
+
+        boxes = torch.randn([1024, 5]).cuda()
+        s = cv2.getTickCount()
+        rboxes_nms(boxes, torch.rand([1024]).cuda(), 0.5)
+        f = cv2.getTickCount()
+        print((f - s) / cv2.getTickFrequency())
 
 
 if __name__ == "__main__":

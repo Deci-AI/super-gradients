@@ -52,6 +52,7 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
         nms_iou_threshold: float,
         pre_nms_max_predictions: int,
         post_nms_max_predictions: int,
+        output_device="cpu",
     ):
         """
         :param score_threshold: Detection confidence threshold
@@ -67,6 +68,7 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
         self.nms_iou_threshold = nms_iou_threshold
         self.pre_nms_max_predictions = pre_nms_max_predictions
         self.post_nms_max_predictions = post_nms_max_predictions
+        self.output_device = output_device
 
     @torch.no_grad()
     def __call__(self, outputs: YoloNASRLogits) -> List[OBBPredictions]:
@@ -86,6 +88,9 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
         ) in zip(predictions.boxes_cxcywhr, predictions.scores):
             # pred_rboxes [Anchors, 5] in CXCYWHR format
             # pred_scores [Anchors, C] confidence scores [0..1]
+            if self.output_device is not None:
+                pred_rboxes = pred_rboxes.to(self.output_device)
+                pred_scores = pred_scores.to(self.output_device)
 
             pred_cls_conf, pred_cls_label = torch.max(pred_scores, dim=1)
 
