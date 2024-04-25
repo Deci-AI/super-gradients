@@ -44,7 +44,7 @@ def _get_covariance_matrix(boxes):
     """
     # Gaussian bounding boxes, ignore the center points (the first two columns) because they are not needed here.
     gbbs = torch.cat((boxes[..., 2:4].pow(2) / 12, boxes[..., 4:]), dim=-1)
-    a, b, c = gbbs.split(1, dim=-1)
+    a, b, c = gbbs[..., 0], gbbs[..., 1], gbbs[..., 2]
     cos = c.cos()
     sin = c.sin()
     cos2 = cos.pow(2)
@@ -52,20 +52,26 @@ def _get_covariance_matrix(boxes):
     return a * cos2 + b * sin2, a * sin2 + b * cos2, (a - b) * cos * sin
 
 
+def pairwise_cxcywhr_iou(obb1, obb2, CIoU=False, eps=1e-7):
+    obb1 = obb1[..., :, None, :]
+    obb2 = obb2[..., None, :, :]
+    return cxcywhr_iou(obb1, obb2, CIoU=CIoU, eps=eps)
+
+
 def cxcywhr_iou(obb1, obb2, CIoU=False, eps=1e-7):
     """
     Calculate the prob IoU between oriented bounding boxes, https://arxiv.org/pdf/2106.06072v1.pdf.
 
     Args:
-        obb1 (torch.Tensor): A tensor of shape (N, 5) representing ground truth obbs, with xywhr format.
-        obb2 (torch.Tensor): A tensor of shape (N, 5) representing predicted obbs, with xywhr format.
+        obb1 (torch.Tensor): A tensor of shape (..., N, 5) representing ground truth boxes, with cxcywhr format.
+        obb2 (torch.Tensor): A tensor of shape (..., M, 5) representing predicted boxes, with cxcywhr format.
         eps (float, optional): A small value to avoid division by zero. Defaults to 1e-7.
 
     Returns:
-        (torch.Tensor): A tensor of shape (N, ) representing obb similarities.
+        (torch.Tensor): A tensor of shape (..., N, M) representing obb similarities.
     """
-    x1, y1 = obb1[..., :2].split(1, dim=-1)
-    x2, y2 = obb2[..., :2].split(1, dim=-1)
+    x1, y1 = obb1[..., 0], obb1[..., 1]
+    x2, y2 = obb2[..., 0], obb2[..., 1]
     a1, b1, c1 = _get_covariance_matrix(obb1)
     a2, b2, c2 = _get_covariance_matrix(obb2)
 
@@ -75,39 +81,17 @@ def cxcywhr_iou(obb1, obb2, CIoU=False, eps=1e-7):
     bd = (t1 + t2 + t3).clamp(eps, 100.0)
     hd = (1.0 - (-bd).exp() + eps).sqrt()
     iou = 1 - hd
+
     if CIoU:  # only include the wh aspect ratio part
-        w1, h1 = obb1[..., 2:4].split(1, dim=-1)
-        w2, h2 = obb2[..., 2:4].split(1, dim=-1)
+        w1, h1 = obb1[..., 2], obb1[..., 3]
+        w2, h2 = obb2[..., 2], obb2[..., 3]
+
         v = (4 / math.pi**2) * ((w2 / h2).atan() - (w1 / h1).atan()).pow(2)
         with torch.no_grad():
             alpha = v / (v - iou + (1 + eps))
         return iou - v * alpha  # CIoU
+
     return iou
-
-
-def batch_cxcywhr_iou(obb1: Tensor, obb2: Tensor, eps=1e-7) -> Tensor:
-    """
-    Calculate the prob IoU between oriented bounding boxes, https://arxiv.org/pdf/2106.06072v1.pdf.
-
-    :param obb1: A tensor of shape (N, 5) representing ground truth obbs, with xywhr format.
-    :param obb2: A tensor of shape (M, 5) representing predicted obbs, with xywhr format.
-    :param eps: A small value to avoid division by zero. Defaults to 1e-7.
-
-    Returns:
-        (torch.Tensor): A tensor of shape (N, M) representing obb similarities.
-    """
-
-    x1, y1 = obb1[..., :2].split(1, dim=-1)
-    x2, y2 = (x.squeeze(-1)[None] for x in obb2[..., :2].split(1, dim=-1))
-    a1, b1, c1 = _get_covariance_matrix(obb1)
-    a2, b2, c2 = (x.squeeze(-1)[None] for x in _get_covariance_matrix(obb2))
-
-    t1 = (((a1 + a2) * (y1 - y2).pow(2) + (b1 + b2) * (x1 - x2).pow(2)) / ((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2) + eps)) * 0.25
-    t2 = (((c1 + c2) * (x2 - x1) * (y1 - y2)) / ((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2) + eps)) * 0.5
-    t3 = (((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2)) / (4 * ((a1 * b1 - c1.pow(2)).clamp_(0) * (a2 * b2 - c2.pow(2)).clamp_(0)).sqrt() + eps) + eps).log() * 0.5
-    bd = (t1 + t2 + t3).clamp(eps, 100.0)
-    hd = (1.0 - (-bd).exp() + eps).sqrt()
-    return 1 - hd
 
 
 @dataclasses.dataclass
@@ -210,7 +194,7 @@ class YoloNASRAssigner(nn.Module):
 
         # compute iou between gt and pred bbox, [B, n, L]
 
-        ious = batch_cxcywhr_iou(gt_rboxes, pred_rboxes)
+        ious = pairwise_cxcywhr_iou(gt_rboxes, pred_rboxes)
         if ious.size(1) != num_max_boxes or ious.size(2) != num_anchors:
             raise ValueError("The shape of ious is not correct.")
 
@@ -293,8 +277,8 @@ class YoloNASRLoss(nn.Module):
     def __init__(
         self,
         classification_loss_weight: float = 1.0,
-        iou_loss_weight: float = 2.5,
-        dfl_loss_weight: float = 0.5,
+        iou_loss_weight: float = 1.0,
+        dfl_loss_weight: float = 0.0,
         bbox_assigner_topk: int = 13,
         bbox_assigned_alpha: float = 1.0,
         bbox_assigned_beta: float = 6.0,
@@ -344,6 +328,8 @@ class YoloNASRLoss(nn.Module):
         cls_loss_sum = 0
         iou_loss_sum = 0
         dfl_loss_sum = 0
+        centers_l1_loss_sum = 0
+        sizes_l1_loss_sum = 0
         assigned_scores_sum_total = 0
         decoded_predictions = outputs.as_decoded()
 
@@ -366,7 +352,7 @@ class YoloNASRLoss(nn.Module):
                 alpha_l = -1
                 cls_loss = self._focal_loss(outputs.score_logits[i : i + 1], assign_result.assigned_scores, alpha_l)
 
-            loss_iou, loss_dfl = self._rbox_loss(
+            loss_iou, loss_dfl, loss_l1_centers, loss_l1_size = self._rbox_loss(
                 pred_dist=outputs.size_dist[i : i + 1],
                 pred_bboxes=decoded_predictions.boxes_cxcywhr[i : i + 1],
                 pred_offsets=outputs.offsets[i : i + 1],
@@ -380,12 +366,16 @@ class YoloNASRLoss(nn.Module):
             cls_loss_sum += cls_loss
             iou_loss_sum += loss_iou
             dfl_loss_sum += loss_dfl
+            centers_l1_loss_sum += loss_l1_centers
+            sizes_l1_loss_sum += loss_l1_size
             assigned_scores_sum_total += assign_result.assigned_scores.sum()
 
         if self.average_losses_in_ddp and is_distributed():
             torch.distributed.all_reduce(cls_loss_sum, op=torch.distributed.ReduceOp.SUM)
             torch.distributed.all_reduce(iou_loss_sum, op=torch.distributed.ReduceOp.SUM)
             torch.distributed.all_reduce(dfl_loss_sum, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(centers_l1_loss_sum, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(sizes_l1_loss_sum, op=torch.distributed.ReduceOp.SUM)
             torch.distributed.all_reduce(assigned_scores_sum_total, op=torch.distributed.ReduceOp.SUM)
             assigned_scores_sum_total /= get_world_size()
 
@@ -394,15 +384,17 @@ class YoloNASRLoss(nn.Module):
         loss_cls = cls_loss_sum * self.classification_loss_weight / assigned_scores_sum_total
         loss_iou = iou_loss_sum * self.iou_loss_weight / assigned_scores_sum_total
         loss_dfl = dfl_loss_sum * self.dfl_loss_weight / assigned_scores_sum_total
+        loss_l1_centers = centers_l1_loss_sum / assigned_scores_sum_total
+        loss_l1_sizes = sizes_l1_loss_sum / assigned_scores_sum_total
 
-        loss = loss_cls + loss_iou + loss_dfl
-        log_losses = torch.stack([loss_cls.detach(), loss_iou.detach(), loss_dfl.detach(), loss.detach()])
+        loss = loss_cls + loss_iou + loss_dfl + loss_l1_centers + loss_l1_sizes
+        log_losses = torch.stack([loss_cls.detach(), loss_iou.detach(), loss_dfl.detach(), loss_l1_centers.detach(), loss_l1_sizes.detach(), loss.detach()])
 
         return loss, log_losses
 
     @property
     def component_names(self):
-        return ["loss_cls", "loss_iou", "loss_dfl", "loss"]
+        return ["loss_cls", "loss_iou", "loss_dfl", "loss_l1_centers", "loss_l1_sizes", "loss"]
 
     @torch.no_grad()
     def _get_targets_for_sequential_assigner(self, targets: Tuple[Tensor, Tensor, Tensor], batch_size: int) -> Tuple[List[Tensor], List[Tensor], List[Tensor]]:
@@ -455,22 +447,34 @@ class YoloNASRLoss(nn.Module):
 
             bbox_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).unsqueeze(-1)
 
-            loss_iou = cxcywhr_iou(pred_bboxes_pos, assigned_bboxes_pos, CIoU=False) * bbox_weight
+            iou = cxcywhr_iou(pred_bboxes_pos, assigned_bboxes_pos, CIoU=True)
+            loss_iou = (1 - iou) * bbox_weight
             loss_iou = loss_iou.sum()
 
             dist_mask = mask_positive.unsqueeze(-1).tile([1, 1, (reg_max + 1) * 2])
             pred_dist_pos = torch.masked_select(pred_dist, dist_mask).reshape([-1, 2, reg_max + 1])
 
-            assigned_wh = self._rbox2distance(assign_result.assigned_rboxes, strides, reg_max)
-            assigned_wh_pos = torch.masked_select(assigned_wh, size_mask).reshape([-1, 2])
-            loss_dfl = self._df_loss(pred_dist_pos, assigned_wh_pos) * bbox_weight
+            assigned_wh_dfl_targets = self._rbox2distance(assign_result.assigned_rboxes, strides, reg_max)
+            assigned_wh_dfl_targets_pos = torch.masked_select(assigned_wh_dfl_targets, size_mask).reshape([-1, 2])
+            loss_dfl = self._df_loss(pred_dist_pos, assigned_wh_dfl_targets_pos) * bbox_weight
             loss_dfl = loss_dfl.sum()
 
+            assigned_wh_pos = assigned_bboxes_pos[..., 2:4]
+            pred_wh_pos = pred_bboxes_pos[..., 2:4]
+            loss_l1_size = torch.nn.functional.l1_loss(pred_wh_pos, assigned_wh_pos, reduction="none") * bbox_weight
+            loss_l1_size = loss_l1_size.sum()
+
+            assigned_cxcy_pos = assigned_bboxes_pos[..., 0:2]
+            pred_centers_pos = pred_bboxes_pos[..., 0:2]
+            loss_l1_centers = torch.nn.functional.l1_loss(pred_centers_pos, assigned_cxcy_pos, reduction="none") * bbox_weight
+            loss_l1_centers = loss_l1_centers.sum()
         else:
             loss_iou = torch.zeros([], device=pred_bboxes.device)
             loss_dfl = torch.zeros([], device=pred_bboxes.device)
+            loss_l1_centers = torch.zeros([], device=pred_bboxes.device)
+            loss_l1_size = torch.zeros([], device=pred_bboxes.device)
 
-        return loss_iou, loss_dfl
+        return loss_iou, loss_dfl, loss_l1_centers, loss_l1_size
 
     def _rbox2distance(self, rboxes, stride, reg_max: int):
         wh = rboxes[..., 2:4] / stride

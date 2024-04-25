@@ -41,7 +41,7 @@ sync_bn: False
 phase_callbacks:
   - ExtremeBatchOBBVisualizationCallback:
       loss_to_monitor: "YoloNASRLoss/loss"
-      max: False
+      max: True
       freq: 1
       enable_on_train_loader: True
       enable_on_valid_loader: True

@@ -17,7 +17,7 @@ class OBBVisualization:
         show_labels: bool = True,
         show_confidence: bool = True,
         thickness: int = 2,
-        opacity: float = 0.5,
+        opacity: float = 0.75,
         label_prefix: str = "",
     ):
         """

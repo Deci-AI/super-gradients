@@ -51,7 +51,6 @@ class YoloNASRLogits:
     def as_decoded(self) -> YoloNASRDecodedPredictions:
         sizes = self.size_reduced * self.strides  # [B, Anchors, 2]
         centers = (self.offsets + self.anchor_points) * self.strides
-
         return YoloNASRDecodedPredictions(boxes_cxcywhr=torch.cat([centers, sizes, self.angles], dim=-1), scores=self.score_logits.sigmoid())
 
 
@@ -197,8 +196,7 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
     def out_channels(self):
         return None
 
-    def _generate_anchors(self, feats=None, dtype=None, device=None):
-        # just use in eval time
+    def _generate_anchors(self, feats: List[Tensor], dtype=None, device=None):
         anchor_points = []
         stride_tensor = []
 
@@ -206,11 +204,7 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         device = device or feats[0].device
 
         for i, stride in enumerate(self.fpn_strides):
-            if feats is not None:
-                _, _, h, w = feats[i].shape
-            else:
-                h = int(self.eval_size[0] / stride)
-                w = int(self.eval_size[1] / stride)
+            _, _, h, w = feats[i].shape
             shift_x = torch.arange(end=w) + self.grid_cell_offset
             shift_y = torch.arange(end=h) + self.grid_cell_offset
             if torch_version_is_greater_or_equal(1, 10):
@@ -224,7 +218,6 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         anchor_points = torch.cat(anchor_points)
         stride_tensor = torch.cat(stride_tensor)
 
-        if device is not None:
-            anchor_points = anchor_points.to(device)
-            stride_tensor = stride_tensor.to(device)
+        anchor_points = anchor_points.to(device)
+        stride_tensor = stride_tensor.to(device)
         return anchor_points, stride_tensor

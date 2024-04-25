@@ -23,6 +23,8 @@ train_dataset_params:
   data_dir: h:\DOTA\DOTA-v2.0-tiles\train # root path to coco data
   transforms: []
   class_names: ${dataset_params.class_names}
+  ignore_empty_annotations: True
+
 #    - DetectionRandomAffine:
 #        degrees: 0                    # rotation degrees, randomly sampled from [-degrees, degrees]
 #        translate: 0.25               # image translation fraction
@@ -70,6 +72,7 @@ val_dataset_params:
   data_dir: h:\DOTA\DOTA-v2.0-tiles\val
   transforms: []
   class_names: ${dataset_params.class_names}
+  ignore_empty_annotations: True
 #    - DetectionRGB2BGR:
 #        prob: 1
 #    - DetectionPadToSize:

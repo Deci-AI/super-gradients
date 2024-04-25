@@ -98,6 +98,7 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
             # Filter all predictions by self.nms_top_k
             if pred_rboxes.size(0) > self.pre_nms_max_predictions:
                 topk_candidates = torch.topk(pred_cls_conf, k=self.pre_nms_max_predictions, largest=True, sorted=True)
+                pred_rboxes = pred_rboxes[topk_candidates.indices]
                 pred_cls_conf = pred_cls_conf[topk_candidates.indices]
                 pred_cls_label = pred_cls_label[topk_candidates.indices]
 
@@ -108,12 +109,11 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
             pred_cls_conf = pred_cls_conf[idx_to_keep]  # [Instances,]
             pred_cls_label = pred_cls_label[idx_to_keep]  # [Instances,]
 
-            decoded_predictions.append(
-                OBBPredictions(
-                    scores=pred_cls_conf[: self.post_nms_max_predictions],
-                    labels=pred_cls_label[: self.post_nms_max_predictions],
-                    rboxes_cxcywhr=pred_rboxes[: self.post_nms_max_predictions],
-                )
+            p = OBBPredictions(
+                scores=pred_cls_conf[: self.post_nms_max_predictions],
+                labels=pred_cls_label[: self.post_nms_max_predictions],
+                rboxes_cxcywhr=pred_rboxes[: self.post_nms_max_predictions],
             )
+            decoded_predictions.append(p)
 
         return decoded_predictions

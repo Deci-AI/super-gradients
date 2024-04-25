@@ -138,13 +138,21 @@ class OrientedBoxesCollate:
 @register_dataset()
 class DOTAOBBDataset(Dataset):
     def __init__(
-        self, data_dir, transforms, class_names: Iterable[str], difficult_labels_are_crowd: bool = False, images_subdir="images", ann_subdir="ann-obb"
+        self,
+        data_dir,
+        transforms,
+        class_names: Iterable[str],
+        ignore_empty_annotations: bool = False,
+        difficult_labels_are_crowd: bool = False,
+        images_subdir="images",
+        ann_subdir="ann-obb",
     ):
         super().__init__()
 
         images_dir = Path(data_dir) / images_subdir
         ann_dir = Path(data_dir) / ann_subdir
-        self.images, labels = self.find_images_and_labels(images_dir, ann_dir)
+        images, labels = self.find_images_and_labels(images_dir, ann_dir)
+        self.images = []
         self.coords = []
         self.classes = []
         self.difficult = []
@@ -152,8 +160,11 @@ class DOTAOBBDataset(Dataset):
         self.class_names = list(class_names)
         self.difficult_labels_are_crowd = difficult_labels_are_crowd
 
-        for label_path in tqdm(labels, desc=f"Parsing annotations in {ann_dir}"):
+        for image_path, label_path in tqdm(zip(images, labels), desc=f"Parsing annotations in {ann_dir}", total=len(images)):
             coords, classes, difficult = self.parse_annotation_file(label_path)
+            if ignore_empty_annotations and len(coords) == 0:
+                continue
+            self.images.append(image_path)
             self.coords.append(coords)
             self.classes.append(np.array([self.class_names.index(c) for c in classes], dtype=int))
             self.difficult.append(difficult)
@@ -174,11 +185,12 @@ class DOTAOBBDataset(Dataset):
 
         cxcywhr = np.array([self.poly_to_rbox(poly) for poly in coords], dtype=np.float32)
 
+        is_crowd = difficult.reshape(-1) if self.difficult_labels_are_crowd else np.zeros_like(difficult)
         sample = OBBSample(
             image=image,
             boxes_cxcywhr=cxcywhr.reshape(-1, 5),
             labels=classes.reshape(-1),
-            is_crowd=difficult.reshape(-1),
+            is_crowd=is_crowd,
         )
         return sample
 
