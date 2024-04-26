@@ -278,7 +278,7 @@ class YoloNASRLoss(nn.Module):
         self,
         classification_loss_weight: float = 5.0,
         iou_loss_weight: float = 2.5,
-        dfl_loss_weight: float = 0.1,
+        dfl_loss_weight: float = 0.0,
         size_loss_weight: float = 0.5,
         centers_loss_weight: float = 0.5,
         bbox_assigner_topk: int = 13,

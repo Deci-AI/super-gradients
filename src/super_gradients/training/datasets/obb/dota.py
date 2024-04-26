@@ -1,4 +1,6 @@
 import dataclasses
+import multiprocessing
+from functools import partial
 from pathlib import Path
 from typing import Tuple, Union, Optional, List, Iterable
 
@@ -160,13 +162,14 @@ class DOTAOBBDataset(Dataset):
         self.class_names = list(class_names)
         self.difficult_labels_are_crowd = difficult_labels_are_crowd
 
+        class_names_to_index = {name: i for i, name in enumerate(self.class_names)}
         for image_path, label_path in tqdm(zip(images, labels), desc=f"Parsing annotations in {ann_dir}", total=len(images)):
             coords, classes, difficult = self.parse_annotation_file(label_path)
             if ignore_empty_annotations and len(coords) == 0:
                 continue
             self.images.append(image_path)
             self.coords.append(coords)
-            self.classes.append(np.array([self.class_names.index(c) for c in classes], dtype=int))
+            self.classes.append(np.array([class_names_to_index[c] for c in classes], dtype=int))
             self.difficult.append(difficult)
 
     def __len__(self):
@@ -353,7 +356,9 @@ class DOTAOBBDataset(Dataset):
         return images, total_boxes, total_classes, total_difficult
 
     @classmethod
-    def slice_dataset_into_tiles(cls, data_dir, output_dir, ann_subdir_name, tile_size: int, tile_step: int, scale_factors: Tuple, min_visibility, min_area):
+    def slice_dataset_into_tiles(
+        cls, data_dir, output_dir, ann_subdir_name, tile_size: int, tile_step: int, scale_factors: Tuple, min_visibility, min_area, num_workers: int
+    ):
         data_dir = Path(data_dir)
         input_images_dir = data_dir / "images"
         input_ann_dir = data_dir / ann_subdir_name
@@ -366,44 +371,53 @@ class DOTAOBBDataset(Dataset):
         output_images_dir.mkdir(parents=True, exist_ok=True)
         output_ann_dir.mkdir(parents=True, exist_ok=True)
 
-        for image_path, ann_path in tqdm(zip(images, labels), total=len(images)):
-            image = cv2.imread(str(image_path))
-            coords, classes, difficult = cls.parse_annotation_file(ann_path)
+        with multiprocessing.Pool(num_workers) as wp:
+            payload = [(image_path, ann_path, scale) for image_path, ann_path in zip(images, labels) for scale in scale_factors]
 
-            for scale in scale_factors:
-                scaled_image = cv2.resize(image, (0, 0), fx=scale, fy=scale)
+            worker_fn = partial(
+                cls._worker_fn,
+                tile_size=tile_size,
+                tile_step=tile_step,
+                min_visibility=min_visibility,
+                min_area=min_area,
+                output_images_dir=output_images_dir,
+                output_ann_dir=output_ann_dir,
+            )
+            for _ in tqdm(wp.imap_unordered(worker_fn, payload), total=len(payload)):
+                pass
 
-                image_tiles, total_boxes, total_classes, total_difficult = cls.chip_image(
-                    scaled_image,
-                    coords * scale,
-                    classes,
-                    difficult,
-                    tile_size=(tile_size, tile_size),
-                    tile_step=(tile_step, tile_step),
-                    min_visibility=min_visibility,
-                    min_area=min_area,
-                )
-                num_tiles = len(image_tiles)
+    @classmethod
+    def _worker_fn(cls, args, tile_size, tile_step, min_visibility, min_area, output_images_dir, output_ann_dir):
+        image_path, ann_path, scale = args
+        image = cv2.imread(str(image_path))
+        coords, classes, difficult = cls.parse_annotation_file(ann_path)
+        scaled_image = cv2.resize(image, (0, 0), fx=scale, fy=scale)
 
-                for i in range(num_tiles):
-                    tile_image = image_tiles[i]
-                    tile_boxes = total_boxes[i]
-                    tile_classes = total_classes[i]
-                    tile_difficult = total_difficult[i]
+        image_tiles, total_boxes, total_classes, total_difficult = cls.chip_image(
+            scaled_image,
+            coords * scale,
+            classes,
+            difficult,
+            tile_size=(tile_size, tile_size),
+            tile_step=(tile_step, tile_step),
+            min_visibility=min_visibility,
+            min_area=min_area,
+        )
+        num_tiles = len(image_tiles)
 
-                    tile_image_path = output_images_dir / f"{ann_path.stem}_{scale:.3f}_{i:06d}.png"
-                    tile_label_path = output_ann_dir / f"{ann_path.stem}_{scale:.3f}_{i:06d}.txt"
+        for i in range(num_tiles):
+            tile_image = image_tiles[i]
+            tile_boxes = total_boxes[i]
+            tile_classes = total_classes[i]
+            tile_difficult = total_difficult[i]
 
-                    with tile_label_path.open("w") as f:
-                        for poly, category, diff in zip(tile_boxes, tile_classes, tile_difficult):
-                            f.write(
-                                f"{poly[0,0]:.2f} {poly[0,1]:.2f} {poly[1,0]:.2f} {poly[1,1]:.2f} {poly[2,0]:.2f} {poly[2,1]:.2f} {poly[3,0]:.2f} {poly[3,1]:.2f} {category} {diff}\n"  # noqa
-                            )
+            tile_image_path = output_images_dir / f"{ann_path.stem}_{scale:.3f}_{i:06d}.png"
+            tile_label_path = output_ann_dir / f"{ann_path.stem}_{scale:.3f}_{i:06d}.txt"
 
-                            if False:
-                                # Draw on the tile image
-                                poly = poly.reshape(-1, 2)
-                                poly = poly.astype(np.int32)
-                                cv2.polylines(tile_image, [poly], isClosed=True, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
+            with tile_label_path.open("w") as f:
+                for poly, category, diff in zip(tile_boxes, tile_classes, tile_difficult):
+                    f.write(
+                        f"{poly[0, 0]:.2f} {poly[0, 1]:.2f} {poly[1, 0]:.2f} {poly[1, 1]:.2f} {poly[2, 0]:.2f} {poly[2, 1]:.2f} {poly[3, 0]:.2f} {poly[3, 1]:.2f} {category} {diff}\n"  # noqa
+                    )
 
-                    cv2.imwrite(str(tile_image_path), tile_image)
+            cv2.imwrite(str(tile_image_path), tile_image)
