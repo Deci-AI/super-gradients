@@ -24,11 +24,11 @@ def check_points_inside_rboxes(points: Tensor, rboxes: Tensor) -> Tensor:
     x, y = points[..., 0], points[..., 1]  # [1, 1, L], [1, 1, L]
 
     cx, cy, w, h = rboxes[..., 0, None], rboxes[..., 1, None], rboxes[..., 2, None], rboxes[..., 3, None]
-    center_radius_tensor = (w + h) / 4
+    mean_radius = (w + h) / 4
 
     distance_squared = (x - cx).pow(2) + (y - cy).pow(2)  # [B, n, L]
     # check whether distance between points and center of bboxes is less than mean radius of the rotated boxes
-    is_in_bboxes: Tensor = distance_squared <= center_radius_tensor.pow(2)  # [B, 1, n, L]
+    is_in_bboxes: Tensor = distance_squared <= mean_radius.pow(2)  # [B, 1, n, L]
     return is_in_bboxes.type_as(rboxes)
 
 
@@ -276,9 +276,9 @@ class YoloNASRLoss(nn.Module):
 
     def __init__(
         self,
-        classification_loss_weight: float = 1.0,
-        iou_loss_weight: float = 1.0,
-        dfl_loss_weight: float = 0.0,
+        classification_loss_weight: float = 5.0,
+        iou_loss_weight: float = 2.5,
+        dfl_loss_weight: float = 0.5,
         bbox_assigner_topk: int = 13,
         bbox_assigned_alpha: float = 1.0,
         bbox_assigned_beta: float = 6.0,
@@ -448,26 +448,26 @@ class YoloNASRLoss(nn.Module):
             bbox_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).unsqueeze(-1)
 
             iou = cxcywhr_iou(pred_bboxes_pos, assigned_bboxes_pos, CIoU=True)
-            loss_iou = (1 - iou) * bbox_weight
-            loss_iou = loss_iou.sum()
+            loss_iou = 1 - iou
+            loss_iou = (loss_iou * bbox_weight.squeeze(-1)).sum()
 
             dist_mask = mask_positive.unsqueeze(-1).tile([1, 1, (reg_max + 1) * 2])
             pred_dist_pos = torch.masked_select(pred_dist, dist_mask).reshape([-1, 2, reg_max + 1])
 
             assigned_wh_dfl_targets = self._rbox2distance(assign_result.assigned_rboxes, strides, reg_max)
             assigned_wh_dfl_targets_pos = torch.masked_select(assigned_wh_dfl_targets, size_mask).reshape([-1, 2])
-            loss_dfl = self._df_loss(pred_dist_pos, assigned_wh_dfl_targets_pos) * bbox_weight
-            loss_dfl = loss_dfl.sum()
+            loss_dfl = self._df_loss(pred_dist_pos, assigned_wh_dfl_targets_pos)
+            loss_dfl = (loss_dfl * bbox_weight).sum()
 
             assigned_wh_pos = assigned_bboxes_pos[..., 2:4]
             pred_wh_pos = pred_bboxes_pos[..., 2:4]
-            loss_l1_size = torch.nn.functional.l1_loss(pred_wh_pos, assigned_wh_pos, reduction="none") * bbox_weight
-            loss_l1_size = loss_l1_size.sum()
+            loss_l1_size = torch.nn.functional.l1_loss(pred_wh_pos, assigned_wh_pos, reduction="none")
+            loss_l1_size = (loss_l1_size.mean(dim=-1, keepdim=True) * bbox_weight).sum()
 
             assigned_cxcy_pos = assigned_bboxes_pos[..., 0:2]
             pred_centers_pos = pred_bboxes_pos[..., 0:2]
-            loss_l1_centers = torch.nn.functional.l1_loss(pred_centers_pos, assigned_cxcy_pos, reduction="none") * bbox_weight
-            loss_l1_centers = loss_l1_centers.sum()
+            loss_l1_centers = torch.nn.functional.l1_loss(pred_centers_pos, assigned_cxcy_pos, reduction="none")
+            loss_l1_centers = (loss_l1_centers.mean(dim=-1, keepdim=True) * bbox_weight).sum()
         else:
             loss_iou = torch.zeros([], device=pred_bboxes.device)
             loss_dfl = torch.zeros([], device=pred_bboxes.device)
