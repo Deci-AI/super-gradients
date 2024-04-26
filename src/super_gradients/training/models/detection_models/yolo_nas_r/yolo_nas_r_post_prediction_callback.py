@@ -114,8 +114,8 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
             conf_mask = pred_cls_conf >= self.score_threshold  # [Anchors]
 
             pred_rboxes = pred_rboxes[conf_mask].float()
-            pred_cls_conf = pred_cls_conf[conf_mask]
-            pred_cls_label = pred_cls_label[conf_mask]
+            pred_cls_conf = pred_cls_conf[conf_mask].float()
+            pred_cls_label = pred_cls_label[conf_mask].float()
 
             # Filter all predictions by self.nms_top_k
             if pred_rboxes.size(0) > self.pre_nms_max_predictions:

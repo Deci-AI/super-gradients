@@ -59,7 +59,7 @@ class OBBVisualization:
             cx, cy, w, h, r = rboxes_cxcywhr[i]
             rect = (cx, cy), (w, h), np.rad2deg(r)
             box = cv2.boxPoints(rect)  # [4, 2]
-            class_index = labels[i]
+            class_index = int(labels[i])
             color = tuple(class_colors[class_index])
             cv2.polylines(overlay, box[None, :, :].astype(int), True, color, thickness=thickness, lineType=cv2.LINE_AA)
 

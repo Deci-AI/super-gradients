@@ -60,6 +60,7 @@ valid_metrics_list:
       num_cls: ${dataset_params.num_classes}
       class_names: ${dataset_params.class_names}
       recall_thres: [ 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
+      include_classwise_ap: True
       post_prediction_callback:
         _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
         #output_device: cpu
