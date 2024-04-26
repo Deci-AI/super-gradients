@@ -1,10 +1,9 @@
 from typing import List
 
 import torch
-from torch import Tensor
-
 from super_gradients.module_interfaces.obb_predictions import OBBPredictions, AbstractOBBPostPredictionCallback
 from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_ndfl_heads import YoloNASRLogits
+from torch import Tensor
 
 
 def optimized_rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float):
@@ -17,8 +16,11 @@ def optimized_rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: 
     iou = pairwise_cxcywhr_iou(rboxes_cxcywhr, rboxes_cxcywhr)
     iou = torch.triu(iou, diagonal=1)
 
+    # Compute mask of boxes with overlas greater than threshold
+    iou_gt_mask: Tensor = iou > iou_threshold
+
     for i in range(len(rboxes_cxcywhr)):
-        mask = keep & (iou[i] > iou_threshold)
+        mask = keep & iou_gt_mask[i]
         keep[mask] = False
 
     return order_by_conf_desc[keep]

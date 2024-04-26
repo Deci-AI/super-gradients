@@ -51,8 +51,8 @@ phase_callbacks:
         _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
         #output_device: cpu
         score_threshold: 0.25
-        pre_nms_max_predictions: 1000
-        post_nms_max_predictions: 100
+        pre_nms_max_predictions: 4096
+        post_nms_max_predictions: 512
         nms_iou_threshold: 0.6
 
 valid_metrics_list:
@@ -65,8 +65,8 @@ valid_metrics_list:
         _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
         #output_device: cpu
         score_threshold: 0.1
-        pre_nms_max_predictions: 1000
-        post_nms_max_predictions: 100
+        pre_nms_max_predictions: 4096
+        post_nms_max_predictions: 512
         nms_iou_threshold: 0.6
 
 #  - OBBDetectionMetrics_050_095:
