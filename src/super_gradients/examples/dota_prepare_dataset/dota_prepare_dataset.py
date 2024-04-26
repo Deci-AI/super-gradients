@@ -9,9 +9,11 @@ def main():
     parser = argparse.ArgumentParser(description="Slice DOTA dataset into tiles of usable size for training a model")
     parser.add_argument("--input_dir", help="Where the full coco dataset is stored", required=True)
     parser.add_argument("--output_dir", help="Where the resulting data should be stored", required=True)
-    parser.add_argument("--num_workers", default=cv2.getNumThreads())
+    parser.add_argument("--num_workers", default=cv2.getNumberOfCPUs() // 2)
     args = parser.parse_args()
     ann_subdir_name = "ann-obb"
+
+    cv2.setNumThreads(cv2.getNumberOfCPUs() // 4)
 
     input_dir = Path(args.input_dir)
     output_dir = Path(args.output_dir)
