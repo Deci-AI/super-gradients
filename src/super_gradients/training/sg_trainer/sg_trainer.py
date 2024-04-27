@@ -1251,7 +1251,7 @@ class Trainer:
         if not self.ddp_silent_mode:
             self._initialize_sg_logger_objects(additional_configs_to_log)
 
-        torch.set_anomaly_enabled(mode=True, check_nan=True)
+        torch.set_anomaly_enabled(enabled=True, check_nan=True)
 
         # SET RANDOM SEED
         random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
