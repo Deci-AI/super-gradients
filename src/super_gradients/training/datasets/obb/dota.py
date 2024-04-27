@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import torch
 from super_gradients.common.registry import register_dataset, register_collate_function
+from super_gradients.dataset_interfaces import HasClassesInformation
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
@@ -138,7 +139,7 @@ class OrientedBoxesCollate:
 
 
 @register_dataset()
-class DOTAOBBDataset(Dataset):
+class DOTAOBBDataset(Dataset, HasClassesInformation):
     def __init__(
         self,
         data_dir,
@@ -196,6 +197,22 @@ class DOTAOBBDataset(Dataset):
             is_crowd=is_crowd,
         )
         return sample
+
+    def get_sample_classes_information(self, index) -> np.ndarray:
+        """
+        Returns a histogram of length `num_classes` with class occurrences at that index.
+        """
+        return np.bincount(self.classes[index], minlength=len(self.class_names))
+
+    def get_dataset_classes_information(self) -> np.ndarray:
+        """
+        Returns a matrix of shape (dataset_length, num_classes). Each row `i` is histogram of length `num_classes` with class occurrences for sample `i`.
+        Example implementation, assuming __len__: `np.vstack([self.get_sample_classes_information(i) for i in range(len(self))])`
+        """
+        m = np.zeros((len(self), len(self.class_names)), dtype=int)
+        for i in range(len(self)):
+            m[i] = self.get_sample_classes_information(i)
+        return m
 
     @classmethod
     def poly_to_rbox(cls, poly):

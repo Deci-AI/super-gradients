@@ -472,7 +472,7 @@ class YoloNASRLoss(nn.Module):
 
             bbox_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).unsqueeze(-1)
 
-            iou = cxcywhr_iou(pred_bboxes_pos, assigned_bboxes_pos, CIoU=True)
+            iou = cxcywhr_iou(pred_bboxes_pos, assigned_bboxes_pos, CIoU=False)
             loss_iou = 1 - iou
             loss_iou = (loss_iou * bbox_weight.squeeze(-1)).sum()
 
