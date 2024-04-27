@@ -33,7 +33,7 @@ ema_params:
   decay_type: exp
   beta: 50
 
-mixed_precision: False
+mixed_precision: True
 sync_bn: False
 
 # This is how you can enable visualization of predictions during training
