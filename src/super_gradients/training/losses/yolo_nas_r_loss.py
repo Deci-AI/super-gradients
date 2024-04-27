@@ -276,7 +276,7 @@ class YoloNASRLoss(nn.Module):
 
     def __init__(
         self,
-        classification_loss_weight: float = 5.0,
+        classification_loss_weight: float = 1.0,
         iou_loss_weight: float = 2.5,
         dfl_loss_weight: float = 0.1,
         size_loss_weight: float = 1.0,
