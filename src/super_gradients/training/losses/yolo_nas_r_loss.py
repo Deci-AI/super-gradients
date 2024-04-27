@@ -534,7 +534,7 @@ class YoloNASRLoss(nn.Module):
         pred_score = pred_logits.sigmoid()
         weight = alpha * pred_score.pow(gamma) * (1 - label) + gt_score * label
         loss = weight * torch.nn.functional.binary_cross_entropy_with_logits(pred_logits, gt_score, reduction="none")
-        return loss.sum()
+        return loss.sum(dtype=torch.float32)
 
     @staticmethod
     def _focal_loss(pred_logits: Tensor, label: Tensor, alpha=0.25, gamma=2.0, reduction="sum") -> Tensor:
