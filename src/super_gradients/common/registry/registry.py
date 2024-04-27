@@ -179,7 +179,7 @@ OPTIMIZERS = {
 
 try:
     OPTIMIZERS[Optimizers.RADAM] = optim.RAdam
-except ImportError:
+except (ImportError, AttributeError):
     pass
 
 TORCH_LR_SCHEDULERS = {
