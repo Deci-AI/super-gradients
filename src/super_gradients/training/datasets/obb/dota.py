@@ -188,7 +188,7 @@ class DOTAOBBDataset(Dataset):
 
         cxcywhr = np.array([self.poly_to_rbox(poly) for poly in coords], dtype=np.float32)
 
-        is_crowd = difficult.reshape(-1) if self.difficult_labels_are_crowd else np.zeros_like(difficult)
+        is_crowd = difficult.reshape(-1) if self.difficult_labels_are_crowd else np.zeros_like(difficult, dtype=bool)
         sample = OBBSample(
             image=image,
             boxes_cxcywhr=cxcywhr.reshape(-1, 5),
