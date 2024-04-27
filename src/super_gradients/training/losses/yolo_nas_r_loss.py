@@ -365,7 +365,11 @@ class YoloNASRLoss(nn.Module):
                         f"score logits is finite: {torch.isfinite(outputs.score_logits).all()}\n"
                         f"labels: {labels_list[i]}\n"
                         f"rboxes: {rboxes_list[i]}\n"
-                        f"{outputs.score_logits[i]}\n"
+                        f"score_logits {outputs.score_logits[i]}\n"
+                        f"size_dist {outputs.size_dist[i]}\n"
+                        f"size_reduced {outputs.size_reduced[i]}\n"
+                        f"offsets {outputs.offsets[i]}\n"
+                        f"angles {outputs.angles[i]}\n"
                     )
 
                 loss_iou, loss_dfl, loss_l1_centers, loss_l1_size = self._rbox_loss_v2(
