@@ -177,6 +177,11 @@ OPTIMIZERS = {
     Optimizers.RMS_PROP: optim.RMSprop,
 }
 
+try:
+    OPTIMIZERS[Optimizers.RADAM] = optim.RAdam
+except ImportError:
+    pass
+
 TORCH_LR_SCHEDULERS = {
     "StepLR": torch.optim.lr_scheduler.StepLR,
     "LambdaLR": torch.optim.lr_scheduler.LambdaLR,
