@@ -59,7 +59,7 @@ def pairwise_cxcywhr_iou(obb1, obb2, CIoU=False, eps=1e-7):
     return cxcywhr_iou(obb1, obb2, CIoU=CIoU, eps=eps)
 
 
-def cxcywhr_iou(obb1, obb2, CIoU=False, eps=1e-7):
+def cxcywhr_iou(obb1, obb2, CIoU=False, eps=1e-5):
     """
     Calculate the prob IoU between oriented bounding boxes, https://arxiv.org/pdf/2106.06072v1.pdf.
 
