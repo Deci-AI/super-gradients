@@ -353,7 +353,7 @@ class YoloNASRLoss(nn.Module):
             with torch.cuda.amp.autocast(False):
                 if self.use_varifocal_loss:
                     one_hot_label = torch.nn.functional.one_hot(assign_result.assigned_labels, num_classes + 1)[..., :-1]
-                    cls_loss = self._varifocal_loss(outputs.score_logits[i : i + 1], assign_result.assigned_scores, one_hot_label)
+                    cls_loss = self._varifocal_loss(outputs.score_logits[i : i + 1].float(), assign_result.assigned_scores.float(), one_hot_label)
                 else:
                     alpha_l = -1
                     cls_loss = self._focal_loss(outputs.score_logits[i : i + 1], assign_result.assigned_scores, alpha_l)
