@@ -24,11 +24,12 @@ def check_points_inside_rboxes(points: Tensor, rboxes: Tensor) -> Tensor:
     x, y = points[..., 0], points[..., 1]  # [1, 1, L], [1, 1, L]
 
     cx, cy, w, h = rboxes[..., 0, None], rboxes[..., 1, None], rboxes[..., 2, None], rboxes[..., 3, None]
-    mean_radius = (w + h) / 4
+    smallest_radius = torch.minimum(w, h) / 2
+    smallest_radius_sqr = smallest_radius**2
 
-    distance_squared = (x - cx).pow(2) + (y - cy).pow(2)  # [B, n, L]
+    distance_sqr = (x - cx).pow(2) + (y - cy).pow(2)  # [B, n, L]
     # check whether distance between points and center of bboxes is less than mean radius of the rotated boxes
-    is_in_bboxes: Tensor = distance_squared <= mean_radius.pow(2)  # [B, 1, n, L]
+    is_in_bboxes: Tensor = distance_sqr <= smallest_radius_sqr  # [B, 1, n, L]
     return is_in_bboxes.type_as(rboxes)
 
 
