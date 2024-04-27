@@ -512,7 +512,7 @@ class YoloNASRLoss(nn.Module):
         bbox_weight = assign_result.assigned_scores.sum(-1) * mask_positive  # [B, L]
         bs = bbox_weight.size(0)
         # IOU
-        iou = cxcywhr_iou(pred_bboxes, assign_result.assigned_rboxes, CIoU=True)
+        iou = cxcywhr_iou(pred_bboxes, assign_result.assigned_rboxes, CIoU=False)
         loss_iou = 1 - iou
         loss_iou = (loss_iou * bbox_weight).sum(dtype=torch.float32)
 
