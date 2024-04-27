@@ -17,7 +17,7 @@ class TestYoloNasR(unittest.TestCase):
         y = torch.tensor([[100, 128, 156, 64, 1]])
         optimizer = torch.optim.Adam([x], lr=0.1)
 
-        for _ in range(20):
+        for _ in range(40):
             for _ in range(50):
                 optimizer.zero_grad()
                 iou_loss = 1 - cxcywhr_iou(x, y, CIoU=True)
