@@ -214,7 +214,7 @@ class YoloNASRAssigner(nn.Module):
 
         # check the positive sample's center in gt, [B, n, L]
         # is_in_gts = check_points_inside_rboxes(anchor_points, gt_rboxes) do not check
-        is_in_gts = torch.ones(alignment_metrics)
+        is_in_gts = torch.ones_like(alignment_metrics)
         # select top-k alignment metrics pred bbox as candidates
         # for each gt, [B, n, L]
         is_in_topk = gather_topk_anchors(alignment_metrics * is_in_gts, self.topk, topk_mask=pad_gt_mask)
