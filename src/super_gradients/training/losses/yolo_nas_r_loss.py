@@ -33,7 +33,7 @@ def check_points_inside_rboxes(points: Tensor, rboxes: Tensor) -> Tensor:
     return is_in_bboxes.type_as(rboxes)
 
 
-def _get_covariance_matrix(boxes):
+def _get_covariance_matrix(w, h, angle):
     """
     Generating covariance matrix from obbs.
 
@@ -44,8 +44,10 @@ def _get_covariance_matrix(boxes):
         (torch.Tensor): Covariance metrixs corresponding to original rotated bounding boxes.
     """
     # Gaussian bounding boxes, ignore the center points (the first two columns) because they are not needed here.
-    gbbs = torch.cat((boxes[..., 2:4].pow(2) / 12, boxes[..., 4:]), dim=-1)
-    a, b, c = gbbs[..., 0], gbbs[..., 1], gbbs[..., 2]
+    a = w.pow(2) / 12
+    b = h.pow(2) / 12
+    c = angle
+
     cos = c.cos()
     sin = c.sin()
     cos2 = cos.pow(2)
@@ -71,10 +73,12 @@ def cxcywhr_iou(obb1, obb2, CIoU=False, eps=1e-5):
     Returns:
         (torch.Tensor): A tensor of shape (..., N, M) representing obb similarities.
     """
-    x1, y1 = obb1[..., 0], obb1[..., 1]
-    x2, y2 = obb2[..., 0], obb2[..., 1]
-    a1, b1, c1 = _get_covariance_matrix(obb1)
-    a2, b2, c2 = _get_covariance_matrix(obb2)
+    s = 0.05
+    x1, y1, w1, h1, a1 = obb1[..., 0] * s, obb1[..., 1] * s, obb1[..., 2] * s, obb1[..., 3] * s, obb1[..., 4]
+    x2, y2, w2, h2, a2 = obb2[..., 0] * s, obb2[..., 1] * s, obb2[..., 2] * s, obb2[..., 3] * s, obb2[..., 4]
+
+    a1, b1, c1 = _get_covariance_matrix(w1, h1, a1)
+    a2, b2, c2 = _get_covariance_matrix(w2, h2, a2)
 
     t1 = (((a1 + a2) * (y1 - y2).pow(2) + (b1 + b2) * (x1 - x2).pow(2)) / ((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2) + eps)) * 0.25
     t2 = (((c1 + c2) * (x2 - x1) * (y1 - y2)) / ((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2) + eps)) * 0.5
@@ -84,9 +88,6 @@ def cxcywhr_iou(obb1, obb2, CIoU=False, eps=1e-5):
     iou = 1 - hd
 
     if CIoU:  # only include the wh aspect ratio part
-        w1, h1 = obb1[..., 2], obb1[..., 3]
-        w2, h2 = obb2[..., 2], obb2[..., 3]
-
         v = (4 / math.pi**2) * ((w2 / h2).atan() - (w1 / h1).atan()).pow(2)
         with torch.no_grad():
             alpha = v / (v - iou + (1 + eps))
@@ -213,8 +214,9 @@ class YoloNASRAssigner(nn.Module):
         alignment_metrics = bbox_cls_scores.pow(self.alpha) * ious.pow(self.beta)
 
         # check the positive sample's center in gt, [B, n, L]
-        # is_in_gts = check_points_inside_rboxes(anchor_points, gt_rboxes) do not check
-        is_in_gts = torch.ones_like(alignment_metrics)
+        is_in_gts = check_points_inside_rboxes(anchor_points, gt_rboxes)
+        # is_in_gts = torch.ones_like(alignment_metrics)
+
         # select top-k alignment metrics pred bbox as candidates
         # for each gt, [B, n, L]
         is_in_topk = gather_topk_anchors(alignment_metrics * is_in_gts, self.topk, topk_mask=pad_gt_mask)
