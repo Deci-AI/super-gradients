@@ -23,7 +23,7 @@ loss: YoloNASRLoss
 criterion_params:
   bbox_assigner_topk: 12
 
-optimizer: AdamW
+optimizer: RAdam
 optimizer_params:
   weight_decay: 0.00001
 
