@@ -172,7 +172,6 @@ class OBBIoUMatching(DetectionMatching):
 def compute_obb_detection_matching(
     preds: OBBPredictions,
     targets: OBBSample,
-    iou_thresholds: torch.Tensor,
     matching_strategy: OBBIoUMatching,
     top_k: Optional[int],
     output_device: Optional[torch.device] = None,
@@ -184,7 +183,6 @@ def compute_obb_detection_matching(
                             format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
     :param targets:         targets for this image of shape (num_img_targets, 6)
                             format:     (label, cx, cy, w, h) where cx,cy,w,h
-    :param iou_thresholds:  Threshold to compute the mAP
     :param top_k:           Number of predictions to keep per class, ordered by confidence score
     :param matching_strategy: Method to match predictions to ground truth targets: IoU, distance based
 
