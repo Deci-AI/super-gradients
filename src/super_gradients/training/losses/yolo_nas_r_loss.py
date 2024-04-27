@@ -360,10 +360,10 @@ class YoloNASRLoss(nn.Module):
 
                 if not torch.isfinite(cls_loss).all():
                     raise ValueError(
-                        "Classification loss is not finite"
-                        f"assigned_labels is finite: {torch.isfinite(assign_result.assigned_labels).all()}"
-                        f"assigned_scores is finite: {torch.isfinite(assign_result.assigned_scores).all()}"
-                        f"score logits is finite: {torch.isfinite(outputs.score_logits).all()}"
+                        "Classification loss is not finite\n"
+                        f"score logits is finite: {torch.isfinite(outputs.score_logits).all()}\n"
+                        f"labels: {labels_list[i]}\n"
+                        f"rboxes: {rboxes_list[i]}\n"
                     )
 
                 loss_iou, loss_dfl, loss_l1_centers, loss_l1_size = self._rbox_loss_v2(
