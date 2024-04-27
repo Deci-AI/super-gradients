@@ -407,7 +407,9 @@ class OBBDetectionMetrics(Metric):
         matching_strategy = OBBIoUMatching(self.iou_thresholds.to(preds[0].scores.device))
 
         for pred, trues in zip(preds, gt_samples):
-            image_mathing = compute_obb_detection_matching(pred, trues, self.iou_thresholds, matching_strategy, self.top_k_predictions, output_device)
+            image_mathing = compute_obb_detection_matching(
+                pred, trues, matching_strategy=matching_strategy, top_k=self.top_k_predictions, output_device=output_device
+            )
 
             accumulated_matching_info = getattr(self, self.state_key)
             setattr(self, self.state_key, accumulated_matching_info + [image_mathing])
