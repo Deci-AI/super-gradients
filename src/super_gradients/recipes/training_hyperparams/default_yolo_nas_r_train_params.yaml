@@ -22,6 +22,7 @@ save_ckpt_epoch_list: [ ]
 loss: YoloNASRLoss
 criterion_params:
   bbox_assigner_topk: 12
+  average_losses_in_ddp: True
 
 optimizer: RAdam
 optimizer_params:
