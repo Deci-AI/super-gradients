@@ -1,4 +1,5 @@
 import dataclasses
+import math
 from typing import Tuple, Union, List, Callable
 
 import super_gradients.common.factories.detection_modules_factory as det_factory
@@ -169,6 +170,7 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
         rot_list = torch.cat(rot_list, dim=-1)
         rot_list = torch.permute(rot_list, [0, 2, 1])  # [B, A, 1]
+        rot_list = (rot_list.sigmoid() - 0.25) * math.pi
 
         reg_distri_list = torch.cat(reg_distri_list, dim=1)  # [B, Anchors, 2 * (self.reg_max + 1)]
         reg_dist_reduced_list = torch.cat(reg_dist_reduced_list, dim=1)  # [B, Anchors, 2]

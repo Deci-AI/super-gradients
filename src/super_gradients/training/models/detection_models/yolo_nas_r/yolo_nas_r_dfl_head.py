@@ -103,7 +103,7 @@ class YoloNASRDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
 
     def _initialize_biases(self):
         prior_bias = -math.log((1 - self.prior_prob) / self.prior_prob)
-        # torch.nn.init.zeros_(self.cls_pred.weight)
+        torch.nn.init.zeros_(self.cls_pred.weight)
         torch.nn.init.constant_(self.cls_pred.bias, prior_bias)
 
         torch.nn.init.zeros_(self.offset_pred.weight)
