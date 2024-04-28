@@ -57,3 +57,6 @@ check_notebooks_version_match: $(NOTEBOOKS_TO_CHECK)
 
 yolo_nas_r:
 	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=4
+
+yolo_nas_r_balanced:
+	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_balanced dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=4

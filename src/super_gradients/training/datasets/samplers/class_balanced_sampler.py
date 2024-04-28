@@ -127,6 +127,7 @@ class ClassBalancedSampler(WeightedRandomSampler):
         oversample_aggressiveness: float = 0.5,
         num_samples: Optional[int] = None,
         generator=None,
+        shuffle: bool = True,  # noqa
     ) -> None:
         """
         Wrap WeightedRandomSampler with weights that are computed from the class frequencies of the dataset.
