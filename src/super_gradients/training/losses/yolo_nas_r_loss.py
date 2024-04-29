@@ -403,11 +403,6 @@ class YoloNASRLoss(nn.Module):
                 assigned_scores_sum_total += assign_result.assigned_scores.sum()
 
         if self.average_losses_in_ddp and is_distributed():
-            torch.distributed.all_reduce(cls_loss_sum, op=torch.distributed.ReduceOp.SUM)
-            torch.distributed.all_reduce(iou_loss_sum, op=torch.distributed.ReduceOp.SUM)
-            torch.distributed.all_reduce(dfl_loss_sum, op=torch.distributed.ReduceOp.SUM)
-            torch.distributed.all_reduce(centers_l1_loss_sum, op=torch.distributed.ReduceOp.SUM)
-            torch.distributed.all_reduce(sizes_l1_loss_sum, op=torch.distributed.ReduceOp.SUM)
             torch.distributed.all_reduce(assigned_scores_sum_total, op=torch.distributed.ReduceOp.SUM)
             assigned_scores_sum_total /= get_world_size()
 
