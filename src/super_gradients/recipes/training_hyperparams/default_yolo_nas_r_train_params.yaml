@@ -28,6 +28,8 @@ optimizer: RAdam
 optimizer_params:
   weight_decay: 0.00001
 
+clip_grad_norm: 1.0
+
 ema: True
 ema_params:
   decay: 0.9997
