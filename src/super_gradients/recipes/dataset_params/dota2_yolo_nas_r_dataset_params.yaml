@@ -62,7 +62,7 @@ train_dataloader_params:
   dataset: DOTAOBBDataset
   batch_size: 16
   num_workers: 8
-  shuffle: False # Temporary
+  shuffle: True
   drop_last: True
   pin_memory: True
   persistent_workers: True
