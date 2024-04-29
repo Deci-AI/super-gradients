@@ -1,141 +1,18 @@
-import dataclasses
 import multiprocessing
 from functools import partial
 from pathlib import Path
-from typing import Tuple, Union, Optional, List, Iterable
+from typing import Tuple, Iterable
 
 import cv2
 import numpy as np
-import torch
-from super_gradients.common.registry import register_dataset, register_collate_function
+from super_gradients.common.registry import register_dataset
 from super_gradients.dataset_interfaces import HasClassesInformation
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-__all__ = ["OBBSample", "OrientedBoxesCollate", "DOTAOBBDataset"]
+from .sample import OBBSample
 
-
-@dataclasses.dataclass
-class OBBSample:
-    """
-    A data class describing a single object detection sample that comes from a dataset.
-    It contains both input image and target information to train an object detection model.
-
-    :param image:              Associated image with a sample. Can be in [H,W,C] or [C,H,W] format
-    :param boxes_cxcywhr:      Numpy array of [N,5] shape with oriented bounding box of each instance (CX,CY,W,H,R)
-    :param labels:             Numpy array of [N] shape with class label for each instance
-    :param is_crowd:           (Optional) Numpy array of [N] shape with is_crowd flag for each instance
-    :param additional_samples: (Optional) List of additional samples for the same image.
-    """
-
-    __slots__ = ["image", "rboxes_cxcywhr", "labels", "is_crowd", "additional_samples"]
-
-    image: Union[np.ndarray, torch.Tensor]
-    rboxes_cxcywhr: np.ndarray
-    labels: np.ndarray
-    is_crowd: np.ndarray
-    additional_samples: Optional[List["OBBSample"]]
-
-    def __init__(
-        self,
-        image: Union[np.ndarray, torch.Tensor],
-        boxes_cxcywhr: np.ndarray,
-        labels: np.ndarray,
-        is_crowd: Optional[np.ndarray] = None,
-        additional_samples: Optional[List["OBBSample"]] = None,
-    ):
-        if is_crowd is None:
-            is_crowd = np.zeros(len(labels), dtype=bool)
-
-        if len(boxes_cxcywhr) != len(labels):
-            raise ValueError("Number of bounding boxes and labels must be equal. Got {len(bboxes_xyxy)} and {len(labels)} respectively")
-
-        if len(boxes_cxcywhr) != len(is_crowd):
-            raise ValueError("Number of bounding boxes and is_crowd flags must be equal. Got {len(bboxes_xyxy)} and {len(is_crowd)} respectively")
-
-        if len(boxes_cxcywhr.shape) != 2 or boxes_cxcywhr.shape[1] != 5:
-            raise ValueError(f"Oriented boxes must be in [N,5] format. Shape of input bboxes is {boxes_cxcywhr.shape}")
-
-        if len(is_crowd.shape) != 1:
-            raise ValueError(f"Number of is_crowd flags must be in [N] format. Shape of input is_crowd is {is_crowd.shape}")
-
-        if len(labels.shape) != 1:
-            raise ValueError("Labels must be in [N] format. Shape of input labels is {labels.shape}")
-
-        self.image = image
-        self.rboxes_cxcywhr = boxes_cxcywhr
-        self.labels = labels
-        self.is_crowd = is_crowd
-        self.additional_samples = additional_samples
-        self.sanitize_sample()
-
-    def sanitize_sample(self) -> "OBBSample":
-        """
-        Apply sanity checks on the detection sample, which includes clamping of bounding boxes to image boundaries.
-        This function does not remove instances, but may make them subject for removal later on.
-        This method operates in-place and modifies the caller.
-        :return: A DetectionSample after filtering (caller instance).
-        """
-        # image_height, image_width = self.image.shape[:2]
-        # self.bboxes_xyxy = change_bbox_bounds_for_image_size_inplace(self.bboxes_xyxy, img_shape=(image_height, image_width))
-        self.filter_by_bbox_area(0)
-        return self
-
-    def filter_by_mask(self, mask: np.ndarray) -> "OBBSample":
-        """
-        Remove boxes & labels with respect to a given mask.
-        This method operates in-place and modifies the caller.
-        If you are implementing a subclass of DetectionSample and adding extra field associated with each bbox
-        instance (Let's say you add a distance property for each bbox from the camera), then you should override
-        this method to do filtering on extra attribute as well.
-
-        :param mask:   A boolean or integer mask of samples to keep for given sample.
-        :return:       A DetectionSample after filtering (caller instance).
-        """
-        self.rboxes_cxcywhr = self.rboxes_cxcywhr[mask]
-        self.labels = self.labels[mask]
-        if self.is_crowd is not None:
-            self.is_crowd = self.is_crowd[mask]
-        return self
-
-    def filter_by_bbox_area(self, min_rbox_area: Union[int, float]) -> "OBBSample":
-        """
-        Remove pose instances that has area of the corresponding bounding box less than a certain threshold.
-        This method operates in-place and modifies the caller.
-
-        :param min_rbox_area: Minimal rotated box area of the box to keep.
-        :return:              A OBBSample after filtering (caller instance).
-        """
-        area = self.rboxes_cxcywhr[..., 2:4].prod(axis=-1)
-        keep_mask = area > min_rbox_area
-        return self.filter_by_mask(keep_mask)
-
-
-@register_collate_function()
-class OrientedBoxesCollate:
-    def __call__(self, batch: List[OBBSample]):
-        from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_collate_fn import flat_collate_tensors_with_batch_index
-
-        images = []
-        all_boxes = []
-        all_labels = []
-        all_crowd_masks = []
-
-        for sample in batch:
-            images.append(torch.from_numpy(np.transpose(sample.image, [2, 0, 1])))
-            all_boxes.append(torch.from_numpy(sample.rboxes_cxcywhr))
-            all_labels.append(torch.from_numpy(sample.labels.reshape((-1, 1))))
-            all_crowd_masks.append(torch.from_numpy(sample.is_crowd.reshape((-1, 1))))
-            sample.image = None
-
-        images = torch.stack(images)
-
-        boxes = flat_collate_tensors_with_batch_index(all_boxes).float()
-        labels = flat_collate_tensors_with_batch_index(all_labels).long()
-        is_crowd = flat_collate_tensors_with_batch_index(all_crowd_masks)
-
-        extras = {"gt_samples": batch}
-        return images, (boxes, labels, is_crowd), extras
+__all__ = ["DOTAOBBDataset"]
 
 
 @register_dataset()
@@ -147,6 +24,7 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
         class_names: Iterable[str],
         ignore_empty_annotations: bool = False,
         difficult_labels_are_crowd: bool = False,
+        images_ext: str = ".jpg",
         images_subdir="images",
         ann_subdir="ann-obb",
     ):
@@ -154,7 +32,7 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
 
         images_dir = Path(data_dir) / images_subdir
         ann_dir = Path(data_dir) / ann_subdir
-        images, labels = self.find_images_and_labels(images_dir, ann_dir)
+        images, labels = self.find_images_and_labels(images_dir, ann_dir, images_ext)
         self.images = []
         self.coords = []
         self.classes = []
@@ -221,18 +99,22 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
         :param poly: Input polygon in [N,2] format
         :return: Rotated box in CXCYWHR format
         """
-        rect = cv2.minAreaRect(poly)
+        hull = cv2.convexHull(np.reshape(poly, [-1, 2]))
+        rect = cv2.minAreaRect(hull)
         cx, cy = rect[0]
         w, h = rect[1]
         angle = rect[2]
+        if angle == 0:
+            w, h = h, w
+            angle -= 90
         return cx, cy, w, h, np.deg2rad(angle)
 
     @classmethod
-    def find_images_and_labels(cls, images_dir, ann_dir):
+    def find_images_and_labels(cls, images_dir, ann_dir, images_ext):
         images_dir = Path(images_dir)
         ann_dir = Path(ann_dir)
 
-        images = list(images_dir.glob("*.png"))
+        images = list(images_dir.glob(f"*{images_ext}"))
         labels = list(sorted(ann_dir.glob("*.txt")))
 
         if len(images) != len(labels):
@@ -240,7 +122,7 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
 
         images = []
         for label_path in labels:
-            image_path = images_dir / (label_path.stem + ".png")
+            image_path = images_dir / (label_path.stem + images_ext)
             if not image_path.exists():
                 raise ValueError(f"Image {image_path} does not exist")
             images.append(image_path)
@@ -268,7 +150,7 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
         return np.array(coords, dtype=np.float32).reshape(-1, 4, 2), np.array(classes, dtype=np.object_), np.array(difficult, dtype=int)
 
     @classmethod
-    def chip_image(cls, img, coords, classes, difficult, tile_size, tile_step, min_visibility=0.4, min_area=4):
+    def chip_image(cls, img, coords, classes, difficult, tile_size: Tuple[int, int], tile_step: Tuple[int, int], min_visibility: float, min_area: int):
         """
         Chip an image and get relative coordinates and classes.  Bounding boxes that pass into
         multiple chips are clipped: each portion that is in a chip is labeled. For example,
@@ -289,19 +171,17 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
         tile_size_width, tile_size_height = tile_size
         tile_step_width, tile_step_height = tile_step
 
-        images = []
+        total_images = []
         total_boxes = []
         total_classes = []
         total_difficult = []
-        k = 0
 
         start_x = 0
         end_x = start_x + tile_size_width
 
         all_areas = np.array(list(cv2.contourArea(cv2.convexHull(poly)) for poly in coords), dtype=np.float32)
 
-        bboxes_min_point = np.min(coords, axis=1)
-        bboxes_max_point = np.max(coords, axis=1)
+        centers = np.mean(coords, axis=1)  # [N,2]
 
         while start_x < width:
             start_y = 0
@@ -309,60 +189,57 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
             while start_y < height:
                 chip = img[start_y:end_y, start_x:end_x, :3]
 
-                # Filter out boxes that whose bounding box is definitely not in the chip
-                outside_mask = np.logical_or(
-                    np.any(bboxes_max_point < [start_x, start_y], axis=1),
-                    np.any(bboxes_min_point > [end_x, end_y], axis=1),
-                )
+                # Skipping thin strips that are not useful
+                # For instance, if image is 1030px wide and our tile size is 1024, that would end up with
+                # two tiles of [1024, 1024] and [1024, 6] which is not useful at all
+                if chip.shape[0] > 8 or chip.shape[1] > 8:
 
-                visibility_mask = ~outside_mask
+                    # Filter out boxes that whose bounding box is definitely not in the chip
+                    offset = np.array([start_x, start_y], dtype=np.float32)
+                    boxes_with_offset = coords - offset.reshape(1, 1, 2)
+                    centers_with_offset = centers - offset.reshape(1, 2)
 
-                visible_coords = coords[visibility_mask]
-                visible_classes = classes[visibility_mask]
-                visible_difficult = difficult[visibility_mask]
-                visible_areas = all_areas[visibility_mask]
+                    cond1 = (centers_with_offset >= 0).all(axis=1)
+                    cond2 = (centers_with_offset[:, 0] < chip.shape[1]) & (centers_with_offset[:, 1] < chip.shape[0])
+                    rboxes_inside_chip = cond1 & cond2
 
-                out = np.stack(
-                    (
-                        visible_coords[:, :, 0] - start_x,
-                        visible_coords[:, :, 1] - start_y,
-                    ),
-                    axis=2,
-                )
+                    visible_coords = boxes_with_offset[rboxes_inside_chip]
+                    visible_classes = classes[rboxes_inside_chip]
+                    visible_difficult = difficult[rboxes_inside_chip]
+                    visible_areas = all_areas[rboxes_inside_chip]
 
-                out_clipped = np.stack(
-                    (
-                        np.clip(visible_coords[:, :, 0] - start_x, 0, chip.shape[1]),
-                        np.clip(visible_coords[:, :, 1] - start_y, 0, chip.shape[0]),
-                    ),
-                    axis=2,
-                )
-                areas_clipped = np.array(list(cv2.contourArea(cv2.convexHull(c)) for c in out_clipped), dtype=np.float32)
-
-                visibility_fraction = areas_clipped / (visible_areas + 1e-6)
-                visibility_mask = visibility_fraction >= min_visibility
-                min_area_mask = areas_clipped >= min_area
-
-                out = out[visibility_mask & min_area_mask]
-                visible_classes = visible_classes[visibility_mask & min_area_mask]
-                visible_difficult = visible_difficult[visibility_mask & min_area_mask]
-
-                total_boxes.append(out)
-                total_classes.append(visible_classes)
-                total_difficult.append(visible_difficult)
-
-                if chip.shape[0] < tile_size_height or chip.shape[1] < tile_size_width:
-                    chip = cv2.copyMakeBorder(
-                        chip,
-                        top=0,
-                        left=0,
-                        bottom=tile_size_height - chip.shape[0],
-                        right=tile_size_width - chip.shape[1],
-                        value=0,
-                        borderType=cv2.BORDER_CONSTANT,
+                    out_clipped = np.stack(
+                        (
+                            np.clip(visible_coords[:, :, 0], 0, chip.shape[1]),
+                            np.clip(visible_coords[:, :, 1], 0, chip.shape[0]),
+                        ),
+                        axis=2,
                     )
-                images.append(chip)
-                k = k + 1
+                    areas_clipped = np.array(list(cv2.contourArea(cv2.convexHull(c)) for c in out_clipped), dtype=np.float32)
+
+                    visibility_fraction = areas_clipped / (visible_areas + 1e-6)
+                    visibility_mask = visibility_fraction >= min_visibility
+                    min_area_mask = areas_clipped >= min_area
+
+                    visible_coords = visible_coords[visibility_mask & min_area_mask]
+                    visible_classes = visible_classes[visibility_mask & min_area_mask]
+                    visible_difficult = visible_difficult[visibility_mask & min_area_mask]
+
+                    total_boxes.append(visible_coords)
+                    total_classes.append(visible_classes)
+                    total_difficult.append(visible_difficult)
+
+                    if chip.shape[0] < tile_size_height or chip.shape[1] < tile_size_width:
+                        chip = cv2.copyMakeBorder(
+                            chip,
+                            top=0,
+                            left=0,
+                            bottom=tile_size_height - chip.shape[0],
+                            right=tile_size_width - chip.shape[1],
+                            value=0,
+                            borderType=cv2.BORDER_CONSTANT,
+                        )
+                    total_images.append(chip)
 
                 start_y += tile_step_height
                 end_y += tile_step_height
@@ -370,16 +247,26 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
             start_x += tile_step_width
             end_x += tile_step_width
 
-        return images, total_boxes, total_classes, total_difficult
+        return total_images, total_boxes, total_classes, total_difficult
 
     @classmethod
     def slice_dataset_into_tiles(
-        cls, data_dir, output_dir, ann_subdir_name, tile_size: int, tile_step: int, scale_factors: Tuple, min_visibility, min_area, num_workers: int
+        cls,
+        data_dir,
+        output_dir,
+        ann_subdir_name,
+        tile_size: int,
+        tile_step: int,
+        scale_factors: Tuple,
+        min_visibility,
+        min_area,
+        num_workers: int,
+        output_image_ext=".jpg",
     ):
         data_dir = Path(data_dir)
         input_images_dir = data_dir / "images"
         input_ann_dir = data_dir / ann_subdir_name
-        images, labels = cls.find_images_and_labels(input_images_dir, input_ann_dir)
+        images, labels = cls.find_images_and_labels(input_images_dir, input_ann_dir, ".png")
 
         output_dir = Path(output_dir)
         output_images_dir = output_dir / "images"
@@ -399,12 +286,13 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
                 min_area=min_area,
                 output_images_dir=output_images_dir,
                 output_ann_dir=output_ann_dir,
+                output_image_ext=output_image_ext,
             )
             for _ in tqdm(wp.imap_unordered(worker_fn, payload), total=len(payload)):
                 pass
 
     @classmethod
-    def _worker_fn(cls, args, tile_size, tile_step, min_visibility, min_area, output_images_dir, output_ann_dir):
+    def _worker_fn(cls, args, tile_size, tile_step, min_visibility, min_area, output_images_dir, output_ann_dir, output_image_ext):
         image_path, ann_path, scale = args
         image = cv2.imread(str(image_path))
         coords, classes, difficult = cls.parse_annotation_file(ann_path)
@@ -428,7 +316,7 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
             tile_classes = total_classes[i]
             tile_difficult = total_difficult[i]
 
-            tile_image_path = output_images_dir / f"{ann_path.stem}_{scale:.3f}_{i:06d}.png"
+            tile_image_path = output_images_dir / f"{ann_path.stem}_{scale:.3f}_{i:06d}{output_image_ext}"
             tile_label_path = output_ann_dir / f"{ann_path.stem}_{scale:.3f}_{i:06d}.txt"
 
             with tile_label_path.open("w") as f:

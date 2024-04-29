@@ -25,7 +25,7 @@ def main():
         tile_size=1024,
         tile_step=512,
         scale_factors=(0.75, 1, 1.25),
-        min_visibility=0.5,
+        min_visibility=0.4,
         min_area=8,
         num_workers=args.num_workers,
     )
@@ -37,7 +37,7 @@ def main():
         tile_size=1024,
         tile_step=1024,
         scale_factors=(1,),
-        min_visibility=0.5,
+        min_visibility=0.4,
         min_area=8,
         num_workers=args.num_workers,
     )
