@@ -75,7 +75,7 @@ def main(
         image_name = os.path.basename(image_path)
         image_name_no_ext = os.path.splitext(image_name)[0]
         predictions_result = pipeline(image_path)
-        predictions_result.save(os.path.join(visualizations_dir, image_name))
+        # predictions_result.save(os.path.join(visualizations_dir, image_name))
         data = predictions_result.prediction
 
         print(f"Predictions for {image_name} - {len(data.labels)} objects")
