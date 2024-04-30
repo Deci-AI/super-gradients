@@ -1,4 +1,5 @@
 import copy
+from functools import lru_cache
 from typing import Union, Optional, Tuple, Any
 
 import torch
@@ -12,8 +13,10 @@ from super_gradients.module_interfaces import AbstractPoseEstimationDecodingModu
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback import YoloNASRPostPredictionCallback
-from super_gradients.training.processing.processing import Processing
+from super_gradients.training.pipelines import OBBDetectionPipeline
+from super_gradients.training.processing import Processing, ComposeProcessing, OBBDetectionAutoPadding
 from super_gradients.training.utils import get_param
+from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.utils import HpmStruct
 from torch import Tensor
 
@@ -121,126 +124,125 @@ class YoloNASR(CustomizableDetector, SupportsInputShapeCheck):
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractPoseEstimationDecodingModule:
         return YoloNASRDecodingModule(num_pre_nms_predictions)
 
-    # def predict(
-    #     self,
-    #     images: ImageSource,
-    #     iou: Optional[float] = None,
-    #     conf: Optional[float] = None,
-    #     pre_nms_max_predictions: Optional[int] = None,
-    #     post_nms_max_predictions: Optional[int] = None,
-    #     batch_size: int = 32,
-    #     fuse_model: bool = True,
-    #     skip_image_resizing: bool = False,
-    #     fp16: bool = True,
-    # ) -> PoseEstimationPrediction:
-    #     """Predict an image or a list of images.
-    #
-    #     :param images:     Images to predict.
-    #     :param iou:        (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-    #     :param conf:       (Optional) Below the confidence threshold, prediction are discarded.
-    #                        If None, the default value associated to the training is used.
-    #     :param batch_size: Maximum number of images to process at the same time.
-    #     :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
-    #     :param skip_image_resizing: If True, the image processor will not resize the images.
-    #     :param fp16:       If True, use mixed precision for inference.
-    #     """
-    #     pipeline = self._get_pipeline(
-    #         iou=iou,
-    #         conf=conf,
-    #         pre_nms_max_predictions=pre_nms_max_predictions,
-    #         post_nms_max_predictions=post_nms_max_predictions,
-    #         fuse_model=fuse_model,
-    #         skip_image_resizing=skip_image_resizing,
-    #         fp16=fp16,
-    #     )
-    #     return pipeline(images, batch_size=batch_size)  # type: ignore
-    #
-    # def predict_webcam(
-    #     self,
-    #     iou: Optional[float] = None,
-    #     conf: Optional[float] = None,
-    #     pre_nms_max_predictions: Optional[int] = None,
-    #     post_nms_max_predictions: Optional[int] = None,
-    #     batch_size: int = 32,
-    #     fuse_model: bool = True,
-    #     skip_image_resizing: bool = False,
-    #     fp16: bool = True,
-    # ):
-    #     """Predict using webcam.
-    #
-    #     :param iou:        (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-    #     :param conf:       (Optional) Below the confidence threshold, prediction are discarded.
-    #                        If None, the default value associated to the training is used.
-    #     :param batch_size: Maximum number of images to process at the same time.
-    #     :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
-    #     :param skip_image_resizing: If True, the image processor will not resize the images.
-    #     :param fp16:       If True, use mixed precision for inference.
-    #
-    #     """
-    #     pipeline = self._get_pipeline(
-    #         iou=iou,
-    #         conf=conf,
-    #         pre_nms_max_predictions=pre_nms_max_predictions,
-    #         post_nms_max_predictions=post_nms_max_predictions,
-    #         fuse_model=fuse_model,
-    #         skip_image_resizing=skip_image_resizing,
-    #         fp16=fp16,
-    #     )
-    #     pipeline.predict_webcam()
-    #
-    # def _get_pipeline(
-    #     self,
-    #     iou: Optional[float] = None,
-    #     conf: Optional[float] = None,
-    #     pre_nms_max_predictions: Optional[int] = None,
-    #     post_nms_max_predictions: Optional[int] = None,
-    #     fuse_model: bool = True,
-    #     skip_image_resizing: bool = False,
-    #     fp16: bool = True,
-    # ) -> PoseEstimationPipeline:
-    #     """Instantiate the prediction pipeline of this model.
-    #
-    #     :param iou:        (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-    #     :param conf:       (Optional) Below the confidence threshold, prediction are discarded.
-    #                        If None, the default value associated to the training is used.
-    #     :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
-    #     :param skip_image_resizing: If True, the image processor will not resize the images.
-    #     :param fp16:       If True, use mixed precision for inference.
-    #     """
-    #     if None in (self._image_processor, self._default_nms_iou, self._default_nms_conf, self._edge_links):
-    #         raise RuntimeError(
-    #             "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
-    #         )
-    #
-    #     iou = iou or self._default_nms_iou
-    #     conf = conf or self._default_nms_conf
-    #     pre_nms_max_predictions = pre_nms_max_predictions or self._default_pre_nms_max_predictions
-    #     post_nms_max_predictions = post_nms_max_predictions or self._default_post_nms_max_predictions
-    #
-    #     # Ensure that the image size is divisible by 32.
-    #     if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
-    #         image_processor = self._image_processor.get_equivalent_compose_without_resizing(
-    #             auto_padding=KeypointsAutoPadding(shape_multiple=(32, 32), pad_value=0)
-    #         )
-    #     else:
-    #         image_processor = self._image_processor
-    #
-    #     pipeline = PoseEstimationPipeline(
-    #         model=self,
-    #         image_processor=image_processor,
-    #         post_prediction_callback=self.get_post_prediction_callback(
-    #             iou=iou,
-    #             conf=conf,
-    #             pre_nms_max_predictions=pre_nms_max_predictions,
-    #             post_nms_max_predictions=post_nms_max_predictions,
-    #         ),
-    #         fuse_model=fuse_model,
-    #         edge_links=self._edge_links,
-    #         edge_colors=self._edge_colors,
-    #         keypoint_colors=self._keypoint_colors,
-    #         fp16=fp16,
-    #     )
-    #     return pipeline
+    def predict(
+        self,
+        images: ImageSource,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+        pre_nms_max_predictions: Optional[int] = None,
+        post_nms_max_predictions: Optional[int] = None,
+        batch_size: int = 32,
+        fuse_model: bool = True,
+        skip_image_resizing: bool = False,
+        fp16: bool = True,
+    ):
+        """Predict an image or a list of images.
+
+        :param images:     Images to predict.
+        :param iou:        (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:       (Optional) Below the confidence threshold, prediction are discarded.
+                           If None, the default value associated to the training is used.
+        :param batch_size: Maximum number of images to process at the same time.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
+        :param fp16:       If True, use mixed precision for inference.
+        """
+        pipeline = self._get_pipeline(
+            iou=iou,
+            conf=conf,
+            pre_nms_max_predictions=pre_nms_max_predictions,
+            post_nms_max_predictions=post_nms_max_predictions,
+            fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
+            fp16=fp16,
+        )
+        return pipeline(images, batch_size=batch_size)  # type: ignore
+
+    def predict_webcam(
+        self,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+        pre_nms_max_predictions: Optional[int] = None,
+        post_nms_max_predictions: Optional[int] = None,
+        batch_size: int = 32,
+        fuse_model: bool = True,
+        skip_image_resizing: bool = False,
+        fp16: bool = True,
+    ):
+        """Predict using webcam.
+
+        :param iou:        (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:       (Optional) Below the confidence threshold, prediction are discarded.
+                           If None, the default value associated to the training is used.
+        :param batch_size: Maximum number of images to process at the same time.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
+        :param fp16:       If True, use mixed precision for inference.
+
+        """
+        pipeline = self._get_pipeline(
+            iou=iou,
+            conf=conf,
+            pre_nms_max_predictions=pre_nms_max_predictions,
+            post_nms_max_predictions=post_nms_max_predictions,
+            fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
+            fp16=fp16,
+        )
+        pipeline.predict_webcam()
+
+    @lru_cache(1)
+    def _get_pipeline(
+        self,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+        pre_nms_max_predictions: Optional[int] = None,
+        post_nms_max_predictions: Optional[int] = None,
+        fuse_model: bool = True,
+        skip_image_resizing: bool = False,
+        fp16: bool = True,
+    ) -> OBBDetectionPipeline:
+        """Instantiate the prediction pipeline of this model.
+
+        :param iou:        (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:       (Optional) Below the confidence threshold, prediction are discarded.
+                           If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
+        :param fp16:       If True, use mixed precision for inference.
+        """
+        if None in (self._image_processor, self._class_names, self._default_nms_iou, self._default_nms_conf):
+            raise RuntimeError(
+                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
+            )
+
+        iou = iou or self._default_nms_iou
+        conf = conf or self._default_nms_conf
+        pre_nms_max_predictions = pre_nms_max_predictions or self._default_pre_nms_max_predictions
+        post_nms_max_predictions = post_nms_max_predictions or self._default_post_nms_max_predictions
+
+        # Ensure that the image size is divisible by 32.
+        if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = self._image_processor.get_equivalent_compose_without_resizing(
+                auto_padding=OBBDetectionAutoPadding(shape_multiple=(32, 32), pad_value=0)
+            )
+        else:
+            image_processor = self._image_processor
+
+        pipeline = OBBDetectionPipeline(
+            model=self,
+            class_names=self._class_names,
+            image_processor=image_processor,
+            post_prediction_callback=self.get_post_prediction_callback(
+                iou=iou,
+                conf=conf,
+                pre_nms_max_predictions=pre_nms_max_predictions,
+                post_nms_max_predictions=post_nms_max_predictions,
+            ),
+            fuse_model=fuse_model,
+            fp16=fp16,
+        )
+        return pipeline
 
     @classmethod
     def get_post_prediction_callback(
@@ -262,6 +264,7 @@ class YoloNASR(CustomizableDetector, SupportsInputShapeCheck):
     def set_dataset_processing_params(
         self,
         image_processor: Optional[Processing] = None,
+        class_names=None,
         conf: Optional[float] = None,
         iou: Optional[float] = 0.7,
         pre_nms_max_predictions=300,
@@ -273,6 +276,7 @@ class YoloNASR(CustomizableDetector, SupportsInputShapeCheck):
         :param conf:            (Optional) Below the confidence threshold, prediction are discarded
         """
         self._image_processor = image_processor or self._image_processor
+        self._class_names = list(class_names) if class_names is not None else self._class_names
         self._default_nms_conf = conf or self._default_nms_conf
         self._default_nms_iou = iou or self._default_nms_iou
         self._default_pre_nms_max_predictions = pre_nms_max_predictions or self._default_pre_nms_max_predictions

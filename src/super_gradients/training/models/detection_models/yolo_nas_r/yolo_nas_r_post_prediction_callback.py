@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union, Tuple
 
 import torch
 from super_gradients.module_interfaces.obb_predictions import OBBPredictions, AbstractOBBPostPredictionCallback
@@ -90,7 +90,7 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
         self.output_device = output_device
 
     @torch.no_grad()
-    def __call__(self, outputs: YoloNASRLogits) -> List[OBBPredictions]:
+    def __call__(self, outputs: Union[Tuple[Tensor, Tensor], YoloNASRLogits]) -> List[OBBPredictions]:
         """
         Take YoloNASPose's predictions and decode them into usable pose predictions.
 
@@ -98,13 +98,18 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
         :return:        List of decoded predictions for each image in the batch.
         """
         # First is model predictions, second element of tuple is logits for loss computation
-        predictions = outputs.as_decoded()
+        if isinstance(outputs, YoloNASRLogits):
+            predictions = outputs.as_decoded()
+            boxes = predictions.boxes_cxcywhr
+            scores = predictions.scores
+        else:
+            boxes, scores = outputs
 
         decoded_predictions: List[OBBPredictions] = []
         for (
             pred_rboxes,
             pred_scores,
-        ) in zip(predictions.boxes_cxcywhr, predictions.scores):
+        ) in zip(boxes, scores):
             # pred_rboxes [Anchors, 5] in CXCYWHR format
             # pred_scores [Anchors, C] confidence scores [0..1]
             if self.output_device is not None:

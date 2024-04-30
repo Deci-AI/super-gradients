@@ -44,7 +44,7 @@ def _rescale_image_with_pil(image: np.ndarray, target_shape: Tuple[int, int]) ->
 
 def _rescale_bboxes(targets: np.ndarray, scale_factors: Tuple[float, float]) -> np.ndarray:
     """Rescale bboxes to given scale factors, without preserving aspect ratio.
-    This function supports both xyxy and xywh bboxes.
+    This function supports both XYXY, XYWH and CXCYWHR box formats.
 
     :param targets:         Targets to rescale (N, 4+), where target[:, :4] is the bounding box coordinates.
     :param scale_factors:   Tuple of (scale_factor_h, scale_factor_w) scale factors to rescale to.
