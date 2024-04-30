@@ -84,12 +84,14 @@ def cxcywhr_iou(obb1, obb2, CIoU=False, eps=1e-5):
     t2 = (((c1 + c2) * (x2 - x1) * (y1 - y2)) / ((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2) + eps)) * 0.5
     t3 = (((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2)) / (4 * ((a1 * b1 - c1.pow(2)).clamp_(0) * (a2 * b2 - c2.pow(2)).clamp_(0)).sqrt() + eps) + eps).log() * 0.5
 
-    bd = (t1 + t2 + t3).clamp(eps, 10.0)
+    bd = (t1 + t2 + t3).clamp(eps, 100.0)
     hd = (1.0 - (-bd).exp() + eps).sqrt()
     iou = 1 - hd
 
     if CIoU:  # only include the wh aspect ratio part
-        v = (4 / math.pi**2) * ((w2 / h2).atan() - (w1 / h1).atan()).pow(2)
+        # v_o = (4 / math.pi**2) * ((w2 / h2).atan() - (w1 / h1).atan()).pow(2)
+        v = (4 / math.pi**2) * (torch.atan2(h2, w2) - torch.atan2(h1, w1)).pow(2)
+
         with torch.no_grad():
             alpha = v / (v - iou + (1 + eps))
         return iou - v * alpha  # CIoU
@@ -454,55 +456,6 @@ class YoloNASRLoss(nn.Module):
         loss_right = torch.nn.functional.cross_entropy(pred_dist, target_right, reduction="none") * weight_right
         return (loss_left + loss_right).mean(dim=-1, keepdim=True)
 
-    def _rbox_loss(
-        self, pred_dist, pred_bboxes, pred_offsets, strides, anchor_points, assign_result: YoloNASRAssignmentResult, reg_max: int, bg_class_index: int
-    ):
-        # select positive samples mask that are not crowd and not background
-        # loss ALWAYS respect the crowd targets by excluding them from contributing to the loss
-        # if you want to train WITH crowd targets, mark them as non-crowd on dataset level
-        # if you want to train WITH crowd targets, mark them as non-crowd on dataset level
-        mask_positive = (assign_result.assigned_labels != bg_class_index) * assign_result.assigned_crowd.eq(0)
-        num_pos = mask_positive.sum()
-
-        # pos/neg loss
-        if num_pos > 0:
-            rbox_mask = mask_positive.unsqueeze(-1).tile([1, 1, 5])
-            size_mask = mask_positive.unsqueeze(-1).tile([1, 1, 2])
-
-            pred_bboxes_pos = torch.masked_select(pred_bboxes, rbox_mask).reshape([-1, 5])
-            assigned_bboxes_pos = torch.masked_select(assign_result.assigned_rboxes, rbox_mask).reshape([-1, 5])
-
-            bbox_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).unsqueeze(-1)
-
-            iou = cxcywhr_iou(pred_bboxes_pos, assigned_bboxes_pos, CIoU=False)
-            loss_iou = 1 - iou
-            loss_iou = (loss_iou * bbox_weight.squeeze(-1)).sum()
-
-            dist_mask = mask_positive.unsqueeze(-1).tile([1, 1, (reg_max + 1) * 2])
-            pred_dist_pos = torch.masked_select(pred_dist, dist_mask).reshape([-1, 2, reg_max + 1])
-
-            assigned_wh_dfl_targets = self._rbox2distance(assign_result.assigned_rboxes, strides, reg_max)
-            assigned_wh_dfl_targets_pos = torch.masked_select(assigned_wh_dfl_targets, size_mask).reshape([-1, 2])
-            loss_dfl = self._df_loss(pred_dist_pos, assigned_wh_dfl_targets_pos)
-            loss_dfl = (loss_dfl * bbox_weight).sum()
-
-            assigned_wh_pos = assigned_bboxes_pos[..., 2:4]
-            pred_wh_pos = pred_bboxes_pos[..., 2:4]
-            loss_l1_size = torch.nn.functional.smooth_l1_loss(pred_wh_pos, assigned_wh_pos, reduction="none")
-            loss_l1_size = (loss_l1_size.mean(dim=-1, keepdim=True) * bbox_weight).sum()
-
-            assigned_cxcy_pos = assigned_bboxes_pos[..., 0:2]
-            pred_centers_pos = pred_bboxes_pos[..., 0:2]
-            loss_l1_centers = torch.nn.functional.smooth_l1_loss(pred_centers_pos, assigned_cxcy_pos, reduction="none")
-            loss_l1_centers = (loss_l1_centers.mean(dim=-1, keepdim=True) * bbox_weight).sum()
-        else:
-            loss_iou = torch.zeros([], device=pred_bboxes.device)
-            loss_dfl = torch.zeros([], device=pred_bboxes.device)
-            loss_l1_centers = torch.zeros([], device=pred_bboxes.device)
-            loss_l1_size = torch.zeros([], device=pred_bboxes.device)
-
-        return loss_iou, loss_dfl, loss_l1_centers, loss_l1_size
-
     def _rbox_loss_v2(
         self, pred_dist, pred_bboxes, pred_offsets, strides, anchor_points, assign_result: YoloNASRAssignmentResult, reg_max: int, bg_class_index: int
     ):
@@ -519,18 +472,27 @@ class YoloNASRLoss(nn.Module):
         loss_iou = (loss_iou * bbox_weight).sum(dtype=torch.float32)
 
         # DFL
-        assigned_wh_dfl_targets = self._rbox2distance(assign_result.assigned_rboxes, strides, reg_max)
-        pred_dist = pred_dist.reshape([bs, -1, 2, reg_max + 1])
-        loss_dfl = self._df_loss(pred_dist, assigned_wh_dfl_targets)
-        loss_dfl = (loss_dfl.squeeze(-1) * bbox_weight).sum(dtype=torch.float32)
+        if self.dfl_loss_weight > 0:
+            assigned_wh_dfl_targets = self._rbox2distance(assign_result.assigned_rboxes, strides, reg_max)
+            pred_dist = pred_dist.reshape([bs, -1, 2, reg_max + 1])
+            loss_dfl = self._df_loss(pred_dist, assigned_wh_dfl_targets)
+            loss_dfl = (loss_dfl.squeeze(-1) * bbox_weight).sum(dtype=torch.float32)
+        else:
+            loss_dfl = 0
 
         # L1 Size
-        loss_l1_size = torch.nn.functional.smooth_l1_loss(pred_bboxes[..., 2:4], assign_result.assigned_rboxes[..., 2:4], reduction="none")
-        loss_l1_size = (loss_l1_size.mean(dim=-1, keepdim=False) * bbox_weight).sum(dtype=torch.float32)
+        if self.size_loss_weight > 0:
+            loss_l1_size = torch.nn.functional.smooth_l1_loss(pred_bboxes[..., 2:4], assign_result.assigned_rboxes[..., 2:4], reduction="none")
+            loss_l1_size = (loss_l1_size.mean(dim=-1, keepdim=False) * bbox_weight).sum(dtype=torch.float32)
+        else:
+            loss_l1_size = 0
 
         # L1 Centers
-        loss_l1_centers = torch.nn.functional.smooth_l1_loss(pred_bboxes[..., 0:2], assign_result.assigned_rboxes[..., 0:2], reduction="none")
-        loss_l1_centers = (loss_l1_centers.mean(dim=-1, keepdim=False) * bbox_weight).sum(dtype=torch.float32)
+        if self.centers_loss_weight > 0:
+            loss_l1_centers = torch.nn.functional.smooth_l1_loss(pred_bboxes[..., 0:2], assign_result.assigned_rboxes[..., 0:2], reduction="none")
+            loss_l1_centers = (loss_l1_centers.mean(dim=-1, keepdim=False) * bbox_weight).sum(dtype=torch.float32)
+        else:
+            loss_l1_centers = 0
 
         return loss_iou, loss_dfl, loss_l1_centers, loss_l1_size
 

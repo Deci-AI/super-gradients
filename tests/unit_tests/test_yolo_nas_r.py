@@ -81,6 +81,36 @@ class TestYoloNasR(unittest.TestCase):
         print(f"Min H: {min_h} Min W: {min_w} Max H: {max_h} Max W: {max_w}")
         print(f"Min CX: {mincx} Min CY: {mincy} Max CX: {maxcx} Max CY: {maxcy}")
 
+    def test_cxcywhr_iou_convergence_no_l1(self):
+        x = torch.tensor([[9, 11, 10, 10, 0]]).float()
+        x = torch.nn.Parameter(x)
+
+        y = torch.tensor([[100, 128, 156, 64, 1]])
+        optimizer = torch.optim.Adam([x], lr=0.1)
+
+        for _ in range(40):
+            for _ in range(50):
+                optimizer.zero_grad()
+                iou_loss = 1 - cxcywhr_iou(x, y, CIoU=True)
+                loss = iou_loss
+                loss.backward()
+                optimizer.step()
+
+            image = np.zeros((256, 256, 3), dtype=np.uint8)
+            image = OBBVisualization.draw_obb(
+                image,
+                np.concatenate([x.detach().cpu().numpy(), y.detach().cpu().numpy()], axis=0),
+                None,
+                np.array([0, 1]),
+                ["Pred", "True"],
+                [(0, 255, 0), (255, 0, 0)],
+            )
+            plt.figure()
+            plt.imshow(image)
+            plt.title(f"IOU: {cxcywhr_iou(x, y).item()} LOSS: {loss.item():.2f}")
+            plt.tight_layout()
+            plt.show()
+
     def test_cxcywhr_iou_convergence(self):
         x = torch.tensor([[9, 11, 10, 10, 0]]).float()
         x = torch.nn.Parameter(x)
