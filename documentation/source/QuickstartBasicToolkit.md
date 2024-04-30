@@ -18,14 +18,7 @@ from super_gradients.training.dataloaders.dataloaders import cifar10_train, cifa
 from super_gradients.training.utils.distributed_training_utils import setup_device
 ```
 
-
-1. Call `init_trainer()` to initialize the super_gradients environment. This should be the first thing to be called by any code running super_gradients:
-
-```python
-init_trainer()
-```
-
-2. Call <a href="device.md">setup_device()</a> according to your available hardware and needs. For example, if you want the training to be performed entirely on the CPU:
+1. Call <a href="device.md">setup_device()</a> according to your available hardware and needs. For example, if you want the training to be performed entirely on the CPU:
 
 ```python
 setup_device("cpu")
@@ -43,19 +36,19 @@ setup_device(num_gpus=-1)
 
 ```
 
-3. Instantiate a Trainer object:
+2. Instantiate a Trainer object:
 
 ```python
 trainer = Trainer(experiment_name="my_cifar_experiment", ckpt_root_dir="/path/to/checkpoints_directory/")
 ```
 
-4. <a href="models.md">Instantiate a model</a>:
+3. <a href="models.md">Instantiate a model</a>:
 
 ```python
 model = models.get(Models.RESNET18, num_classes=10)
 ```
 
-5. Define <a href="Metrics.md">metrics</a> and other <a href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml">training parameters</a>:
+4. Define <a href="Metrics.md">metrics</a> and other <a href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml">training parameters</a>:
 
 ```python
 training_params = {
@@ -69,14 +62,14 @@ training_params = {
 }
 ```
 
-6. Instantiate <a href="https://pytorch.org/tutorials/beginner/basics/data_tutorial.html#preparing-your-data-for-training-with-dataloaders">PyTorch data loaders</a> for training and validation:
+5. Instantiate <a href="https://pytorch.org/tutorials/beginner/basics/data_tutorial.html#preparing-your-data-for-training-with-dataloaders">PyTorch data loaders</a> for training and validation:
 
 ```python
 train_loader = cifar10_train()
 valid_loader = cifar10_val()
 ```
 
-7. Launch training:
+6. Launch training:
 
 ```python
 trainer.train(model=model, training_params=training_params, train_loader=train_loader, valid_loader=valid_loader)
@@ -97,13 +90,7 @@ from super_gradients.training.dataloaders.dataloaders import cifar10_val
 from super_gradients.training.utils.distributed_training_utils import setup_device
 ```
 
-1. Call `init_trainer()` to initialize the super_gradients environment. This should be the first thing to be called by any code running super_gradients:
-
-```python
-init_trainer()
-```
-
-2. Call <a href="device.md">setup_device()</a> according to your available hardware and needs. For example, if you want the test to be performed entirely on the CPU:
+1. Call <a href="device.md">setup_device()</a> according to your available hardware and needs. For example, if you want the test to be performed entirely on the CPU:
 
 ```python
 setup_device("cpu")
@@ -121,31 +108,31 @@ It is also possible to launch the test with whatever available hardware there is
 setup_device(num_gpus=-1)
 ```
 
-3. Instantiate a Trainer object:
+2. Instantiate a Trainer object:
 
 ```python
 trainer = Trainer(experiment_name="test_my_cifar_experiment", ckpt_root_dir="/path/to/checkpoints_directory/")
 ```
 
-4. <a href="models.md">Instantiate a model</a> and load weights to it. Learn more about the different options for loading model weights from our <a href="Checkpoints.md">checkpoints tutorial</a>:
+3. <a href="models.md">Instantiate a model</a> and load weights to it. Learn more about the different options for loading model weights from our <a href="Checkpoints.md">checkpoints tutorial</a>:
 
 ```python
 model = models.get(Models.RESNET18, num_classes=10, checkpoint_path="/path/to/checkpoints_directory/my_cifar_experiment/ckpt_best.pth")
 ```
 
-5. Define <a href="Metrics.md">metrics</a> for test:
+4. Define <a href="Metrics.md">metrics</a> for test:
 
 ```python
 test_metrics = [Accuracy(), Top5()]
 ```
 
-6. Instantiate a <a href="https://pytorch.org/tutorials/beginner/basics/data_tutorial.html#preparing-your-data-for-training-with-dataloaders">PyTorch data loader</a> for testing:
+5. Instantiate a <a href="https://pytorch.org/tutorials/beginner/basics/data_tutorial.html#preparing-your-data-for-training-with-dataloaders">PyTorch data loader</a> for testing:
 
 ```python
 test_data_loader = cifar10_val()
 ```
 
-7. Launch test:
+6. Launch test:
 
 ```python
 test_results = trainer.test(model=model, test_loader=test_data_loader, test_metrics_list=test_metrics)
@@ -167,13 +154,7 @@ from super_gradients.training.dataloaders.dataloaders import cifar10_train, cifa
 from super_gradients import Trainer, init_trainer
 ```
 
-1. Call `init_trainer()` to initialize the super_gradients environment. This should be the first thing to be called by any code running super_gradients:
-
-```python
-init_trainer()
-```
-
-2. Call <a href="device.md">setup_device()</a> according to your available hardware and needs. For example, if you want the finetuning/test to be performed entirely on the CPU:
+1. Call <a href="device.md">setup_device()</a> according to your available hardware and needs. For example, if you want the finetuning/test to be performed entirely on the CPU:
 
 ```python
 setup_device("cpu")
@@ -191,7 +172,7 @@ It is also possible to launch the finetuning/test with whatever available hardwa
 setup_device(num_gpus=-1)
 ```
 
-3. Instantiate a pre-trained model from SG's <a href="http://bit.ly/3EGfKD4">model zoo</a>:
+2. Instantiate a pre-trained model from SG's <a href="http://bit.ly/3EGfKD4">model zoo</a>:
 
 ```python
 model = models.get(Models.RESNET18, num_classes=10, pretrained_weights="imagenet")
@@ -223,19 +204,14 @@ import torch
 from super_gradients.training.utils.distributed_training_utils import setup_device
 ```
 
-1. Call `init_trainer()` to initialize the super_gradients environment. This should be the first thing to be called by any code running super_gradients:
 
-```python
-init_trainer()
-```
-
-2. Call <a href="device.md">setup_device()</a> according to your available hardware and needs:
+1. Call <a href="device.md">setup_device()</a> according to your available hardware and needs:
 
 ```python
 setup_device("cpu")
 ```
 
-3. <a href="models.md">Instantiate a model</a>, load weights to it, and put it in `eval` mode:
+2. <a href="models.md">Instantiate a model</a>, load weights to it, and put it in `eval` mode:
 
 ```python
 # Load the best model that we trained
@@ -243,7 +219,7 @@ best_model = models.get(Models.RESNET18, num_classes=10, checkpoint_path="/path/
 best_model.eval()
 ```
 
-4. Create input data and preprocess it:
+3. Create input data and preprocess it:
 
 ```python
 url = "https://www.aquariumofpacific.org/images/exhibits/Magnificent_Tree_Frog_900.jpg"
@@ -257,7 +233,7 @@ transforms = T.Compose([
 input_tensor = transforms(image).unsqueeze(0).to(next(best_model.parameters()).device)
 ```
 
-5. Predict and visualize results:
+4. Predict and visualize results:
 
 ```python
 predictions = best_model(input_tensor)
