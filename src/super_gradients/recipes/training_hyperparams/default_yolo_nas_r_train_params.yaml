@@ -45,22 +45,22 @@ sync_bn: False
 # This is how you can enable visualization of predictions during training
 # A batch with the largest loss will be visualized for train and valid loaders
 # Visualization images will be logged using configured logger
-phase_callbacks:
-  - ExtremeBatchOBBVisualizationCallback:
-      loss_to_monitor: "YoloNASRLoss/loss"
-      max: True
-      freq: 1
-      enable_on_train_loader: True
-      enable_on_valid_loader: True
-      class_names: ${dataset_params.class_names}
-
-      post_prediction_callback:
-        _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
-        #output_device: cpu
-        score_threshold: 0.25
-        pre_nms_max_predictions: 4096
-        post_nms_max_predictions: 512
-        nms_iou_threshold: 0.6
+phase_callbacks: []
+#  - ExtremeBatchOBBVisualizationCallback:
+#      loss_to_monitor: "YoloNASRLoss/loss"
+#      max: True
+#      freq: 1
+#      enable_on_train_loader: True
+#      enable_on_valid_loader: True
+#      class_names: ${dataset_params.class_names}
+#
+#      post_prediction_callback:
+#        _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
+#        #output_device: cpu
+#        score_threshold: 0.25
+#        pre_nms_max_predictions: 4096
+#        post_nms_max_predictions: 512
+#        nms_iou_threshold: 0.6
 
 valid_metrics_list:
   - OBBDetectionMetrics_050:
