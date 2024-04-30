@@ -478,21 +478,21 @@ class YoloNASRLoss(nn.Module):
             loss_dfl = self._df_loss(pred_dist, assigned_wh_dfl_targets)
             loss_dfl = (loss_dfl.squeeze(-1) * bbox_weight).sum(dtype=torch.float32)
         else:
-            loss_dfl = 0
+            loss_dfl = torch.tensor([], device=pred_bboxes.device, dtype=torch.float32)
 
         # L1 Size
         if self.size_loss_weight > 0:
             loss_l1_size = torch.nn.functional.smooth_l1_loss(pred_bboxes[..., 2:4], assign_result.assigned_rboxes[..., 2:4], reduction="none")
             loss_l1_size = (loss_l1_size.mean(dim=-1, keepdim=False) * bbox_weight).sum(dtype=torch.float32)
         else:
-            loss_l1_size = 0
+            loss_l1_size = torch.tensor([], device=pred_bboxes.device, dtype=torch.float32)
 
         # L1 Centers
         if self.centers_loss_weight > 0:
             loss_l1_centers = torch.nn.functional.smooth_l1_loss(pred_bboxes[..., 0:2], assign_result.assigned_rboxes[..., 0:2], reduction="none")
             loss_l1_centers = (loss_l1_centers.mean(dim=-1, keepdim=False) * bbox_weight).sum(dtype=torch.float32)
         else:
-            loss_l1_centers = 0
+            loss_l1_centers = torch.tensor([], device=pred_bboxes.device, dtype=torch.float32)
 
         return loss_iou, loss_dfl, loss_l1_centers, loss_l1_size
 
