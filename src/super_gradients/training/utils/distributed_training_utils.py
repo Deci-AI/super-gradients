@@ -345,7 +345,6 @@ def restart_script_with_ddp(num_gpus: int = None):
         max_restarts=0,
         monitor_interval=5,
         start_method="spawn",
-        log_dir=None,
         redirects=Std.NONE,
         tee=Std.NONE,
         metrics_cfg={},
