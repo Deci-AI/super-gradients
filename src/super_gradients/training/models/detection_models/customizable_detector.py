@@ -45,6 +45,7 @@ class CustomizableDetector(HasPredict, SgModule):
         bn_momentum: Optional[float] = None,
         inplace_act: Optional[bool] = True,
         in_channels: int = 3,
+        use_sliding_window_validation: bool = True,
     ):
         """
         :param backbone:    Backbone configuration.
@@ -63,6 +64,7 @@ class CustomizableDetector(HasPredict, SgModule):
         self.bn_momentum = bn_momentum
         self.inplace_act = inplace_act
         self.in_channels = in_channels
+        self.use_sliding_window_validation = use_sliding_window_validation
         factory = det_factory.DetectionModulesFactory()
 
         # move num_classes into heads params
