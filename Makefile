@@ -65,3 +65,6 @@ YOLONASR_WANDB_PARAMS = training_hyperparams.sg_logger=wandb_sg_logger +training
 
 yolo_nas_r_tzag:
 	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r $(YOLONASR_WANDB_PARAMS) dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=8
+
+yolo_nas_r_tzag_balanced:
+	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_balanced $(YOLONASR_WANDB_PARAMS) dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=8
