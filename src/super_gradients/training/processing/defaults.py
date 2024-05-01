@@ -100,6 +100,7 @@ def default_yolo_nas_r_dota_processing_params() -> dict:
 
     image_processor = ComposeProcessing(
         [
+            ReverseImageChannels(),  # Model trained on BGR images
             OBBDetectionLongestMaxSizeRescale(output_shape=(1024, 1024)),
             OBBDetectionCenterPadding(output_shape=(1024, 1024), pad_value=114),
             StandardizeImage(max_value=255.0),
