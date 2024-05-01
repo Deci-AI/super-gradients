@@ -108,9 +108,7 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
          image_processor as returned as list of dicts to be resolved by processing factory.
         :return:
         """
-        pipeline = [Processings.ReverseImageChannels]
-        for t in self.transforms:
-            pipeline += t.get_equivalent_preprocessing()
+        pipeline = [Processings.ReverseImageChannels] + self.transforms.get_equivalent_preprocessing()
         params = dict(
             class_names=self.class_names,
             image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
