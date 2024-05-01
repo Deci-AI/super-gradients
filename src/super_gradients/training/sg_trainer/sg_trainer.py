@@ -1427,6 +1427,7 @@ class Trainer:
                 "Model averaging requires saving snapshot checkpoints to function properly. As a result, "
                 "'training_params.average_best_models' will be disabled. "
             )
+            self.training_params.average_best_models = False
 
         self.max_train_batches = self.training_params.max_train_batches
         self.max_valid_batches = self.training_params.max_valid_batches
