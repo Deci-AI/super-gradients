@@ -465,3 +465,7 @@ class Processings:
     SegmentationResize = "SegmentationResize"
     SegmentationPadShortToCropSize = "SegmentationPadShortToCropSize"
     SegmentationPadToDivisible = "SegmentationPadToDivisible"
+    OBBDetectionLongestMaxSizeRescale = "OBBDetectionLongestMaxSizeRescale"
+    OBBDetectionAutoPadding = "OBBDetectionAutoPadding"
+    OBBDetectionCenterPadding = "OBBDetectionCenterPadding"
+    OBBDetectionBottomRightPadding = "OBBDetectionBottomRightPadding"

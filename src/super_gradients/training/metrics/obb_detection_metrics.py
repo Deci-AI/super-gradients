@@ -10,7 +10,7 @@ import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.registry.registry import register_metric
 from super_gradients.module_interfaces.obb_predictions import OBBPredictions
-from super_gradients.training.datasets.obb import OBBSample
+from super_gradients.training.transforms.obb import OBBSample
 from super_gradients.training.utils import tensor_container_to_device
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
 from super_gradients.training.utils.detection_utils import (

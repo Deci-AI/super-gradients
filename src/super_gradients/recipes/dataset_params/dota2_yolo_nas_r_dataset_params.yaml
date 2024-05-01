@@ -21,41 +21,15 @@ class_names:
 
 train_dataset_params:
   data_dir: h:\DOTA\DOTA-v2.0-tiles\train # root path to coco data
-  transforms: []
   class_names: ${dataset_params.class_names}
   ignore_empty_annotations: True
-
-#    - DetectionRandomAffine:
-#        degrees: 0                    # rotation degrees, randomly sampled from [-degrees, degrees]
-#        translate: 0.25               # image translation fraction
-#        scales: [ 0.5, 1.5 ]          # random rescale range (keeps size by padding/cropping) after mosaic transform.
-#        shear: 0.0                    # shear degrees, randomly sampled from [-degrees, degrees]
-#        target_size:
-#        filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
-#        wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
-#        area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
-#        ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
-#    - DetectionRGB2BGR:
-#        prob: 0.5
-#    - DetectionHSV:
-#        prob: 0.5                       # probability to apply HSV transform
-#        hgain: 18                       # HSV transform hue gain (randomly sampled from [-hgain, hgain])
-#        sgain: 30                       # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
-#        vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
-#    - DetectionHorizontalFlip:
-#        prob: 0.5                       # probability to apply horizontal flip
-#    - DetectionMixup:
-#        input_dim:
-#        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
-#        prob: 0.5                       # probability to apply per-sample mixup
-#        flip_prob: 0.5                  # probability to apply horizontal flip
-#    - DetectionPaddedRescale:
-#        input_dim: ${dataset_params.train_dataset_params.input_dim}
-#        pad_value: 114
-#    - DetectionStandardize:
-#        max_value: 255.
-#    - DetectionTargetsFormatTransform:
-#        output_format: LABEL_CXCYWH
+  transforms:
+#    - OBBDetectionRandomRotate90:
+#        prob: 1.0
+    - OBBDetectionMixup:
+        prob: 0.5
+    - OBBDetectionStandardize:
+        max_value: 255.
 
 
 train_dataloader_params:
@@ -70,20 +44,20 @@ train_dataloader_params:
 
 val_dataset_params:
   data_dir: h:\DOTA\DOTA-v2.0-tiles\val
-  transforms: []
   class_names: ${dataset_params.class_names}
   ignore_empty_annotations: True
-#    - DetectionRGB2BGR:
-#        prob: 1
-#    - DetectionPadToSize:
-#        output_size: [640, 640]
-#        pad_value: 114
-#    - DetectionStandardize:
-#        max_value: 255.
-#    - DetectionImagePermute
-#    - DetectionTargetsFormatTransform:
-#        input_dim: [640, 640]
-#        output_format: LABEL_CXCYWH
+  transforms:
+    - OBBDetectionLongestMaxSize:
+        max_height: 1024
+        max_width: 1024
+    - OBBDetectionPadIfNeeded:
+        min_height: 1024
+        min_width: 1024
+        pad_value: 114
+        padding_mode: bottom_right
+    - OBBDetectionStandardize:
+        max_value: 255.
+
 
 val_dataloader_params:
   dataset: DOTAOBBDataset

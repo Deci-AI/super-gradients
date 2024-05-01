@@ -1,22 +1,28 @@
 import multiprocessing
+import random
+import cv2
+import numpy as np
+
 from functools import partial
 from pathlib import Path
 from typing import Tuple, Iterable
-
-import cv2
-import numpy as np
-from super_gradients.common.registry import register_dataset
-from super_gradients.dataset_interfaces import HasClassesInformation
-from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from .sample import OBBSample
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.object_names import Processings
+from super_gradients.common.registry import register_dataset
+from super_gradients.dataset_interfaces import HasClassesInformation
+from super_gradients.training.transforms import OBBDetectionCompose
+from super_gradients.training.transforms.obb import OBBSample
+from torch.utils.data import Dataset
+from super_gradients.common.factories.transforms_factory import TransformsFactory
 
 __all__ = ["DOTAOBBDataset"]
 
 
 @register_dataset()
 class DOTAOBBDataset(Dataset, HasClassesInformation):
+    @resolve_param("transforms", TransformsFactory())
     def __init__(
         self,
         data_dir,
@@ -37,7 +43,7 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
         self.coords = []
         self.classes = []
         self.difficult = []
-        self.transforms = transforms
+        self.transforms = OBBDetectionCompose(transforms, load_sample_fn=self.load_random_sample)
         self.class_names = list(class_names)
         self.difficult_labels_are_crowd = difficult_labels_are_crowd
 
@@ -54,26 +60,30 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
     def __len__(self):
         return len(self.images)
 
-    def __getitem__(self, index) -> OBBSample:
+    def load_random_sample(self) -> OBBSample:
+        num_samples = len(self)
+        random_index = random.randrange(0, num_samples)
+        return self.load_sample(random_index)
+
+    def load_sample(self, index) -> OBBSample:
         image = cv2.imread(str(self.images[index]))
         coords = self.coords[index]
         classes = self.classes[index]
         difficult = self.difficult[index]
-
-        # TODO: Change this
-        # Hard-coded image normalization
-        # No data augmentation
-        image = (image / 255).astype(np.float32)
-
         cxcywhr = np.array([self.poly_to_rbox(poly) for poly in coords], dtype=np.float32)
 
         is_crowd = difficult.reshape(-1) if self.difficult_labels_are_crowd else np.zeros_like(difficult, dtype=bool)
         sample = OBBSample(
             image=image,
-            boxes_cxcywhr=cxcywhr.reshape(-1, 5),
+            rboxes_cxcywhr=cxcywhr.reshape(-1, 5),
             labels=classes.reshape(-1),
             is_crowd=is_crowd,
         )
+        return sample
+
+    def __getitem__(self, index) -> OBBSample:
+        sample = self.load_sample(index)
+        sample = self.transforms.apply_to_sample(sample)
         return sample
 
     def get_sample_classes_information(self, index) -> np.ndarray:
@@ -91,6 +101,23 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
         for i in range(len(self)):
             m[i] = self.get_sample_classes_information(i)
         return m
+
+    def get_dataset_preprocessing_params(self):
+        """
+        Return any hardcoded preprocessing + adaptation for PIL.Image image reading (RGB).
+         image_processor as returned as list of dicts to be resolved by processing factory.
+        :return:
+        """
+        pipeline = [Processings.ReverseImageChannels]
+        for t in self.transforms:
+            pipeline += t.get_equivalent_preprocessing()
+        params = dict(
+            class_names=self.class_names,
+            image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
+            iou=0.65,
+            conf=0.5,
+        )
+        return params
 
     @classmethod
     def poly_to_rbox(cls, poly):

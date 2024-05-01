@@ -3,8 +3,7 @@ from typing import List
 import numpy as np
 import torch
 from super_gradients.common.registry import register_collate_function
-
-from .sample import OBBSample
+from super_gradients.training.transforms.obb import OBBSample
 
 
 @register_collate_function()

@@ -166,6 +166,18 @@ def _shift_bboxes_xyxy(targets: np.array, shift_w: float, shift_h: float) -> np.
     return np.concatenate((boxes, labels), 1)
 
 
+def _shift_bboxes_cxcywhr(targets: np.ndarray, shift_w: float, shift_h: float) -> np.ndarray:
+    """Shift bboxes with respect to padding values.
+
+    :param targets:  Bboxes to transform of shape (N, 5), in CXCYWHR format.
+    :param shift_w:  shift width along x-axis.
+    :param shift_h:  shift height along y-axis.
+    :return:         Bboxes transformed of shape (N, 5), in CXCYWHR format.
+    """
+    offsets = np.array([shift_w, shift_h, 0, 0, 0])
+    return targets + offsets
+
+
 def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.ndarray:
     """Shift keypoints with respect to padding values.
 
