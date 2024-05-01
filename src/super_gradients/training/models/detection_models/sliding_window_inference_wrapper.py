@@ -24,7 +24,7 @@ class SlidingWindowInferenceWrapper(nn.Module):
 
         return res
 
-    def forward(self, images):
+    def forward_sliding_window(self, images):
         batch_size, _, _, _ = images.shape
         all_detections = [[] for _ in range(batch_size)]  # Create a list for each image in the batch
 

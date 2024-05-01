@@ -25,6 +25,7 @@ from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.media.image import ImageSource
+import torchvision
 
 
 class CustomizableDetector(HasPredict, SgModule):
@@ -91,7 +92,60 @@ class CustomizableDetector(HasPredict, SgModule):
         self._default_multi_label_per_box = True
         self._default_class_agnostic_nms = False
 
+    def forward_sliding_window(self, images):
+        batch_size, _, _, _ = images.shape
+        all_detections = [[] for _ in range(batch_size)]  # Create a list for each image in the batch
+
+        # Generate and process each tile
+        for img_idx in range(batch_size):
+            single_image = images[img_idx : img_idx + 1]  # Extract each image
+            tiles = self._generate_tiles(single_image, self.tile_size, self.tile_step)
+            for tile, (start_x, start_y) in tiles:
+                tile_detections = self.model(tile)
+                # Apply local NMS using post_prediction_callback
+                tile_detections = self.post_prediction_callback(tile_detections)
+                # Adjust detections to global image coordinates
+                for img_i_tile_detections in tile_detections:
+                    if len(img_i_tile_detections) > 0:
+                        img_i_tile_detections[:, :4] += torch.tensor([start_x, start_y, start_x, start_y], device=tile.device)
+                        all_detections[img_idx].append(img_i_tile_detections)
+
+        # Concatenate and apply global NMS for each image's detections
+        final_detections = []
+        for detections in all_detections:
+            if detections:
+                detections = torch.cat(detections, dim=0)
+                # Apply global NMS
+                pred_bboxes = detections[:, :4]
+                pred_cls_conf = detections[:, 4]
+                pred_cls_label = detections[:, 5]
+                idx_to_keep = torchvision.ops.boxes.batched_nms(boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=self.nms_threshold)
+
+                final_detections.append(detections[idx_to_keep])
+            else:
+                final_detections.append(torch.empty(0, 6).to(images.device))  # Empty tensor for images with no detections
+
+        if self.max_predictions_per_image is not None:
+            final_detections = self._filter_max_predictions(final_detections)
+        return final_detections
+
+    @staticmethod
+    def _generate_tiles(image, tile_size, tile_step):
+        _, _, h, w = image.shape
+        tiles = []
+        for y in range(0, h - tile_size + 1, tile_step):
+            for x in range(0, w - tile_size + 1, tile_step):
+                tile = image[:, :, y : y + tile_size, x : x + tile_size]
+                tiles.append((tile, (x, y)))
+        return tiles
+
     def forward(self, x):
+        if self.use_sliding_window_validation and not self.training:
+            return self.forward_sliding_window(x)
+        else:
+            return self.forward_whole_image(x)
+
+    def forward_whole_image(self, x):
         x = self.backbone(x)
         x = self.neck(x)
         return self.heads(x)
