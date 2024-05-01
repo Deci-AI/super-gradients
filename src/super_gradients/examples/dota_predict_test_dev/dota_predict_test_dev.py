@@ -87,7 +87,7 @@ def main(
 
             (x1, y1), (x2, y2), (x3, y3), (x4, y4) = cv2.boxPoints(((cx, cy), (w, h), np.rad2deg(r)))
 
-            prediction_line = f"{image_name_no_ext} {score:.4f} {x1:.2f} {y1:.2f} {x2:.2f} {y2:.2f} {x3:.2f} {y3:.2f} {x4:.2f} {y4:.2f}/n"
+            prediction_line = f"{image_name_no_ext} {score:.4f} {x1:.2f} {y1:.2f} {x2:.2f} {y2:.2f} {x3:.2f} {y3:.2f} {x4:.2f} {y4:.2f}\n"
             all_detections[class_name].append(prediction_line)
 
     os.makedirs(submission_dir, exist_ok=True)
