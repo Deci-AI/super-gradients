@@ -19,7 +19,7 @@ def main(
     images_dir,
     submission_dir=None,
     device="cpu",
-    min_confidence=0.05,
+    min_confidence=0.1,
 ):
     PIL.Image.MAX_IMAGE_PIXELS = None
 
