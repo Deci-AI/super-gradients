@@ -1421,6 +1421,14 @@ class Trainer:
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
+        if self.training_params.average_best_models and not self.training_params.save_model:
+            logger.warning(
+                "'training_params.average_best_models'  is enabled, but 'training_params.save_model' is disabled. \n"
+                "Model averaging requires saving snapshot checkpoints to function properly. As a result, "
+                "'training_params.average_best_models' will be disabled. "
+            )
+            self.training_params.average_best_models = False
+
         self.max_train_batches = self.training_params.max_train_batches
         self.max_valid_batches = self.training_params.max_valid_batches
 
