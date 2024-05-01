@@ -12,7 +12,7 @@ class OBBSample:
     It contains both input image and target information to train an object detection model.
 
     :param image:              Associated image with a sample. Can be in [H,W,C] or [C,H,W] format
-    :param boxes_cxcywhr:      Numpy array of [N,5] shape with oriented bounding box of each instance (CX,CY,W,H,R)
+    :param rboxes_cxcywhr:      Numpy array of [N,5] shape with oriented bounding box of each instance (CX,CY,W,H,R)
     :param labels:             Numpy array of [N] shape with class label for each instance
     :param is_crowd:           (Optional) Numpy array of [N] shape with is_crowd flag for each instance
     :param additional_samples: (Optional) List of additional samples for the same image.
@@ -29,7 +29,7 @@ class OBBSample:
     def __init__(
         self,
         image: Union[np.ndarray, torch.Tensor],
-        boxes_cxcywhr: np.ndarray,
+        rboxes_cxcywhr: np.ndarray,
         labels: np.ndarray,
         is_crowd: Optional[np.ndarray] = None,
         additional_samples: Optional[List["OBBSample"]] = None,
@@ -37,14 +37,14 @@ class OBBSample:
         if is_crowd is None:
             is_crowd = np.zeros(len(labels), dtype=bool)
 
-        if len(boxes_cxcywhr) != len(labels):
+        if len(rboxes_cxcywhr) != len(labels):
             raise ValueError("Number of bounding boxes and labels must be equal. Got {len(bboxes_xyxy)} and {len(labels)} respectively")
 
-        if len(boxes_cxcywhr) != len(is_crowd):
+        if len(rboxes_cxcywhr) != len(is_crowd):
             raise ValueError("Number of bounding boxes and is_crowd flags must be equal. Got {len(bboxes_xyxy)} and {len(is_crowd)} respectively")
 
-        if len(boxes_cxcywhr.shape) != 2 or boxes_cxcywhr.shape[1] != 5:
-            raise ValueError(f"Oriented boxes must be in [N,5] format. Shape of input bboxes is {boxes_cxcywhr.shape}")
+        if len(rboxes_cxcywhr.shape) != 2 or rboxes_cxcywhr.shape[1] != 5:
+            raise ValueError(f"Oriented boxes must be in [N,5] format. Shape of input bboxes is {rboxes_cxcywhr.shape}")
 
         if len(is_crowd.shape) != 1:
             raise ValueError(f"Number of is_crowd flags must be in [N] format. Shape of input is_crowd is {is_crowd.shape}")
@@ -53,7 +53,7 @@ class OBBSample:
             raise ValueError("Labels must be in [N] format. Shape of input labels is {labels.shape}")
 
         self.image = image
-        self.rboxes_cxcywhr = boxes_cxcywhr
+        self.rboxes_cxcywhr = rboxes_cxcywhr
         self.labels = labels
         self.is_crowd = is_crowd
         self.additional_samples = additional_samples
