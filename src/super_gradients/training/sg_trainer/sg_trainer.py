@@ -245,6 +245,7 @@ class Trainer:
             multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
             num_gpus=core_utils.get_param(cfg, "num_gpus"),
         )
+        torch.set_anomaly_enabled(True, True)
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
