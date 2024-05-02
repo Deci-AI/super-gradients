@@ -35,7 +35,11 @@ def poly_to_cxcywhr(poly: np.ndarray) -> np.ndarray:
         rect = cv2.minAreaRect(hull)
         cx, cy = rect[0]
         w, h = rect[1]
-        angle = np.deg2rad(rect[2])
+        angle = rect[2]
+        if h > w:
+            w, h = h, w
+            angle += 90
+        angle = np.deg2rad(angle)
         rboxes[i] = [cx, cy, w, h, angle]
 
     return rboxes.reshape(*shape[:-2], 5)
