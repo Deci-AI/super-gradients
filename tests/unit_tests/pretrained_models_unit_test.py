@@ -13,7 +13,7 @@ from super_gradients.training import models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.pretrained_models import MODEL_URLS, PRETRAINED_NUM_CLASSES
-from super_gradients.training.processing.processing import default_yolo_nas_coco_processing_params
+from super_gradients.training.processing.defaults import default_yolo_nas_coco_processing_params
 
 
 class PretrainedModelsUnitTest(unittest.TestCase):

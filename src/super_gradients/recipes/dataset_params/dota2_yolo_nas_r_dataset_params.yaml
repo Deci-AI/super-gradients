@@ -20,12 +20,33 @@ class_names:
   - helipad
 
 train_dataset_params:
-  data_dir: h:\DOTA\DOTA-v2.0-tiles\train # root path to coco data
+  data_dir: h:\DOTA\DOTA-v2.0-tiles\train
   class_names: ${dataset_params.class_names}
   ignore_empty_annotations: True
   transforms:
-#    - OBBDetectionRandomRotate90:
-#        prob: 1.0
+    - Albumentations:
+        Compose:
+          keypoint_params:
+          transforms:
+            - ShiftScaleRotate:
+                shift_limit: 0.1
+                scale_limit: 0.5
+                rotate_limit: 45
+                interpolation: 1
+                border_mode: 0
+            - RandomBrightnessContrast:
+                brightness_limit: 0.2
+                contrast_limit: 0.2
+                p: 0.5
+            - RandomCrop:
+                p: 1.0
+                height: 640
+                width: 640
+            - RandomRotate90:
+                p: 1.0
+            - HorizontalFlip:
+                p: 0.5
+
     - OBBRemoveSmallObjects:
         min_size: 8
         min_area: 64

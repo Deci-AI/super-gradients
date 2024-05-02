@@ -5,12 +5,39 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from super_gradients.training.datasets import DOTAOBBDataset
+from super_gradients.training.datasets.data_formats.obb.cxcywhr import cxcywhr_to_poly, poly_to_cxcywhr
 from super_gradients.training.losses.yolo_nas_r_loss import cxcywhr_iou
 from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback import rboxes_nms, optimized_rboxes_nms
 from super_gradients.training.utils.visualization.obb import OBBVisualization
 
 
 class TestYoloNasR(unittest.TestCase):
+    def test_cxcywhr_conversion(self):
+        cxcywhr_boxes = np.abs(np.random.rand(10, 5) * 200)
+        cxcywhr_boxes[:, :2] += 256
+        poly_boxes = cxcywhr_to_poly(cxcywhr_boxes)
+        cxcywhr_boxes2 = poly_to_cxcywhr(poly_boxes)
+        poly_boxes2 = cxcywhr_to_poly(cxcywhr_boxes2)
+        # np.testing.assert_allclose(poly_boxes, poly_boxes2, atol=1e-4)
+
+        image = np.zeros((512, 512, 3), dtype=np.uint8)
+        for p in poly_boxes:
+            image = cv2.polylines(image, [p.astype(np.int32)], isClosed=True, color=(0, 255, 0), thickness=2)
+
+        plt.figure()
+        plt.imshow(image)
+        plt.tight_layout()
+        plt.show()
+
+        image = np.zeros((512, 512, 3), dtype=np.uint8)
+        for p in poly_boxes2:
+            image = cv2.polylines(image, [p.astype(np.int32)], isClosed=True, color=(0, 255, 255), thickness=2)
+
+        plt.figure()
+        plt.imshow(image)
+        plt.tight_layout()
+        plt.show()
+
     def test_dota_dataset(self):
         dataset = DOTAOBBDataset(
             data_dir="h:/DOTA/DOTA-v2.0-tiles-05x-overlap/train",

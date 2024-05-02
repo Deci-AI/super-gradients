@@ -31,14 +31,11 @@ def poly_to_cxcywhr(poly: np.ndarray) -> np.ndarray:
     flat_polys = poly.reshape(-1, 4, 2)
     rboxes = np.zeros((flat_polys.shape[0], 5), dtype=np.float32)
     for i, poly in enumerate(flat_polys):
-        hull = cv2.convexHull(np.reshape(poly, [-1, 2]))
+        hull = cv2.convexHull(np.reshape(poly, [-1, 2]).astype(np.float32))
         rect = cv2.minAreaRect(hull)
         cx, cy = rect[0]
         w, h = rect[1]
-        angle = rect[2]
-        if angle == 0:
-            w, h = h, w
-            angle -= 90
+        angle = np.deg2rad(rect[2])
         rboxes[i] = [cx, cy, w, h, angle]
 
     return rboxes.reshape(*shape[:-2], 5)
