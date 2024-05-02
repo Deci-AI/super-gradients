@@ -2,6 +2,7 @@ from typing import Optional, Union, List, Tuple
 
 import cv2
 import numpy as np
+from super_gradients.training.datasets.data_formats.obb.cxcywhr import cxcywhr_to_poly
 
 
 class OBBVisualization:
@@ -55,10 +56,10 @@ class OBBVisualization:
             scores = scores[order]
             labels = labels[order]
 
+        polygons = cxcywhr_to_poly(rboxes_cxcywhr)
+
         for i in range(num_boxes):
-            cx, cy, w, h, r = rboxes_cxcywhr[i]
-            rect = (cx, cy), (w, h), np.rad2deg(r)
-            box = cv2.boxPoints(rect)  # [4, 2]
+            box = polygons[i]
             class_index = int(labels[i])
             color = tuple(class_colors[class_index])
             cv2.polylines(overlay, box[None, :, :].astype(int), True, color, thickness=thickness, lineType=cv2.LINE_AA)

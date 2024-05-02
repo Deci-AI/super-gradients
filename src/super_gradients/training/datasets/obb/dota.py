@@ -6,6 +6,8 @@ import numpy as np
 from functools import partial
 from pathlib import Path
 from typing import Tuple, Iterable
+
+from super_gradients.training.datasets.data_formats.obb.cxcywhr import poly_to_cxcywhr
 from tqdm import tqdm
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -70,7 +72,8 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
         coords = self.coords[index]
         classes = self.classes[index]
         difficult = self.difficult[index]
-        cxcywhr = np.array([self.poly_to_rbox(poly) for poly in coords], dtype=np.float32)
+
+        cxcywhr = poly_to_cxcywhr(coords)
 
         is_crowd = difficult.reshape(-1) if self.difficult_labels_are_crowd else np.zeros_like(difficult, dtype=bool)
         sample = OBBSample(
@@ -79,7 +82,7 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
             labels=classes.reshape(-1),
             is_crowd=is_crowd,
         )
-        return sample
+        return sample.sanitize_sample()
 
     def __getitem__(self, index) -> OBBSample:
         sample = self.load_sample(index)
@@ -116,23 +119,6 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
             conf=0.5,
         )
         return params
-
-    @classmethod
-    def poly_to_rbox(cls, poly):
-        """
-        Convert polygon to rotated bounding box
-        :param poly: Input polygon in [N,2] format
-        :return: Rotated box in CXCYWHR format
-        """
-        hull = cv2.convexHull(np.reshape(poly, [-1, 2]))
-        rect = cv2.minAreaRect(hull)
-        cx, cy = rect[0]
-        w, h = rect[1]
-        angle = rect[2]
-        if angle == 0:
-            w, h = h, w
-            angle -= 90
-        return cx, cy, w, h, np.deg2rad(angle)
 
     @classmethod
     def find_images_and_labels(cls, images_dir, ann_dir, images_ext):

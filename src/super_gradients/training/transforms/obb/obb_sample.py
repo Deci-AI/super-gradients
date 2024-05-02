@@ -3,6 +3,7 @@ from typing import Union, List, Optional
 
 import numpy as np
 import torch
+from super_gradients.training.datasets.data_formats.obb.cxcywhr import cxcywhr_to_poly, poly_to_cxcywhr
 
 
 @dataclasses.dataclass
@@ -57,44 +58,49 @@ class OBBSample:
         self.labels = labels
         self.is_crowd = is_crowd
         self.additional_samples = additional_samples
-        self.sanitize_sample()
 
     def sanitize_sample(self) -> "OBBSample":
         """
-        Apply sanity checks on the detection sample, which includes clamping of bounding boxes to image boundaries.
-        This function does not remove instances, but may make them subject for removal later on.
-        This method operates in-place and modifies the caller.
-        :return: A DetectionSample after filtering (caller instance).
+        Apply sanity checks on the detection sample, which includes clamping of rotate boxes to image boundaries
+        and removing boxes with non-positive area.
+        This method returns a new DetectionSample instance with sanitized data.
+        :return: A DetectionSample after filtering.
         """
-        # image_height, image_width = self.image.shape[:2]
-        # self.bboxes_xyxy = change_bbox_bounds_for_image_size_inplace(self.bboxes_xyxy, img_shape=(image_height, image_width))
-        self.filter_by_bbox_area(0)
-        return self
+        polys = cxcywhr_to_poly(self.rboxes_cxcywhr)
+        # Clamp polygons to image boundaries
+        polys[..., 0] = np.clip(polys[..., 0], 0, self.image.shape[1])
+        polys[..., 1] = np.clip(polys[..., 1], 0, self.image.shape[0])
+        rboxes_cxcywhr = poly_to_cxcywhr(polys)
+        return OBBSample(
+            image=self.image,
+            rboxes_cxcywhr=rboxes_cxcywhr,
+            labels=self.labels,
+            is_crowd=self.is_crowd,
+            additional_samples=self.additional_samples,
+        ).filter_by_bbox_area(0)
 
     def filter_by_mask(self, mask: np.ndarray) -> "OBBSample":
         """
         Remove boxes & labels with respect to a given mask.
-        This method operates in-place and modifies the caller.
-        If you are implementing a subclass of DetectionSample and adding extra field associated with each bbox
-        instance (Let's say you add a distance property for each bbox from the camera), then you should override
-        this method to do filtering on extra attribute as well.
+        This method returns a new DetectionSample instance with filtered data.
 
         :param mask:   A boolean or integer mask of samples to keep for given sample.
-        :return:       A DetectionSample after filtering (caller instance).
+        :return:       A DetectionSample after filtering.
         """
-        self.rboxes_cxcywhr = self.rboxes_cxcywhr[mask]
-        self.labels = self.labels[mask]
-        if self.is_crowd is not None:
-            self.is_crowd = self.is_crowd[mask]
-        return self
+        return OBBSample(
+            image=self.image,
+            rboxes_cxcywhr=self.rboxes_cxcywhr[mask],
+            labels=self.labels[mask],
+            is_crowd=self.is_crowd[mask] if self.is_crowd is not None else None,
+            additional_samples=self.additional_samples,
+        )
 
     def filter_by_bbox_area(self, min_rbox_area: Union[int, float]) -> "OBBSample":
         """
         Remove pose instances that has area of the corresponding bounding box less than a certain threshold.
-        This method operates in-place and modifies the caller.
 
         :param min_rbox_area: Minimal rotated box area of the box to keep.
-        :return:              A OBBSample after filtering (caller instance).
+        :return:              A OBBSample after filtering.
         """
         area = self.rboxes_cxcywhr[..., 2:4].prod(axis=-1)
         keep_mask = area > min_rbox_area
