@@ -45,6 +45,7 @@ from .obb import (
     OBBDetectionStandardize,
     OBBDetectionMixup,
     OBBDetectionCompose,
+    OBBRemoveSmallObjects,
 )
 
 __all__ = [
@@ -91,6 +92,7 @@ __all__ = [
     "OBBDetectionStandardize",
     "OBBDetectionMixup",
     "OBBDetectionCompose",
+    "OBBRemoveSmallObjects",
 ]
 
 cv2.setNumThreads(0)

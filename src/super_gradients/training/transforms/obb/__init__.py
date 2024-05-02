@@ -5,6 +5,7 @@ from .obb_longest_max_size import OBBDetectionLongestMaxSize
 from .obb_standardize import OBBDetectionStandardize
 from .obb_mixup import OBBDetectionMixup
 from .obb_compose import OBBDetectionCompose
+from .obb_remove_small_objects import OBBRemoveSmallObjects
 
 __all__ = [
     "OBBSample",
@@ -14,4 +15,5 @@ __all__ = [
     "OBBDetectionStandardize",
     "OBBDetectionMixup",
     "OBBDetectionCompose",
+    "OBBRemoveSmallObjects",
 ]

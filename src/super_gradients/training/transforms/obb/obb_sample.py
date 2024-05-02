@@ -99,3 +99,6 @@ class OBBSample:
         area = self.rboxes_cxcywhr[..., 2:4].prod(axis=-1)
         keep_mask = area > min_rbox_area
         return self.filter_by_mask(keep_mask)
+
+    def __len__(self):
+        return len(self.labels)

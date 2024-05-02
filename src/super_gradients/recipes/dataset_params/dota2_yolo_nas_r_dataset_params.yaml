@@ -26,6 +26,9 @@ train_dataset_params:
   transforms:
 #    - OBBDetectionRandomRotate90:
 #        prob: 1.0
+    - OBBRemoveSmallObjects:
+        min_size: 8
+        min_area: 64
     - OBBDetectionMixup:
         prob: 0.5
     - OBBDetectionStandardize:
