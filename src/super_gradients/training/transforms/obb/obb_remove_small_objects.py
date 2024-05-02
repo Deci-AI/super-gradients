@@ -1,14 +1,13 @@
 from typing import List
 
 import numpy as np
-from super_gradients.common.object_names import Transforms
 from super_gradients.common.registry import register_transform
 
 from .abstract_obb_transform import AbstractOBBDetectionTransform
 from .obb_sample import OBBSample
 
 
-@register_transform(Transforms.KeypointsRemoveSmallObjects)
+@register_transform()
 class OBBRemoveSmallObjects(AbstractOBBDetectionTransform):
     """
     Remove pose instances from data sample that are too small or have too few visible keypoints.
