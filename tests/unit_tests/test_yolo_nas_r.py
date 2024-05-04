@@ -8,10 +8,17 @@ from super_gradients.training.datasets import DOTAOBBDataset
 from super_gradients.training.datasets.data_formats.obb.cxcywhr import cxcywhr_to_poly, poly_to_cxcywhr
 from super_gradients.training.losses.yolo_nas_r_loss import cxcywhr_iou
 from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback import rboxes_nms, optimized_rboxes_nms
+from super_gradients.training.transforms.obb import OBBSample
 from super_gradients.training.utils.visualization.obb import OBBVisualization
 
 
 class TestYoloNasR(unittest.TestCase):
+    def test_obb_sample_sanity_check(self):
+        x = np.zeros((1, 5))
+        sample = OBBSample(rboxes_cxcywhr=x, labels=np.array([0]), image=np.zeros((512, 512, 3)))
+        sample = sample.sanitize_sample()
+        self.assertEquals(sample.rboxes_cxcywhr.shape, (0, 5))
+
     def test_cxcywhr_conversion(self):
         cxcywhr_boxes = np.abs(np.random.rand(10, 5) * 200)
         cxcywhr_boxes[:, :2] += 256

@@ -91,9 +91,9 @@ def cxcywhr_iou(obb1, obb2, CIoU=False, eps=1e-5):
     hd = (1.0 - (-bd).exp() + eps).sqrt()
     iou = 1 - hd
 
-    if CIoU:  # only include the wh aspect ratio part
-        # v_o = (4 / math.pi**2) * ((w2 / h2).atan() - (w1 / h1).atan()).pow(2)
-        v = (4 / math.pi**2) * (torch.atan2(h2, w2) - torch.atan2(h1, w1)).pow(2)
+    if CIoU:
+        # Height/Width can be zero, add epsilon to avoid division by zero
+        v = (4 / math.pi**2) * ((w2 / (h2 + 1e-6)).atan() - (w1 / (h1 + 1e-6)).atan()).pow(2)
 
         with torch.no_grad():
             alpha = v / (v - iou + (1 + eps))
