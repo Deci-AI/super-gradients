@@ -166,7 +166,7 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
                 labels=np.array(sample["labels"]).reshape(-1),
                 is_crowd=np.array(sample["is_crowd"]).reshape(-1),
                 additional_samples=None,
-            )
+            ).sanitize_sample()
         elif self.sample_type == SampleType.SEGMENTATION:
             sample = SegmentationSample(image=Image.fromarray(sample["image"]), mask=Image.fromarray(sample["mask"]))
         elif self.sample_type == SampleType.DEPTH_ESTIMATION:
