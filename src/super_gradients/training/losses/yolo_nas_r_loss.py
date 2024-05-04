@@ -2,6 +2,7 @@ import dataclasses
 import math
 from typing import Tuple, List, Optional
 
+import numpy as np
 import torch
 from super_gradients.common.environment.ddp_utils import get_world_size, is_distributed
 from super_gradients.common.registry.registry import register_loss
@@ -366,19 +367,6 @@ class YoloNASRLoss(nn.Module):
                     alpha_l = -1
                     cls_loss = self._focal_loss(outputs.score_logits[i : i + 1], assign_result.assigned_scores, alpha_l)
 
-                if not torch.isfinite(cls_loss).all():
-                    raise ValueError(
-                        "Classification loss is not finite\n"
-                        f"score logits is finite: {torch.isfinite(outputs.score_logits).all()}\n"
-                        f"labels: {labels_list[i]}\n"
-                        f"rboxes: {rboxes_list[i]}\n"
-                        f"score_logits {outputs.score_logits[i]}\n"
-                        f"size_dist {outputs.size_dist[i]}\n"
-                        f"size_reduced {outputs.size_reduced[i]}\n"
-                        f"offsets {outputs.offsets[i]}\n"
-                        f"angles {outputs.angles[i]}\n"
-                    )
-
                 loss_iou, loss_dfl, loss_l1_centers, loss_l1_size = self._rbox_loss_v2(
                     pred_dist=outputs.size_dist[i : i + 1],
                     pred_bboxes=decoded_predictions.boxes_cxcywhr[i : i + 1],
@@ -389,15 +377,6 @@ class YoloNASRLoss(nn.Module):
                     reg_max=outputs.reg_max,
                     bg_class_index=num_classes,
                 )
-
-                if not torch.isfinite(loss_iou).all():
-                    raise ValueError("IoU loss is not finite")
-                if not torch.isfinite(loss_dfl).all():
-                    raise ValueError("DFL loss is not finite")
-                if not torch.isfinite(loss_l1_centers).all():
-                    raise ValueError("Centers L1 loss is not finite")
-                if not torch.isfinite(loss_l1_size).all():
-                    raise ValueError("Sizes L1 loss is not finite")
 
                 cls_loss_sum += cls_loss
                 iou_loss_sum += loss_iou
@@ -470,6 +449,17 @@ class YoloNASRLoss(nn.Module):
         bs = bbox_weight.size(0)
         # IOU
         iou = cxcywhr_iou(pred_bboxes, assign_result.assigned_rboxes, CIoU=False)
+        if not torch.isfinite(iou).all():
+            not_finite_mask = ~torch.isfinite(iou)
+            nan_pred = pred_bboxes[not_finite_mask].detach().cpu().numpy()
+            nan_true = assign_result.assigned_rboxes[not_finite_mask].detach().cpu().numpy()
+            np.save("nan_pred.npy", nan_pred)
+            np.save("nan_true.npy", nan_true)
+
+            raise ValueError(
+                f"IOU has NaN values.\nPred boxes: {np.array2string(nan_pred, separator=',')}\nTrue boxes: {np.array2string(nan_true, separator=',')}"
+            )
+
         loss_iou = 1 - iou
         loss_iou = (loss_iou * bbox_weight).sum(dtype=torch.float32)
 
