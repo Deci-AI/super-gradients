@@ -30,7 +30,7 @@ train_dataset_params:
           transforms:
             - ShiftScaleRotate:
                 shift_limit: 0.1
-                scale_limit: 0.5
+                scale_limit: 0.75
                 rotate_limit: 45
                 interpolation: 1
                 border_mode: 0
@@ -42,6 +42,23 @@ train_dataset_params:
                 p: 1.0
                 height: 640
                 width: 640
+            - HueSaturationValue:
+                hue_shift_limit: 20
+                sat_shift_limit: 30
+                val_shift_limit: 20
+                p: 0.5
+            - ISONoise:
+                p: 0.5
+            - MotionBlur:
+                blur_limit: 5
+                p: 0.25
+            - GaussNoise:
+                var_limit: (10.0, 50.0)
+                p: 0.25
+            - ImageCompression:
+                quality_lower: 60
+                quality_upper: 100
+                p: 0.5
             - RandomRotate90:
                 p: 1.0
             - HorizontalFlip:
