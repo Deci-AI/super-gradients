@@ -23,14 +23,9 @@ import super_gradients.common.factories.detection_modules_factory as det_factory
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
-from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
+from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IdentityPostPredictionCallback
 from super_gradients.training.utils.media.image import ImageSource
 import torchvision
-
-
-class IdentityPostPredictionCallback(DetectionPostPredictionCallback):
-    def forward(self, x, device: str = None):
-        return x
 
 
 class CustomizableDetector(HasPredict, SgModule):
@@ -55,6 +50,12 @@ class CustomizableDetector(HasPredict, SgModule):
         tile_size=640,
         tile_step=64,
         min_tile_threshold=30,
+        tile_nms_iou: float = 0.7,
+        tile_nms_conf: float = 0.5,
+        tile_nms_top_k: int = 1024,
+        tile_nms_max_predictions=300,
+        tile_nms_multi_label_per_box=True,
+        tile_nms_class_agnostic_nms=False,
     ):
         """
         :param backbone:    Backbone configuration.

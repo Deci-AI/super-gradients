@@ -228,6 +228,15 @@ class DetectionPostPredictionCallback(ABC, nn.Module):
         raise NotImplementedError
 
 
+class IdentityPostPredictionCallback(DetectionPostPredictionCallback):
+    """
+    Detection Post Prediction callback that simply returns the input
+    """
+
+    def forward(self, x, device: str = None):
+        return x
+
+
 class IouThreshold(tuple, Enum):
     MAP_05 = (0.5, 0.5)
     MAP_05_TO_095 = (0.5, 0.95)
