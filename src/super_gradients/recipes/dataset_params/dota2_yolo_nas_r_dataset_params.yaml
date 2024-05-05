@@ -53,7 +53,7 @@ train_dataset_params:
                 blur_limit: 5
                 p: 0.25
             - GaussNoise:
-                var_limit: (10.0, 50.0)
+                var_limit: [10.0, 50.0]
                 p: 0.25
             - ImageCompression:
                 quality_lower: 60
