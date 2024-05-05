@@ -17,6 +17,7 @@ from super_gradients.training.metrics.depth_estimation_metrics import (
     DepthRMSE,
     DepthMSLE,
 )
+from super_gradients.training.metrics.optical_flow_metric import EPE
 
 __all__ = [
     "METRICS",
@@ -45,4 +46,5 @@ __all__ = [
     "DepthMSE",
     "DepthRMSE",
     "DepthMSLE",
+    "EPE",
 ]

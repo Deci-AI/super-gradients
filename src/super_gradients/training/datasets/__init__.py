@@ -25,6 +25,7 @@ from super_gradients.training.datasets.pose_estimation_datasets import (
     BaseKeypointsDataset,
     COCOPoseEstimationDataset,
 )
+from super_gradients.training.datasets.optical_flow_datasets.kitti_dataset import KITTIOpticalFlowDataset
 
 
 __all__ = [
@@ -50,6 +51,7 @@ __all__ = [
     "SuperviselyPersonsDataset",
     "COCOKeypointsDataset",
     "COCOPoseEstimationDataset",
+    "KITTIOpticalFlowDataset",
 ]
 
 cv2.setNumThreads(0)

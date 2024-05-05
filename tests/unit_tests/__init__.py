@@ -29,6 +29,10 @@ from tests.unit_tests.test_deprecate import TestDeprecationDecorator
 from tests.unit_tests.test_models_factory import DynamicModelTests
 from tests.unit_tests.test_mixed_precision_cpu import TestMixedPrecisionDisabled
 from tests.unit_tests.test_data_adapters import TestClassificationAdapter, TestDetectionAdapter, TestSegmentationAdapter
+from tests.unit_tests.optical_flow_dataset_test import OpticalFlowDatasetTest
+from tests.unit_tests.optical_flow_transforms_test import OpticalFlowTransformsTest
+from tests.unit_tests.optical_flow_loss_test import OpticalFlowLossTest
+from tests.unit_tests.test_optical_flow_metric import TestOpticalFlowMetric
 
 __all__ = [
     "CrashTipTest",
@@ -63,4 +67,8 @@ __all__ = [
     "TestClassificationAdapter",
     "TestDetectionAdapter",
     "TestSegmentationAdapter",
+    "OpticalFlowDatasetTest",
+    "OpticalFlowTransformsTest",
+    "OpticalFlowLossTest",
+    "TestOpticalFlowMetric",
 ]

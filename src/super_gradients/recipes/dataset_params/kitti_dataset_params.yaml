@@ -1,0 +1,47 @@
+num_workers: 8
+image_size: [288, 960]
+batch_size: 3
+
+train_dataset_params:
+  root: '/home/yael.baron/data/kitti'
+  transforms:
+    - OpticalFlowColorJitter:
+        brightness: 0.3
+        contrast: 0.3
+        saturation: 0.3
+        hue: 0.096
+        prob: 0.2
+    - OpticalFlowOcclusion:
+        bounds: [50, 100]
+    - OpticalFlowRandomRescale
+    - OpticalFlowRandomFlip
+    - OpticalFlowCrop:
+        mode: random
+        crop_size: ${.....image_size}
+    - OpticalFlowNormalize
+
+
+val_dataset_params:
+  root: '/home/yael.baron/data/kitti'
+  transforms:
+    - OpticalFlowCrop:
+        crop_size: [368, 1240]
+    - OpticalFlowNormalize
+
+train_dataloader_params:
+  dataset: KITTIOpticalFlowDataset
+  shuffle: True
+  batch_size: ${..batch_size}
+  num_workers: ${..num_workers}
+  drop_last: True
+  collate_fn: OpticalFlowCollateFN
+
+val_dataloader_params:
+  dataset: KITTIOpticalFlowDataset
+  shuffle: False
+  batch_size: ${..batch_size}
+  num_workers: ${..num_workers}
+  drop_last: False
+  collate_fn: OpticalFlowCollateFN
+
+_convert_: all

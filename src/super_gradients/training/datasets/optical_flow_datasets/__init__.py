@@ -1,0 +1,4 @@
+from super_gradients.training.datasets.optical_flow_datasets.abstract_optical_flow_dataset import AbstractOpticalFlowDataset
+from super_gradients.training.datasets.optical_flow_datasets.kitti_dataset import KITTIOpticalFlowDataset
+
+__all__ = ["AbstractOpticalFlowDataset", "KITTIOpticalFlowDataset"]

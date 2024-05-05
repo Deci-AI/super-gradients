@@ -17,6 +17,7 @@ class Losses:
     DEKR_LOSS = "DEKRLoss"
     RESCORING_LOSS = "RescoringLoss"
     YOLONAS_POSE_LOSS = "YoloNASPoseLoss"
+    OPTICAL_FLOW_LOSS = "OpticalFlowLoss"
 
 
 class Metrics:
@@ -44,6 +45,7 @@ class Metrics:
     DepthMSE = "DepthMSE"
     DepthRMSE = "DepthRMSE"
     DepthMSLE = "DepthMSLE"
+    EPE = "EPE"
 
 
 class Transforms:
@@ -82,6 +84,13 @@ class Transforms:
     DetectionNormalize = "DetectionNormalize"
     DetectionPadIfNeeded = "DetectionPadIfNeeded"
     DetectionLongestMaxSize = "DetectionLongestMaxSize"
+    # Optical flow transforms
+    OpticalFlowColorJitter = "OpticalFlowColorJitter"
+    OpticalFlowOcclusion = "OpticalFlowOcclusion"
+    OpticalFlowRandomRescale = "OpticalFlowRandomRescale"
+    OpticalFlowRandomFlip = "OpticalFlowRandomFlip"
+    OpticalFlowCrop = "OpticalFlowCrop"
+    OpticalFlowNormalize = "OpticalFlowNormalize"
     #
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
     RandAugmentTransform = "RandAugmentTransform"
@@ -338,6 +347,9 @@ class Models:
     YOLO_NAS_POSE_M = "yolo_nas_pose_m"
     YOLO_NAS_POSE_L = "yolo_nas_pose_l"
 
+    RAFT_S = "raft_s"
+    RAFT_L = "raft_l"
+
 
 class ConcatenatedTensorFormats:
     XYXY_LABEL = "XYXY_LABEL"
@@ -438,6 +450,7 @@ class Datasets:
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
     COCO_POSE_ESTIMATION_DATASET = "COCOPoseEstimationDataset"
     NYUV2_DEPTH_ESTIMATION_DATASET = "NYUv2DepthEstimationDataset"
+    KITTI_OPTICAL_FLOW_DATASET = "KITTIOpticalFlowDataset"
 
 
 class Processings:

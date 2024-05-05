@@ -125,6 +125,7 @@ from super_gradients.training.models.model_factory import get, get_model_name
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.conversion import convert_to_coreml, convert_to_onnx, convert_from_config
 
+from super_gradients.training.models.optical_flow_models.raft.raft_variants import RAFT_S, RAFT_L
 
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import ARCHITECTURES
@@ -295,4 +296,6 @@ __all__ = [
     "SegFormerB5",
     "DDRNet39Backbone",
     "BasicResNetBlock",
+    "RAFT_S",
+    "RAFT_L",
 ]
