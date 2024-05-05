@@ -5,13 +5,6 @@ from super_gradients.training.dataloaders import coco2017_val_yolo_nas
 from super_gradients.training import Trainer
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
-from super_gradients.training.models.detection_models.sliding_window_inference_wrapper import SlidingWindowInferenceWrapper
-from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
-
-
-class IdentityPPCB(DetectionPostPredictionCallback):
-    def forward(self, x, device: str = None):
-        return x
 
 
 class YoloNASIntegrationTest(unittest.TestCase):
@@ -28,20 +21,6 @@ class YoloNASIntegrationTest(unittest.TestCase):
             num_cls=80,
         )
         metric_values = trainer.test(model=model, test_loader=dl, test_metrics_list=[metric])
-        self.assertAlmostEqual(metric_values[metric.map_str], 0.475, delta=0.001)
-
-    def test_yolo_nas_s_coco_sw(self):
-        trainer = Trainer("test_yolo_nas_s")
-        model = models.get("yolo_nas_s", num_classes=80, pretrained_weights="coco")
-        dl = coco2017_val_yolo_nas(dataset_params=dict(data_dir=self.data_dir))
-        metric = DetectionMetrics(
-            normalize_targets=True,
-            post_prediction_callback=IdentityPPCB(),
-            num_cls=80,
-        )
-        ppcb = PPYoloEPostPredictionCallback(score_threshold=0.03, nms_top_k=1000, max_predictions=300, nms_threshold=0.65)
-        sm = SlidingWindowInferenceWrapper(model, 320, 320, post_prediction_callback=ppcb)
-        metric_values = trainer.test(model=sm, test_loader=dl, test_metrics_list=[metric])
         self.assertAlmostEqual(metric_values[metric.map_str], 0.475, delta=0.001)
 
     def test_yolo_nas_m_coco(self):
