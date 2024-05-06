@@ -27,9 +27,9 @@ criterion_params:
   size_loss_weight: 0
   centers_loss_weight: 0
 
-optimizer: RAdam
+optimizer: AdamW
 optimizer_params:
-  weight_decay: 0.00001
+  weight_decay: 0.000001
 
 #clip_grad_norm: 1.0
 
