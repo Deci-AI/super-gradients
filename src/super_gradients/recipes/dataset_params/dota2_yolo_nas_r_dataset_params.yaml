@@ -19,6 +19,8 @@ class_names:
   - airport
   - helipad
 
+mixup_prob: 0.5
+
 train_dataset_params:
   data_dir: h:\DOTA\DOTA-v2.0-tiles\train
   class_names: ${dataset_params.class_names}
@@ -47,18 +49,6 @@ train_dataset_params:
                 sat_shift_limit: 30
                 val_shift_limit: 20
                 p: 0.5
-#            - ISONoise:
-#                p: 0.5
-#            - MotionBlur:
-#                blur_limit: 5
-#                p: 0.25
-#            - GaussNoise:
-#                var_limit: [10.0, 50.0]
-#                p: 0.25
-#            - ImageCompression:
-#                quality_lower: 60
-#                quality_upper: 100
-#                p: 0.5
             - RandomRotate90:
                 p: 1.0
             - HorizontalFlip:
@@ -68,7 +58,7 @@ train_dataset_params:
         min_size: 8
         min_area: 64
     - OBBDetectionMixup:
-        prob: 0.5
+        prob: ${dataset_params.mixup_prob}
     - OBBDetectionStandardize:
         max_value: 255.
 
