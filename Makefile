@@ -71,3 +71,6 @@ yolo_nas_r_tzag_balanced:
 
 dota_yolo_nas_r_balanced_no_mixup:
 	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_balanced_no_mixup $(YOLONASR_WANDB_PARAMS) dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=8
+
+dota_yolo_nas_r_balanced_pretrain:
+	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_balanced $(YOLONASR_WANDB_PARAMS) dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=8 epochs=20
