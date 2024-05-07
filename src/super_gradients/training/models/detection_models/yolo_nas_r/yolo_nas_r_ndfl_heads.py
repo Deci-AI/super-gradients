@@ -15,8 +15,10 @@ from torch import nn, Tensor
 @dataclasses.dataclass
 class YoloNASRDecodedPredictions:
     """
+    A data class describing the decoded predictions from the YoloNAS-R module.
+
     :param boxes_cxcywhr: Tensor of shape [B, Anchors, 5] with predicted boxes in CXCYWHR format
-    :param scores: Tensor of shape [B, Anchors, C] with predicted scores for class
+    :param scores: Tensor of shape [B, Anchors, C] with predicted scores for each class
     """
 
     boxes_cxcywhr: Tensor
@@ -26,6 +28,9 @@ class YoloNASRDecodedPredictions:
 @dataclasses.dataclass
 class YoloNASRLogits:
     """
+    This dataclass hold all intermediate outputs of the YoloNAS-R module.
+    They are used for loss computation and for decoding the actual detection predictions.
+
     :param score_logits: Tensor of shape [B, Anchors, C] with predicted scores for class
     :param size_dist: Tensor of shape [B, Anchors, 2 * (reg_max + 1)] with predicted size distribution.
            Non-multiplied by stride.
@@ -50,6 +55,10 @@ class YoloNASRLogits:
     reg_max: int
 
     def as_decoded(self) -> YoloNASRDecodedPredictions:
+        """
+        Decode predictions and return class probabilities and boxes in CXCYWHR format.
+        :return: Instance of YoloNASRDecodedPredictions
+        """
         sizes = self.size_reduced * self.strides  # [B, Anchors, 2]
         centers = (self.offsets + self.anchor_points) * self.strides
         return YoloNASRDecodedPredictions(boxes_cxcywhr=torch.cat([centers, sizes, self.angles], dim=-1), scores=self.score_logits.sigmoid())
@@ -62,7 +71,6 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         num_classes: int,
         in_channels: Tuple[int, int, int],
         heads_list: List[Union[HpmStruct, DictConfig]],
-        grid_cell_scale: float = 5.0,
         grid_cell_offset: float = 0.5,
         reg_max: int = 16,
         width_mult: float = 1.0,
@@ -72,8 +80,6 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
         :param num_classes: Number of detection classes
         :param in_channels: Number of channels for each feature map (See width_mult)
-        :param grid_cell_scale: A scaling factor applied to the grid cell coordinates.
-               This scaling factor is used to define anchor boxes (see generate_anchors_for_grid_cell).
         :param grid_cell_offset: A fixed offset that is added to the grid cell coordinates.
                This offset represents a 'center' of the cell and is 0.5 by default.
         :param reg_max: Number of bins in the regression head
@@ -85,7 +91,6 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
         self.in_channels = tuple(in_channels)
         self.num_classes = num_classes
-        self.grid_cell_scale = grid_cell_scale
         self.grid_cell_offset = grid_cell_offset
         self.reg_max = reg_max
 
@@ -170,7 +175,7 @@ class YoloNASRNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
         rot_list = torch.cat(rot_list, dim=-1)
         rot_list = torch.permute(rot_list, [0, 2, 1])  # [B, A, 1]
-        rot_list = (rot_list.sigmoid() - 0.25) * math.pi
+        rot_list = (rot_list.sigmoid() - 0.25) * math.pi  # Limit the range of predicted angle to [-3*pi/4, pi/4]
 
         reg_distri_list = torch.cat(reg_distri_list, dim=1)  # [B, Anchors, 2 * (self.reg_max + 1)]
         reg_dist_reduced_list = torch.cat(reg_dist_reduced_list, dim=1)  # [B, Anchors, 2]

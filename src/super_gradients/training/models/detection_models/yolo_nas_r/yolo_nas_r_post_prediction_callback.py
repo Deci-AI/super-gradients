@@ -6,7 +6,16 @@ from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_ndfl
 from torch import Tensor
 
 
-def optimized_rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float):
+def rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float) -> Tensor:
+    """
+    Implementation of NMS method for rotated boxes.
+    This implementation uses approximate IoU calculation for rotated boxes based on gaussian bbox representation.
+
+    :param rboxes_cxcywhr: Input rotated boxes in CXCYWHR format
+    :param scores: Confidence scores for each box
+    :param iou_threshold: IoU threshold for NMS
+    :return: Indexes of boxes to keep
+    """
     from super_gradients.training.losses.yolo_nas_r_loss import pairwise_cxcywhr_iou
 
     order_by_conf_desc = torch.argsort(scores, descending=True)
@@ -24,39 +33,6 @@ def optimized_rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: 
         keep[mask] = False
 
     return order_by_conf_desc[keep]
-
-
-def rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float):
-    """
-    Perform NMS on rotated boxes.
-    :param rboxes_cxcywhr: [N,5] Rotated boxes in CXCYWHR format
-    :param scores: [N] Confidence scores
-    :param iou_threshold: IOU threshold for NMS
-    :return: Indices of boxes to keep
-    """
-    from super_gradients.training.losses.yolo_nas_r_loss import cxcywhr_iou
-
-    idxs = torch.argsort(scores, descending=True)
-    pick = []
-    device = rboxes_cxcywhr.device
-
-    # keep looping while some indexes still remain in the indexes
-    while len(idxs) > 0:
-        # grab the last index in the indexes list and add the index value to the list of picked indexes
-        last = len(idxs) - 1
-        i = idxs[last]
-        pick.append(i)
-
-        # compute the ratio of overlap
-        iou = cxcywhr_iou(rboxes_cxcywhr[i : i + 1], rboxes_cxcywhr[idxs[:last]])
-
-        overlap_with_high_iou_mask = torch.flatten(torch.nonzero(iou > iou_threshold, as_tuple=False))
-
-        indexes_to_delete = torch.cat((torch.tensor([last], device=device, dtype=int), overlap_with_high_iou_mask))
-        idxs = torch.index_select(idxs, 0, torch.tensor([j for j in range(len(idxs)) if j not in indexes_to_delete], dtype=int, device=device))
-
-    # return the indicies of the picked bounding boxes that were picked
-    return torch.tensor(pick, dtype=torch.int, device=device)
 
 
 class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
@@ -132,9 +108,9 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
                 pred_cls_label = pred_cls_label[topk_candidates.indices]
 
             # NMS
-            idx_to_keep = optimized_rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
+            idx_to_keep = rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
 
-            pred_rboxes = pred_rboxes[idx_to_keep]  # [Instances,]
+            pred_rboxes = pred_rboxes[idx_to_keep]  # [Instances,5]
             pred_cls_conf = pred_cls_conf[idx_to_keep]  # [Instances,]
             pred_cls_label = pred_cls_label[idx_to_keep]  # [Instances,]
 
