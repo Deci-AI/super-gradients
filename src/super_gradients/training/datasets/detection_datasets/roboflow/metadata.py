@@ -227,7 +227,6 @@ def _fetch_datasets_metadata():
     import json
     import pandas as pd
 
-    pd.get_dummies()
     # Load the dataset_stats.csv from official repo: https://github.com/roboflow/roboflow-100-benchmark/blob/main/metadata/datasets_stats.csv
     # It includes some metadata about each of the dataset.
     df = pd.read_csv("https://raw.githubusercontent.com/roboflow/roboflow-100-benchmark/main/metadata/datasets_stats.csv")
