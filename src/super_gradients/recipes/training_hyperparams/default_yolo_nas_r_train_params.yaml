@@ -31,8 +31,6 @@ optimizer: AdamW
 optimizer_params:
   weight_decay: 0.000001
 
-#clip_grad_norm: 1.0
-
 ema: True
 ema_params:
   decay: 0.9997
@@ -46,6 +44,7 @@ sync_bn: False
 # A batch with the largest loss will be visualized for train and valid loaders
 # Visualization images will be logged using configured logger
 phase_callbacks: []
+#phase_callbacks:
 #  - ExtremeBatchOBBVisualizationCallback:
 #      loss_to_monitor: "YoloNASRLoss/loss"
 #      max: True
@@ -56,7 +55,6 @@ phase_callbacks: []
 #
 #      post_prediction_callback:
 #        _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
-#        #output_device: cpu
 #        score_threshold: 0.25
 #        pre_nms_max_predictions: 4096
 #        post_nms_max_predictions: 512
@@ -70,12 +68,12 @@ valid_metrics_list:
       include_classwise_ap: True
       post_prediction_callback:
         _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
-        #output_device: cpu
         score_threshold: 0.1
         pre_nms_max_predictions: 4096
         post_nms_max_predictions: 512
         nms_iou_threshold: 0.6
 
+# One can use COCO-style mAP implementation that sweeps over 0.5..0.95 thresholds and uses 101-point recall thresholds
 #  - OBBDetectionMetrics_050_095:
 #      num_cls: ${dataset_params.num_classes}
 #      class_names: ${dataset_params.class_names}
@@ -89,9 +87,6 @@ valid_metrics_list:
 
 
 pre_prediction_callback:
-
-#metric_to_watch: 'YoloNASRLoss/loss'
-#greater_metric_to_watch_is_better: False
 
 metric_to_watch: 'mAP@0.50'
 greater_metric_to_watch_is_better: True
