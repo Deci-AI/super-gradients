@@ -19,13 +19,13 @@ ______________________________________________________________________
   <a href="#deci-platform">Deci Platform</a>
 </p>
 <p align="center">
-  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
-  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
-  <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
-  <a href="https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/model_zoo.md" ><img src="https://img.shields.io/badge/pre--trained%20models-34-brightgreen" />
-  <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
-  <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
-  <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
+  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" /></a>
+  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" /></a>
+  <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" /></a>
+  <a href="https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/model_zoo.md" ><img src="https://img.shields.io/badge/pre--trained%20models-34-brightgreen" /></a>
+  <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" /></a>
+  <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" /></a>
+  <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" /></a>
   <a href="https://docs.deci.ai/super-gradients/documentation/source/welcome.html"><img src="https://img.shields.io/badge/docs-mkdocs-brightgreen" /></a>
 </p>    
 </div>
@@ -42,6 +42,10 @@ ________________________________________________________________________________
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Classification 1500x900.png" width="250px">
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/PoseEstimation.jpg" width="250px">
 </div>
+
+### Have some questions about SuperGradients - Try our AI helper
+
+<a href="https://docs.deci.ai/super-gradients/latest/documentation/source/welcome.html?autoClick=true"><img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/try_ai.png" width="500px"></a>
 
 
 ### Ready to deploy pre-trained SOTA models
@@ -214,11 +218,13 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb) [Segmentation Quick Start](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb)
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_semantic_segmentation.ipynb) [Segmentation Transfer Learning](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_semantic_segmentation.ipynb)
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/segmentation_connect_custom_dataset.ipynb) [How to Connect Custom Dataset](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/segmentation_connect_custom_dataset.ipynb)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/Segmentation_Model_Export.ipynb) [How to export segmentation model to ONNX](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/Segmentation_Model_Export.ipynb)
 
 
 ### Pose Estimation
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb) [Pose Estimation Transfer Learning](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/YoloNAS_Pose_Fine_Tuning_Animals_Pose_Dataset.ipynb) [Fine Tuning YoloNAS-Pose on AnimalPose dataset](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/YoloNAS_Pose_Fine_Tuning_Animals_Pose_Dataset.ipynb)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb) [Fine Tuning DEKR on AnimalPose dataset](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/DEKR_PoseEstimationFineTuning.ipynb)
 
 
 ###  Object Detection
@@ -489,7 +495,8 @@ train_params = { ... # training parameters
 <details markdown="1">
 
 <summary><h3> Integration to ClearML </h3></summary>    
-    
+
+
 ```python
 from super_gradients import Trainer
 
@@ -508,7 +515,45 @@ train_params = { ... # training parameters
                }
 ```
 
+
   </details>
+<details markdown="1">
+
+  <summary><h3> Integration to Voxel51 </h3></summary>    
+  
+You can apply SuperGradients YOLO-NAS models directly to your FiftyOne dataset using the apply_model() method:
+
+```python
+import fiftyone as fo
+import fiftyone.zoo as foz
+
+from super_gradients.training import models
+
+dataset = foz.load_zoo_dataset("quickstart", max_samples=25)
+dataset.select_fields().keep_fields()
+
+model = models.get("yolo_nas_m", pretrained_weights="coco")
+
+dataset.apply_model(model, label_field="yolo_nas", confidence_thresh=0.7)
+
+session = fo.launch_app(dataset)
+```
+
+The SuperGradients YOLO-NAS model can be accessed directly from the FiftyOne Model Zoo:
+
+```python
+import fiftyone as fo
+import fiftyone.zoo as foz
+
+model = foz.load_zoo_model("yolo-nas-torch")
+
+dataset = foz.load_zoo_dataset("quickstart")
+dataset.apply_model(model, label_field="yolo_nas")
+
+session = fo.launch_app(dataset)
+```
+
+</details>
 
 
 ## Installation Methods

@@ -19,6 +19,7 @@ from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
+from super_gradients.dataset_interfaces import HasClassesInformation
 from super_gradients.module_interfaces import HasPreprocessingParams
 from super_gradients.training.datasets.data_formats.default_formats import LABEL_XYXY
 from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, LabelTensorSliceItem
@@ -34,7 +35,7 @@ logger = get_logger(__name__)
 
 
 @register_dataset(Datasets.DETECTION_DATASET)
-class DetectionDataset(Dataset, HasPreprocessingParams):
+class DetectionDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
     """Detection dataset.
 
     This is a boilerplate class to facilitate the implementation of datasets.
@@ -423,7 +424,9 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
 
     def _get_additional_inputs_for_transform(self, transform: AbstractDetectionTransform) -> List[Dict[str, Union[np.ndarray, Any]]]:
         """Add additional inputs required by a transform to the sample"""
-        additional_samples_count = transform.additional_samples_count if hasattr(transform, "additional_samples_count") else 0
+        additional_samples_count = 0
+        if hasattr(transform, "may_require_additional_samples") and transform.may_require_additional_samples:
+            additional_samples_count = transform.get_number_of_additional_samples()
         non_empty_annotations = transform.non_empty_annotations if hasattr(transform, "non_empty_annotations") else False
         return self.get_random_samples(count=additional_samples_count, ignore_empty_annotations=non_empty_annotations)
 
@@ -448,6 +451,18 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
             if isinstance(transform, DetectionTargetsFormatTransform):
                 target_format = transform.output_format
         return target_format
+
+    @staticmethod
+    def _standardize_image(image):
+        # Normalize the image to have minimum of 0 and maximum of 1
+        image_min = image.min()
+        image_max = image.max()
+        normalized_image = (image - image_min) / (image_max - image_min + 1e-8)
+
+        # Rescale the normalized image to 0-255
+        standardized_image = (normalized_image * 255).astype(np.uint8)
+
+        return standardized_image
 
     def plot(
         self,
@@ -493,6 +508,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
                 if image.shape[0] in (1, 3):  # (C, H, W) -> (H, W, C)
                     image = image.transpose((1, 2, 0))
 
+                image = self._standardize_image(image)
                 image = image.astype(np.uint8)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Detection dataset works with BGR images, so we have to convert to RGB
 
@@ -532,6 +548,19 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
             conf=0.5,
         )
         return params
+
+    def get_sample_classes_information(self, index) -> np.ndarray:
+        target = self._get_sample_annotations(index=index, ignore_empty_annotations=self.ignore_empty_annotations)["target"]
+        if len(target) == 0:  # in case of no objects in the sample
+            return np.zeros(len(self.classes))
+
+        target_class_index = _get_class_index_in_target(target_format=self.original_target_format)  # can be sped-up with a property rather computing per index
+        classes = target[:, target_class_index].astype(int)
+
+        return np.bincount(classes, minlength=len(self.classes))
+
+    def get_dataset_classes_information(self) -> np.ndarray:
+        return np.row_stack([self.get_sample_classes_information(index=index) for index in range(len(self))])
 
 
 def _get_class_index_in_target(target_format: DetectionTargetsFormat) -> int:

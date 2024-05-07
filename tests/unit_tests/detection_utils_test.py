@@ -98,9 +98,9 @@ class TestDetectionUtils(unittest.TestCase):
         valid_loader = coco2017_val(dataloader_params={"batch_size": 16, "num_workers": 0})
 
         metrics = [
-            DetectionMetrics(num_cls=80, post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True),
-            DetectionMetrics_050(num_cls=80, post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True),
-            DetectionMetrics(num_cls=80, post_prediction_callback=YoloXPostPredictionCallback(conf=2), normalize_targets=True),
+            DetectionMetrics(num_cls=80, post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True).to(self.device),
+            DetectionMetrics_050(num_cls=80, post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True).to(self.device),
+            DetectionMetrics(num_cls=80, post_prediction_callback=YoloXPostPredictionCallback(conf=2), normalize_targets=True).to(self.device),
         ]
 
         ref_values = [
@@ -119,7 +119,7 @@ class TestDetectionUtils(unittest.TestCase):
                 output = self.model(imgs)
                 met.update(output, targets, device=self.device, inputs=imgs)
             results = met.compute()
-            values = np.array([x.item() for x in list(results.values())])
+            values = np.array([x for x in list(results.values())])
             for expected, actual in zip(ref_val, values):
                 self.assertAlmostEqual(expected, actual, delta=5e-3)
 

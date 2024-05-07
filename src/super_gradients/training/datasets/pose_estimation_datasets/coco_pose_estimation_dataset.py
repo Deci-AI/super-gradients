@@ -3,22 +3,18 @@ from typing import Tuple, List, Union
 
 import cv2
 import numpy as np
-import pycocotools
-from pycocotools.coco import COCO
-
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.common.factories.type_factory import TypeFactory
 from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
-from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyxy_to_xywh
 from super_gradients.training.datasets.pose_estimation_datasets.abstract_pose_estimation_dataset import AbstractPoseEstimationDataset
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
     CrowdAnnotationActionEnum,
-    remove_duplicate_annotations as remove_duplicate_annotations_fn,
-    remove_crowd_annotations,
-    remove_samples_with_crowd_annotations,
+    parse_coco_into_keypoints_annotations,
+    segmentation2mask,
 )
 from super_gradients.training.samples import PoseEstimationSample
 from super_gradients.training.transforms.keypoint_transforms import AbstractKeypointTransform
@@ -82,20 +78,14 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
         if not os.path.exists(json_file) or not os.path.isfile(json_file):
             raise FileNotFoundError(f"Annotation file {json_file} does not exist")
 
-        coco = COCO(json_file)
+        self.category_name, self.joints, self.annotations = parse_coco_into_keypoints_annotations(
+            json_file,
+            image_path_prefix=os.path.join(data_dir, images_dir),
+            remove_duplicate_annotations=remove_duplicate_annotations,
+            crowd_annotations_action=crowd_annotations_action,
+        )
 
-        if remove_duplicate_annotations:
-            coco = remove_duplicate_annotations_fn(coco)
-
-        if crowd_annotations_action == CrowdAnnotationActionEnum.DROP_SAMPLE:
-            coco = remove_samples_with_crowd_annotations(coco)
-        elif crowd_annotations_action == CrowdAnnotationActionEnum.DROP_ANNOTATION:
-            coco = remove_crowd_annotations(coco)
-
-        if len(coco.dataset["categories"]) != 1:
-            raise ValueError("Dataset must contain exactly one category")
-        joints = coco.dataset["categories"][0]["keypoints"]
-        num_joints = len(joints)
+        num_joints = len(self.joints)
 
         super().__init__(
             transforms=transforms,
@@ -104,19 +94,14 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
             edge_colors=edge_colors,
             keypoint_colors=keypoint_colors,
         )
-        self.root = data_dir
-        self.images_dir = os.path.join(data_dir, images_dir)
-        self.coco = coco
-        self.ids = list(self.coco.imgs.keys())
-        self.joints = joints
-        self.crowd_annotations_action = crowd_annotations_action
-
-        if not include_empty_samples:
-            subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id)) > 0]
-            self.ids = subset
+        self.non_empty_annotation_indexes = np.argwhere([len(ann.ann_keypoints) > 0 for ann in self.annotations]).flatten()
+        self.include_empty_samples = include_empty_samples
 
     def __len__(self):
-        return len(self.ids)
+        if self.include_empty_samples:
+            return len(self.annotations)
+        else:
+            return len(self.non_empty_annotation_indexes)
 
     def load_sample(self, index: int) -> PoseEstimationSample:
         """
@@ -124,86 +109,55 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
         :param index: Sample index
         :return:      Returns an instance of PoseEstimationSample that holds complete sample (image and annotations)
         """
-        img_id = self.ids[index]
-        image_info = self.coco.loadImgs(img_id)[0]
-        file_name = image_info["file_name"]
-        file_path = os.path.join(self.images_dir, file_name)
-        ann_ids = self.coco.getAnnIds(imgIds=img_id)
-        anno = self.coco.loadAnns(ann_ids)
+        if not self.include_empty_samples:
+            index = self.non_empty_annotation_indexes[index]
+        ann = self.annotations[index]
 
-        gt_iscrowd = np.array([bool(ann["iscrowd"]) for ann in anno]).reshape((-1))
+        image_shape = (ann.image_height, ann.image_width)
 
-        if self.crowd_annotations_action == CrowdAnnotationActionEnum.MASK_AS_NORMAL:
-            # If crowd_annotations_action is "include", we treat crowd annotations as normal annotations
-            # so we set is_crowd to False for all annotations
-            gt_iscrowd = np.zeros_like(gt_iscrowd, dtype=bool)
+        gt_iscrowd = ann.ann_is_crowd.copy()
+        gt_joints = ann.ann_keypoints.copy()
+        gt_bboxes = ann.ann_boxes_xyxy.copy()
+        gt_segmentations = ann.ann_segmentations
+        gt_areas = ann.ann_areas.copy()
 
-        gt_joints = np.array([ann["keypoints"] for ann in anno], dtype=np.float32).reshape((-1, self.num_joints, 3))
-        gt_bboxes = np.array([ann["bbox"] for ann in anno], dtype=np.float32).reshape((-1, 4))
-        gt_areas = np.zeros((len(gt_bboxes),), dtype=np.float32)
-
-        for i, ann in enumerate(anno):
-            if "area" in ann:
-                gt_areas[i] = ann["area"]
-            else:
-                gt_areas[i] = gt_bboxes[i, 2] * gt_bboxes[i, 3] * 0.53
-
-        orig_image = cv2.imread(file_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+        orig_image = cv2.imread(ann.image_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
         if orig_image is None:
             # This is a nice fallback/hack to handle case when OpenCV cannot read some images
             # In happens to some OpenCV versions for COCO datasets (There are 1-2 corrupted images)
             # But we generaly want to read with OpenCV since it's much faster than PIL
             from PIL import Image
 
-            orig_image = Image.open(file_path).convert("BGR")
+            orig_image = Image.open(ann.image_path).convert("BGR")
 
-        if orig_image.shape[0] != image_info["height"] or orig_image.shape[1] != image_info["width"]:
-            raise RuntimeError(f"Annotated image size ({image_info['height'],image_info['width']}) does not match image size in file {orig_image.shape[:2]}")
+        if orig_image.shape[0] != ann.image_height or orig_image.shape[1] != ann.image_width:
+            raise RuntimeError(f"Annotated image size ({ann.image_height,ann.image_width}) does not match image size in file {orig_image.shape[:2]}")
 
         # Clip bboxes to image boundaries (Some annotations extend 1-2px outside of image boundaries)
         image_height, image_width = orig_image.shape[:2]
-        xyxy_bboxes = xywh_to_xyxy(gt_bboxes, image_shape=(image_height, image_width))
-        image_height, image_width = orig_image.shape[:2]
-        xyxy_bboxes[:, 0] = np.clip(xyxy_bboxes[:, 0], 0, image_width)
-        xyxy_bboxes[:, 1] = np.clip(xyxy_bboxes[:, 1], 0, image_height)
-        xyxy_bboxes[:, 2] = np.clip(xyxy_bboxes[:, 2], 0, image_width)
-        xyxy_bboxes[:, 3] = np.clip(xyxy_bboxes[:, 3], 0, image_height)
-        gt_bboxes = xyxy_to_xywh(xyxy_bboxes, image_shape=(image_height, image_width))
+        gt_bboxes[:, 0] = np.clip(gt_bboxes[:, 0], 0, image_width)
+        gt_bboxes[:, 1] = np.clip(gt_bboxes[:, 1], 0, image_height)
+        gt_bboxes[:, 2] = np.clip(gt_bboxes[:, 2], 0, image_width)
+        gt_bboxes[:, 3] = np.clip(gt_bboxes[:, 3], 0, image_height)
+        gt_bboxes_xywh = xyxy_to_xywh(gt_bboxes, image_shape=(image_height, image_width))
 
-        mask: np.ndarray = self._get_crowd_mask(anno, image_info)
+        mask: np.ndarray = self._get_crowd_mask(gt_segmentations[gt_iscrowd], image_shape)
 
         return PoseEstimationSample(
-            image=orig_image, mask=mask, joints=gt_joints, areas=gt_areas, bboxes_xywh=gt_bboxes, is_crowd=gt_iscrowd, additional_samples=None
+            image=orig_image, mask=mask, joints=gt_joints, areas=gt_areas, bboxes_xywh=gt_bboxes_xywh, is_crowd=gt_iscrowd, additional_samples=None
         )
 
-    def _get_crowd_mask(self, anno, img_info) -> np.ndarray:
+    def _get_crowd_mask(self, segmentations: List[str], image_shape: Tuple[int, int]) -> np.ndarray:
         """
         This method computes ignore mask, which describes crowd objects / objects w/o keypoints to exclude these predictions from contributing to the loss
-        :param anno:
-        :param img_info:
         :return: Float mask of [H,W] shape (same as image dimensions),
             where 1.0 values corresponds to pixels that should contribute to the loss, and 0.0 pixels indicates areas that should be excluded.
         """
-        m = np.zeros((img_info["height"], img_info["width"]), dtype=np.float32)
+        m = np.zeros(image_shape, dtype=bool)
 
-        for obj in anno:
-            if "segmentation" in obj:
-                if obj["iscrowd"]:
-                    rle = pycocotools.mask.frPyObjects(obj["segmentation"], img_info["height"], img_info["width"])
-                    mask = pycocotools.mask.decode(rle)
-                    if mask.shape != m.shape:
-                        logger.warning(f"Mask shape {mask.shape} does not match image shape {m.shape} for image {img_info['file_name']}")
-                        continue
-                    m += mask
-                elif obj["num_keypoints"] == 0:
-                    rles = pycocotools.mask.frPyObjects(obj["segmentation"], img_info["height"], img_info["width"])
-                    for rle in rles:
-                        mask = pycocotools.mask.decode(rle)
-                        if mask.shape != m.shape:
-                            logger.warning(f"Mask shape {mask.shape} does not match image shape {m.shape} for image {img_info['file_name']}")
-                            continue
-
-                        m += mask
+        for segmentation in segmentations:
+            mask = segmentation2mask(segmentation, image_shape)
+            m[mask] = True
 
         return (m < 0.5).astype(np.float32)
 

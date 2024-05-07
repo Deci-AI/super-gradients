@@ -32,7 +32,12 @@ from super_gradients.training.transforms.utils import (
     _rescale_xyxy_bboxes,
     _compute_scale_factor,
 )
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat, change_bbox_bounds_for_image_size
+from super_gradients.training.utils.detection_utils import (
+    get_mosaic_coordinate,
+    adjust_box_anns,
+    DetectionTargetsFormat,
+    change_bbox_bounds_for_image_size_inplace,
+)
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
@@ -417,7 +422,7 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
 class DetectionTransform:
     """
     Detection transform base class.
-    Complex transforms that require extra data loading can use the the additional_samples_count attribute in a
+    Complex transforms that require extra data loading can use the additional_samples_count attribute in a
      similar fashion to what's been done in COCODetectionDataset:
     self._load_additional_inputs_for_transform(sample, transform)
     # after the above call, sample["additional_samples"] holds a list of additional inputs and targets.
@@ -427,7 +432,7 @@ class DetectionTransform:
     """
 
     def __init__(self, additional_samples_count: int = 0, non_empty_targets: bool = False):
-        self.additional_samples_count = additional_samples_count
+        self._additional_samples_count = additional_samples_count
         self.non_empty_targets = non_empty_targets
         warnings.warn(
             "Inheriting from DetectionTransform is deprecated. "
@@ -454,6 +459,28 @@ class DetectionTransform:
 
     def __repr__(self):
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
+
+    @property
+    def additional_samples_count(self) -> int:
+        warnings.warn(
+            "This property is deprecated and will be removed in the future. Please use `get_number_of_additional_samples` instead.", DeprecationWarning
+        )
+        return self.get_number_of_additional_samples()
+
+    def get_number_of_additional_samples(self) -> int:
+        """
+        Returns number of additional samples required. The default implementation assumes that this number is fixed and deterministic.
+        Override in case this is not the case, e.g., you randomly choose to apply MixUp, etc
+        """
+        return self._additional_samples_count
+
+    @property
+    def may_require_additional_samples(self) -> bool:
+        """
+        Indicates whether additional samples are required. The default implementation assumes that this indicator is fixed and deterministic.
+        Override in case this is not the case, e.g., you randomly choose to apply MixUp, etc
+        """
+        return self._additional_samples_count > 0
 
     def get_equivalent_preprocessing(self) -> List:
         raise NotImplementedError
@@ -488,6 +515,8 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
     """
     DetectionMosaic detection transform
 
+    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `get_number_of_additional_samples`
+
     :param input_dim:       Input dimension.
     :param prob:            Probability of applying mosaic.
     :param enable_mosaic:   Whether to apply mosaic at all (regardless of prob).
@@ -495,68 +524,76 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
     """
 
     def __init__(self, input_dim: Union[int, Tuple[int, int]], prob: float = 1.0, enable_mosaic: bool = True, border_value=114):
-        super(DetectionMosaic, self).__init__(additional_samples_count=3)
+        super(DetectionMosaic, self).__init__()
         self.prob = prob
         self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.enable_mosaic = enable_mosaic
         self.border_value = border_value
 
     def close(self):
-        self.additional_samples_count = 0
         self.enable_mosaic = False
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        if self.enable_mosaic and random.random() < self.prob:
-            mosaic_labels = []
-            mosaic_bboxes = []
-            mosaic_iscrowd = []
+        if sample.additional_samples is None or len(sample.additional_samples) == 0 or not self.enable_mosaic:
+            return sample
 
-            input_h, input_w = self.input_dim[0], self.input_dim[1]
+        mosaic_labels = []
+        mosaic_bboxes = []
+        mosaic_iscrowd = []
 
-            # yc, xc = s, s  # mosaic center x, y
-            yc = int(random.uniform(0.5 * input_h, 1.5 * input_h))
-            xc = int(random.uniform(0.5 * input_w, 1.5 * input_w))
+        input_h, input_w = self.input_dim[0], self.input_dim[1]
 
-            # 3 additional samples, total of 4
-            all_samples: List[DetectionSample] = [sample] + sample.additional_samples
+        # yc, xc = s, s  # mosaic center x, y
+        yc = int(random.uniform(0.5 * input_h, 1.5 * input_h))
+        xc = int(random.uniform(0.5 * input_w, 1.5 * input_w))
 
-            for i_mosaic, sample in enumerate(all_samples):
-                img = sample.image
+        # 3 additional samples, total of 4
+        all_samples: List[DetectionSample] = [sample] + sample.additional_samples
 
-                h0, w0 = img.shape[:2]  # orig hw
-                scale = min(1.0 * input_h / h0, 1.0 * input_w / w0)
-                img = cv2.resize(img, (int(w0 * scale), int(h0 * scale)), interpolation=cv2.INTER_LINEAR)
-                # generate output mosaic image
-                (h, w, c) = img.shape[:3]
-                if i_mosaic == 0:
-                    mosaic_img = np.full((input_h * 2, input_w * 2, c), self.border_value, dtype=np.uint8)
+        for i_mosaic, sample in enumerate(all_samples):
+            img = sample.image
 
-                # suffix l means large image, while s means small image in mosaic aug.
-                (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(i_mosaic, xc, yc, w, h, input_h, input_w)
+            h0, w0 = img.shape[:2]  # orig hw
+            scale = min(1.0 * input_h / h0, 1.0 * input_w / w0)
+            img = cv2.resize(img, (int(w0 * scale), int(h0 * scale)), interpolation=cv2.INTER_LINEAR)
+            # generate output mosaic image
+            (h, w, c) = img.shape[:3]
+            if i_mosaic == 0:
+                mosaic_img = np.full((input_h * 2, input_w * 2, c), self.border_value, dtype=np.uint8)
 
-                mosaic_img[l_y1:l_y2, l_x1:l_x2] = img[s_y1:s_y2, s_x1:s_x2]
-                padw, padh = l_x1 - s_x1, l_y1 - s_y1
+            # suffix l means large image, while s means small image in mosaic aug.
+            (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(i_mosaic, xc, yc, w, h, input_h, input_w)
 
-                bboxes = sample.bboxes_xyxy * scale + np.array([[padw, padh, padw, padh]], dtype=np.float32)
+            mosaic_img[l_y1:l_y2, l_x1:l_x2] = img[s_y1:s_y2, s_x1:s_x2]
+            padw, padh = l_x1 - s_x1, l_y1 - s_y1
 
-                mosaic_labels.append(sample.labels)
-                mosaic_iscrowd.append(sample.is_crowd)
-                mosaic_bboxes.append(bboxes)
+            bboxes = sample.bboxes_xyxy * scale + np.array([[padw, padh, padw, padh]], dtype=np.float32)
 
-            mosaic_iscrowd = np.concatenate(mosaic_iscrowd, 0)
-            mosaic_labels = np.concatenate(mosaic_labels, 0)
-            mosaic_bboxes = np.concatenate(mosaic_bboxes, 0)
+            mosaic_labels.append(sample.labels)
+            mosaic_iscrowd.append(sample.is_crowd)
+            mosaic_bboxes.append(bboxes)
 
-            # No need to adjust bboxes for image size since DetectionSample constructor will do this anyway
-            sample = DetectionSample(
-                image=mosaic_img,
-                bboxes_xyxy=mosaic_bboxes,
-                labels=mosaic_labels,
-                is_crowd=mosaic_iscrowd,
-                additional_samples=None,
-            )
+        mosaic_iscrowd = np.concatenate(mosaic_iscrowd, 0)
+        mosaic_labels = np.concatenate(mosaic_labels, 0)
+        mosaic_bboxes = np.concatenate(mosaic_bboxes, 0)
 
+        # No need to adjust bboxes for image size since DetectionSample constructor will do this anyway
+        sample = DetectionSample(
+            image=mosaic_img,
+            bboxes_xyxy=mosaic_bboxes,
+            labels=mosaic_labels,
+            is_crowd=mosaic_iscrowd,
+            additional_samples=None,
+        )
         return sample
+
+    def get_number_of_additional_samples(self) -> int:
+        do_mosaic = self.enable_mosaic and random.random() < self.prob
+        return 3 if do_mosaic else 0
+
+    @property
+    def may_require_additional_samples(self):
+        return self.enable_mosaic
 
     def get_equivalent_preprocessing(self):
         raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
@@ -657,6 +694,8 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Mixup detection transform
 
+    NOTE: For efficiency, the decision whether to apply the transformation is done (per call) at `get_number_of_additional_samples`
+
     :param input_dim:        Input dimension.
     :param mixup_scale:      Scale range for the additional loaded image for mixup.
     :param prob:             Probability of applying mixup.
@@ -674,7 +713,7 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
         flip_prob: float = 0.5,
         border_value: int = 114,
     ):
-        super(DetectionMixup, self).__init__(additional_samples_count=1)
+        super(DetectionMixup, self).__init__()
         self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.mixup_scale = mixup_scale
         self.prob = prob
@@ -685,76 +724,85 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
         self.maybe_flip = DetectionHorizontalFlip(prob=flip_prob)
 
     def close(self):
-        self.additional_samples_count = 0
         self.enable_mixup = False
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        if self.enable_mixup and random.random() < self.prob:
-            (cp_sample,) = sample.additional_samples
-            target_dim = self.input_dim if self.input_dim is not None else sample.image.shape[:2]
+        if sample.additional_samples is None or len(sample.additional_samples) == 0 or not self.enable_mixup:
+            return sample
 
-            cp_sample = self.maybe_flip.apply_to_sample(cp_sample)
+        (cp_sample,) = sample.additional_samples
+        target_dim = self.input_dim if self.input_dim is not None else sample.image.shape[:2]
 
-            jit_factor = random.uniform(*self.mixup_scale)
+        cp_sample = self.maybe_flip.apply_to_sample(cp_sample)
 
-            if len(sample.image.shape) == 3:
-                cp_img = np.ones((target_dim[0], target_dim[1], sample.image.shape[2]), dtype=np.uint8) * self.border_value
-            else:
-                cp_img = np.ones(target_dim, dtype=np.uint8) * self.border_value
+        jit_factor = random.uniform(*self.mixup_scale)
 
-            cp_scale_ratio = min(target_dim[0] / cp_sample.image.shape[0], target_dim[1] / cp_sample.image.shape[1])
-            resized_img = cv2.resize(
-                cp_sample.image,
-                (int(cp_sample.image.shape[1] * cp_scale_ratio), int(cp_sample.image.shape[0] * cp_scale_ratio)),
-                interpolation=cv2.INTER_LINEAR,
-            )
+        if len(sample.image.shape) == 3:
+            cp_img = np.ones((target_dim[0], target_dim[1], sample.image.shape[2]), dtype=np.uint8) * self.border_value
+        else:
+            cp_img = np.ones(target_dim, dtype=np.uint8) * self.border_value
 
-            cp_img[: resized_img.shape[0], : resized_img.shape[1]] = resized_img
+        cp_scale_ratio = min(target_dim[0] / cp_sample.image.shape[0], target_dim[1] / cp_sample.image.shape[1])
+        resized_img = cv2.resize(
+            cp_sample.image,
+            (int(cp_sample.image.shape[1] * cp_scale_ratio), int(cp_sample.image.shape[0] * cp_scale_ratio)),
+            interpolation=cv2.INTER_LINEAR,
+        )
 
-            cp_img = cv2.resize(
-                cp_img,
-                (int(cp_img.shape[1] * jit_factor), int(cp_img.shape[0] * jit_factor)),
-                interpolation=cv2.INTER_LINEAR,
-            )
-            cp_scale_ratio *= jit_factor
+        cp_img[: resized_img.shape[0], : resized_img.shape[1]] = resized_img
 
-            origin_h, origin_w = cp_img.shape[:2]
-            target_h, target_w = sample.image.shape[:2]
+        cp_img = cv2.resize(
+            cp_img,
+            (int(cp_img.shape[1] * jit_factor), int(cp_img.shape[0] * jit_factor)),
+            interpolation=cv2.INTER_LINEAR,
+        )
+        cp_scale_ratio *= jit_factor
 
-            if len(cp_img.shape) == 3:
-                padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w), cp_img.shape[2]), dtype=np.uint8)
-            else:
-                padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w)), dtype=np.uint8)
+        origin_h, origin_w = cp_img.shape[:2]
+        target_h, target_w = sample.image.shape[:2]
 
-            padded_img[:origin_h, :origin_w] = cp_img
+        if len(cp_img.shape) == 3:
+            padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w), cp_img.shape[2]), dtype=np.uint8)
+        else:
+            padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w)), dtype=np.uint8)
 
-            x_offset, y_offset = 0, 0
-            if padded_img.shape[0] > target_h:
-                y_offset = random.randint(0, padded_img.shape[0] - target_h - 1)
-            if padded_img.shape[1] > target_w:
-                x_offset = random.randint(0, padded_img.shape[1] - target_w - 1)
-            padded_cropped_img = padded_img[y_offset : y_offset + target_h, x_offset : x_offset + target_w]
+        padded_img[:origin_h, :origin_w] = cp_img
 
-            cp_bboxes_origin_np = adjust_box_anns(cp_sample.bboxes_xyxy[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h)
-            cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
-            cp_bboxes_transformed_np[:, [0, 2]] = cp_bboxes_transformed_np[:, [0, 2]] - x_offset
-            cp_bboxes_transformed_np[:, [1, 3]] = cp_bboxes_transformed_np[:, [1, 3]] - y_offset
-            cp_bboxes_transformed_np = change_bbox_bounds_for_image_size(cp_bboxes_transformed_np, (target_h, target_w))
+        x_offset, y_offset = 0, 0
+        if padded_img.shape[0] > target_h:
+            y_offset = random.randint(0, padded_img.shape[0] - target_h - 1)
+        if padded_img.shape[1] > target_w:
+            x_offset = random.randint(0, padded_img.shape[1] - target_w - 1)
+        padded_cropped_img = padded_img[y_offset : y_offset + target_h, x_offset : x_offset + target_w]
 
-            mixup_boxes = np.concatenate([sample.bboxes_xyxy, cp_bboxes_transformed_np], axis=0)
-            mixup_labels = np.concatenate([sample.labels, cp_sample.labels], axis=0)
-            mixup_crowds = np.concatenate([sample.is_crowd, cp_sample.is_crowd], axis=0)
+        cp_bboxes_origin_np = adjust_box_anns(cp_sample.bboxes_xyxy[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h)
+        cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
+        cp_bboxes_transformed_np[:, [0, 2]] = cp_bboxes_transformed_np[:, [0, 2]] - x_offset
+        cp_bboxes_transformed_np[:, [1, 3]] = cp_bboxes_transformed_np[:, [1, 3]] - y_offset
+        cp_bboxes_transformed_np = change_bbox_bounds_for_image_size_inplace(cp_bboxes_transformed_np, (target_h, target_w))
 
-            mixup_image = (0.5 * sample.image + 0.5 * padded_cropped_img).astype(sample.image.dtype)
-            sample = DetectionSample(
-                image=mixup_image,
-                bboxes_xyxy=mixup_boxes,
-                labels=mixup_labels,
-                is_crowd=mixup_crowds,
-                additional_samples=None,
-            )
+        mixup_boxes = np.concatenate([sample.bboxes_xyxy, cp_bboxes_transformed_np], axis=0)
+        mixup_labels = np.concatenate([sample.labels, cp_sample.labels], axis=0)
+        mixup_crowds = np.concatenate([sample.is_crowd, cp_sample.is_crowd], axis=0)
+
+        mixup_image = (0.5 * sample.image + 0.5 * padded_cropped_img).astype(sample.image.dtype)
+        sample = DetectionSample(
+            image=mixup_image,
+            bboxes_xyxy=mixup_boxes,
+            labels=mixup_labels,
+            is_crowd=mixup_crowds,
+            additional_samples=None,
+        )
 
         return sample
+
+    def get_number_of_additional_samples(self) -> int:
+        do_mixup = self.enable_mixup and random.random() < self.prob
+        return int(do_mixup)
+
+    @property
+    def may_require_additional_samples(self):
+        return self.enable_mixup
 
     def get_equivalent_preprocessing(self):
         raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
@@ -1111,7 +1159,7 @@ class DetectionRGB2BGR(AbstractDetectionTransform, LegacyDetectionTransformMixin
         self.prob = float(prob)
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        if len(sample.image.shape) != 3 or sample.image.shape[2] < 3:
+        if len(sample.image.shape) != 3 or sample.image.shape[2] != 3:
             raise ValueError("DetectionRGB2BGR transform expects image to have 3 channels, got input image shape: " + str(sample.image.shape))
         if random.random() < self.prob:
             sample = DetectionSample(

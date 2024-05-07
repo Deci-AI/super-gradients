@@ -2,7 +2,7 @@ import unittest
 
 from omegaconf import OmegaConf
 
-from super_gradients.common.environment.ddp_utils import register_hydra_resolvers
+from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 
 
 class HydraResolversTest(unittest.TestCase):
@@ -11,8 +11,17 @@ class HydraResolversTest(unittest.TestCase):
 
     def test_add(self):
         conf = OmegaConf.create({"a": 1, "b": 2, "c": 3, "a_plus_b": "${add: ${a},${b}}", "a_plus_b_plus_c": "${add: ${a}, ${b}, ${c}}"})
-        assert conf["a_plus_b"] == 3
-        assert conf["a_plus_b_plus_c"] == 6
+        self.assertEqual(conf["a_plus_b"], 3)
+        self.assertEqual(conf["a_plus_b_plus_c"], 6)
+
+    def test_div(self):
+        conf = OmegaConf.create({"a": 1, "b": 2, "a_div_b": "${div: ${a},${b}}"})
+        self.assertAlmostEqual(conf["a_div_b"], 0.5)
+
+    def test_mul(self):
+        conf = OmegaConf.create({"a": 1, "b": 2, "c": 4, "a_mul_b": "${mul: ${a},${b}}", "a_mul_b_mul_c": "${mul: ${a}, ${b}, ${c}}"})
+        self.assertEqual(conf["a_mul_b"], 2)
+        self.assertEqual(conf["a_mul_b_mul_c"], 8)
 
     def test_list(self):
         conf = OmegaConf.create(
@@ -21,11 +30,13 @@ class HydraResolversTest(unittest.TestCase):
                 "third_of_list": "${getitem: ${my_list}, 2}",
                 "first_of_list": "${first: ${my_list}}",
                 "last_of_list": "${last: ${my_list}}",
+                "len_of_list": "${len: ${my_list}}",
             }
         )
         self.assertEqual(conf["third_of_list"], 30)
         self.assertEqual(conf["first_of_list"], 10)
         self.assertEqual(conf["last_of_list"], 50)
+        self.assertEqual(conf["len_of_list"], 5)
 
     def test_cond(self):
         conf = OmegaConf.create(

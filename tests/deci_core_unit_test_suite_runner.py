@@ -33,6 +33,7 @@ from tests.unit_tests import (
 )
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.depth_estimation_dataset_test import DepthEstimationDatasetTest
+from tests.unit_tests.export_segmentation_model_test import TestSegmentationModelExport
 from tests.unit_tests.test_convert_recipe_to_code import TestConvertRecipeToCode
 from tests.unit_tests.detection_utils_test import TestDetectionUtils
 from tests.unit_tests.detection_dataset_test import DetectionDatasetTest, TestParseYoloLabelFile
@@ -87,6 +88,8 @@ from tests.unit_tests.dekr_loss_test import DEKRLossTest
 from tests.unit_tests.pose_estimation_metrics_test import TestPoseEstimationMetrics
 from tests.unit_tests.forward_with_sliding_window_test import SlidingWindowTest
 from tests.unit_tests.detection_metrics_distance_based_test import TestDetectionMetricsDistanceBased
+from tests.unit_tests.class_balancer_test import ClassBalancerTest
+from tests.unit_tests.class_balanced_sampler_test import ClassBalancedSamplerTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -186,6 +189,9 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDepthEstimationMetrics))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DepthEstimationDatasetTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSupportsInputShapeCheck))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ClassBalancerTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ClassBalancedSamplerTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationModelExport))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

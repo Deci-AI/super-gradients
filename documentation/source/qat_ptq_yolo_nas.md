@@ -15,6 +15,7 @@ Pre-requisites:
 - [Training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)
 - [PTQ and QAT](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/ptq_qat.md)
 
+**Note: quantization is currently supported exclusively for GPU and TensorRT environments.**
 
 Now, let's get to it.
 

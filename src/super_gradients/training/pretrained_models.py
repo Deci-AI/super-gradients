@@ -61,7 +61,6 @@ MODEL_URLS = {
     "yolo_nas_pose_l_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_l_coco_pose.pth",
 }
 
-
 PRETRAINED_NUM_CLASSES = {
     "imagenet": 1000,
     "imagenet21k": 21843,
@@ -70,4 +69,14 @@ PRETRAINED_NUM_CLASSES = {
     "coco": 80,
     "coco_pose": 17,
     "cifar10": 10,
+}
+
+DATASET_LICENSES = {
+    "imagenet": "https://www.image-net.org/download.php",
+    "imagenet21k": "https://github.com/Alibaba-MIIL/ImageNet21K",
+    "coco": "https://cocodataset.org/#termsofuse",
+    "coco_segmentation_subclass": "https://cocodataset.org/#termsofuse",
+    "coco_pose": "https://cocodataset.org/#termsofuse",
+    "cityscapes": "https://www.cs.toronto.edu/~kriz/cifar.html",
+    "objects365": "https://www.objects365.org/download.html",
 }

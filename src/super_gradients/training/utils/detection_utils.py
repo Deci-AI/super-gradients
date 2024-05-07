@@ -16,6 +16,7 @@ from torch import nn
 
 from super_gradients.training.utils.visualization.detection import draw_bbox
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
+from super_gradients.common.deprecate import deprecate_param
 
 
 class DetectionTargetsFormat(Enum):
@@ -170,9 +171,9 @@ def calc_bbox_iou_matrix(pred: torch.Tensor):
     return ious
 
 
-def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, int]) -> np.ndarray:
+def change_bbox_bounds_for_image_size_inplace(boxes: np.ndarray, img_shape: Tuple[int, int]) -> np.ndarray:
     """
-    Clips bboxes to image boundaries.
+    Clips bboxes to image boundaries. The function operates in-place.
 
     :param bboxes:     (np.ndarray) Input bounding boxes in XYXY format of [..., 4] shape
     :param img_shape:  Tuple[int,int] of image shape (height, width).
@@ -181,6 +182,32 @@ def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, i
     boxes[..., [0, 2]] = boxes[..., [0, 2]].clip(min=0, max=img_shape[1])
     boxes[..., [1, 3]] = boxes[..., [1, 3]].clip(min=0, max=img_shape[0])
     return boxes
+
+
+def change_bbox_bounds_for_image_size(boxes: np.ndarray, img_shape: Tuple[int, int], inplace=True) -> np.ndarray:
+    """
+    Clips bboxes to image boundaries.
+    The function may operate both in- and on a copy of the input which is controlled by the inplace parameter.
+    It exists for backward compatibility and will be removed in the SG 3.8.0 and this method will not modify the input.
+    An inplace version of this method is available as change_bbox_bounds_for_image_size_inplace.
+
+    :param bboxes:     (np.ndarray) Input bounding boxes in XYXY format of [..., 4] shape
+    :param img_shape:  Tuple[int,int] of image shape (height, width).
+    :param inplace:    (bool) If True, the function operates in-place. Otherwise, it returns a modified copy.
+                       If True this will trigger a deprecated warning to inform the user to use
+                       change_bbox_bounds_for_image_size_inplace instead.
+    :return:           (np.ndarray)clipped bboxes in XYXY format of [..., 4] shape
+    """
+    if not inplace:
+        boxes = boxes.copy()
+    else:
+        deprecate_param(
+            deprecated_param_name="inplace",
+            deprecated_since="3.7.0",
+            removed_from="3.8.0",
+            reason="For in-place operation, use change_bbox_bounds_for_image_size_inplace",
+        )
+    return change_bbox_bounds_for_image_size_inplace(boxes, img_shape)
 
 
 class DetectionPostPredictionCallback(ABC, nn.Module):
@@ -497,17 +524,17 @@ class DetectionVisualization:
             else:
                 image_with_targets = image_np
 
-            for label_xyxy in target_boxes:
+            for label, x1, y1, x2, y2 in target_boxes:
                 image_with_targets = DetectionVisualization.draw_box_title(
                     color_mapping=color_mapping,
                     class_names=class_names,
                     box_thickness=box_thickness,
                     image_np=image_with_targets,
-                    x1=int(label_xyxy[1]),
-                    y1=int(label_xyxy[2]),
-                    x2=int(label_xyxy[3]),
-                    y2=int(label_xyxy[4]),
-                    class_id=int(label_xyxy[0]),
+                    x1=int(x1),
+                    y1=int(y1),
+                    x2=int(x2),
+                    y2=int(y2),
+                    class_id=int(label),
                     bbox_prefix="[GT]" if pred_boxes is not None else "",  # If we have PREDICTIONS, we want to add a prefix to distinguish.
                 )
 
@@ -598,7 +625,7 @@ class DetectionVisualization:
         out_images = []
         for i in range(image_np.shape[0]):
             preds = pred_boxes[i].detach().cpu().numpy() if pred_boxes[i] is not None else np.empty((0, 6))
-            targets_cur = targets[targets[:, 0] == i]
+            targets_cur = targets[targets[:, 0] == i][:, 1:]
 
             image_name = "_".join([str(batch_name), str(i)])
             res_image = DetectionVisualization._visualize_image(
@@ -754,7 +781,7 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     :return: modified bbox (np.array)
     """
     scaled_bboxes = bbox * scale_ratio + np.array([[padw, padh, padw, padh]])
-    return change_bbox_bounds_for_image_size(scaled_bboxes, img_shape=(h_max, w_max))
+    return change_bbox_bounds_for_image_size_inplace(scaled_bboxes, img_shape=(h_max, w_max))
 
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:
@@ -1219,9 +1246,9 @@ def compute_img_detection_matching(
         targets_cls = targets[:, 0].to(device=device)
         return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
 
-    preds_matched = torch.zeros(len(preds), num_thresholds, dtype=torch.bool, device=device)
-    targets_matched = torch.zeros(len(targets), num_thresholds, dtype=torch.bool, device=device)
-    preds_to_ignore = torch.zeros(len(preds), num_thresholds, dtype=torch.bool, device=device)
+    preds_matched = torch.zeros(len(preds), num_thresholds, dtype=torch.bool, device=preds.device)
+    targets_matched = torch.zeros(len(targets), num_thresholds, dtype=torch.bool, device=preds.device)
+    preds_to_ignore = torch.zeros(len(preds), num_thresholds, dtype=torch.bool, device=preds.device)
 
     preds_cls, preds_box, preds_scores = preds[:, -1], preds[:, 0:4], preds[:, 4]
     targets_cls, targets_box = targets[:, 0], targets[:, 1:5]
@@ -1234,7 +1261,7 @@ def compute_img_detection_matching(
 
     if len(targets) > 0 or len(crowd_targets) > 0:
         # CHANGE bboxes TO FIT THE IMAGE SIZE
-        change_bbox_bounds_for_image_size(preds, (height, width))
+        change_bbox_bounds_for_image_size_inplace(preds, (height, width))
 
         targets_box = cxcywh2xyxy(targets_box)
         crowd_target_box = cxcywh2xyxy(crowd_target_box)

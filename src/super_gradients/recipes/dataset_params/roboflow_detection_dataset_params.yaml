@@ -43,7 +43,6 @@ train_dataset_params:
     - DetectionTargetsFormatTransform:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
         output_format: LABEL_CXCYWH
-  tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:
   with_crowd: False
@@ -77,7 +76,6 @@ val_dataset_params:
   - DetectionTargetsFormatTransform:
       input_dim: ${dataset_params.val_dataset_params.input_dim}
       output_format: LABEL_CXCYWH
-  tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:
   with_crowd: True

@@ -2,20 +2,14 @@ import logging
 from typing import Tuple, Set, Type, Dict, Union, Callable, Optional
 from torch import nn
 
+from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
+from pytorch_quantization.tensor_quant import QuantDescriptor
+from pytorch_quantization import nn as quant_nn
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, QuantizedMetadata
 
 logger = get_logger(__name__)
-try:
-    from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
-    from pytorch_quantization.tensor_quant import QuantDescriptor
-    from pytorch_quantization import nn as quant_nn
-
-    from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, QuantizedMetadata
-
-    _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warning("Failed to import pytorch_quantization")
-    _imported_pytorch_quantization_failure = import_err
 
 
 def register_quantized_module(
@@ -61,9 +55,6 @@ class SelectiveQuantizer:
     :param default_quant_modules_calibrator_inputs:     default calibrator method for inputs (default='histogram')
     :param default_learn_amax:                          EXPERIMENTAL! whether quant modules should have learnable amax (default=False)
     """
-
-    if _imported_pytorch_quantization_failure is not None:
-        raise _imported_pytorch_quantization_failure
 
     mapping_instructions: Dict[Union[str, Type], QuantizedMetadata] = {
         **{
@@ -252,8 +243,6 @@ class SelectiveQuantizer:
         """
         # if we don't have any instruction for the specific layer or the specific type - we continue
         # NOTE! IT IS IMPORTANT TO FIRST PROCESS THE NAME AND ONLY THEN THE TYPE
-        if _imported_pytorch_quantization_failure is not None:
-            raise _imported_pytorch_quantization_failure
         for candidate_key in (".".join(nesting + (child_name,)), type(child_module)):
             if candidate_key not in mapping_instructions:
                 continue

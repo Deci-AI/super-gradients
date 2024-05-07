@@ -13,24 +13,23 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
 from super_gradients.conversion.conversion_utils import find_compatible_model_device_for_dtype
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
+from super_gradients.import_utils import import_pytorch_quantization_or_install
+from super_gradients.module_interfaces.exceptions import ModelHasNoPreprocessingParamsException
 from super_gradients.module_interfaces.supports_input_shape_check import SupportsInputShapeCheck
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
-from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
 from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules, infer_model_dtype
 from torch import nn, Tensor
 from torch.utils.data import DataLoader
 
 logger = get_logger(__name__)
 
-__all__ = ["ExportableObjectDetectionModel", "AbstractObjectDetectionDecodingModule", "ModelExportResult", "ModelHasNoPreprocessingParamsException"]
-
-
-class ModelHasNoPreprocessingParamsException(Exception):
-    """
-    Exception that is raised when model does not have preprocessing parameters.
-    """
-
-    pass
+__all__ = [
+    "ExportableObjectDetectionModel",
+    "AbstractObjectDetectionDecodingModule",
+    "ModelExportResult",
+    "ModelHasNoPreprocessingParamsException",
+    "ObjectDetectionModelExportResult",
+]
 
 
 class AbstractObjectDetectionDecodingModule(nn.Module):
@@ -92,11 +91,12 @@ class AbstractObjectDetectionDecodingModule(nn.Module):
 
 
 @dataclasses.dataclass
-class ModelExportResult:
+class ObjectDetectionModelExportResult:
     """
     A dataclass that holds the result of model export.
     """
 
+    batch_size: int
     input_image_channels: int
     input_image_dtype: torch.dtype
     input_image_shape: Tuple[int, int]
@@ -111,6 +111,9 @@ class ModelExportResult:
 
     def __repr__(self):
         return self.usage_instructions
+
+
+ModelExportResult = ObjectDetectionModelExportResult  # Alias for backward compatibility
 
 
 class ExportableObjectDetectionModel:
@@ -233,25 +236,15 @@ class ExportableObjectDetectionModel:
 
         # Do imports here to avoid raising error of missing onnx_graphsurgeon package if it is not needed.
         import_onnx_graphsurgeon_or_install()
+        if ExportQuantizationMode.INT8 == quantization_mode:
+            import_pytorch_quantization_or_install()
+
         from super_gradients.conversion.conversion_utils import torch_dtype_to_numpy_dtype
         from super_gradients.conversion.onnx.nms import attach_onnx_nms
         from super_gradients.conversion.preprocessing_modules import CastTensorTo
         from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
 
         usage_instructions = []
-
-        try:
-            from pytorch_quantization import nn as quant_nn
-            from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
-            from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
-
-            patch_pytorch_quantization_modules_if_needed()
-        except ImportError:
-            if quantization_mode is not None:
-                raise ImportError(
-                    "pytorch_quantization package is not installed. "
-                    "Please install it via `pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com`"
-                )
 
         if not isinstance(self, nn.Module):
             raise TypeError(f"Export is only supported for torch.nn.Module. Got type {type(self)}")
@@ -345,7 +338,15 @@ class ExportableObjectDetectionModel:
 
         # This variable holds the output names of the model.
         # If postprocessing is enabled, it will be set to the output names of the postprocessing module.
-        output_names: Optional[List[str]] = None
+        if onnx_export_kwargs is not None and "output_names" in onnx_export_kwargs:
+            output_names = onnx_export_kwargs.pop("output_names")
+        else:
+            output_names = None
+
+        if onnx_export_kwargs is not None and "input_names" in onnx_export_kwargs:
+            input_names = onnx_export_kwargs.pop("input_names")
+        else:
+            input_names = ["input"]
 
         if isinstance(postprocessing, nn.Module):
             # If a user-specified postprocessing module is provided, we will attach is to the model and not
@@ -408,30 +409,17 @@ class ExportableObjectDetectionModel:
         contains_quantized_modules = check_model_contains_quantized_modules(model)
 
         if quantization_mode == ExportQuantizationMode.INT8:
-            if contains_quantized_modules:
-                logger.debug("Model contains quantized modules. Skipping quantization & calibration steps since it is already quantized.")
-                pass
+            from super_gradients.training.utils.quantization import ptq
 
-            q_util = selective_quantizer or SelectiveQuantizer(
-                default_quant_modules_calibrator_weights="max",
-                default_quant_modules_calibrator_inputs="histogram",
-                default_per_channel_quant_weights=True,
-                default_learn_amax=False,
-                verbose=True,
+            model = ptq(
+                model,
+                selective_quantizer=selective_quantizer,
+                calibration_loader=calibration_loader,
+                calibration_method=calibration_method,
+                calibration_batches=calibration_batches,
+                calibration_percentile=calibration_percentile,
             )
-            q_util.quantize_module(model)
 
-            if calibration_loader:
-                logger.debug("Calibrating model")
-                calibrator = QuantizationCalibrator(verbose=True)
-                calibrator.calibrate_model(
-                    model,
-                    method=calibration_method,
-                    calib_data_loader=calibration_loader,
-                    num_calib_batches=calibration_batches,
-                    percentile=calibration_percentile,
-                )
-                logger.debug("Calibrating model complete")
         elif quantization_mode == ExportQuantizationMode.FP16:
             if contains_quantized_modules:
                 raise RuntimeError("Model contains quantized modules for INT8 mode. " "FP16 quantization is not supported for such models.")
@@ -463,91 +451,73 @@ class ExportableObjectDetectionModel:
                 )
 
         if engine in {ExportTargetBackend.ONNXRUNTIME, ExportTargetBackend.TENSORRT}:
+            from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
+
             onnx_export_kwargs = onnx_export_kwargs or {}
+            onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
 
-            if quantization_mode == ExportQuantizationMode.INT8:
-                use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
-                quant_nn.TensorQuantizer.use_fb_fake_quant = True
+            export_to_onnx(
+                model=complete_model,
+                model_input=onnx_input,
+                onnx_filename=output,
+                input_names=input_names,
+                output_names=output_names,
+                onnx_opset=onnx_export_kwargs.get("opset_version", None),
+                do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
+                dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
+                keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
+                verbose=onnx_export_kwargs.get("verbose", False),
+            )
 
-            try:
-                with torch.no_grad():
-                    onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
-                    # Sanity check that model works
-                    _ = complete_model(onnx_input)
+            # Stitch ONNX graph with NMS postprocessing
+            if attach_nms_postprocessing:
+                if engine == ExportTargetBackend.TENSORRT:
+                    if onnx_simplify:
+                        # If TRT engine is used, we need to run onnxsim.simplify BEFORE attaching NMS,
+                        # because EfficientNMS_TRT is not supported by onnxsim and would lead to a runtime error.
+                        model_opt, simplify_successful = onnxsim.simplify(output)
+                        if not simplify_successful:
+                            raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+                        onnx.save(model_opt, output)
+                        logger.debug(f"Ran onnxsim.simplify on model {output}")
+                        # Disable onnx_simplify to avoid running it second time.
+                        onnx_simplify = False
 
-                    for name, p in complete_model.named_parameters():
-                        if p.device != device:
-                            logger.warning(f"Model parameter {name} is on device {p.device} but expected to be on device {device}")
+                    nms_attach_method = attach_tensorrt_nms
 
-                    for name, p in complete_model.named_buffers():
-                        if p.device != device:
-                            logger.warning(f"Model buffer {name} is on device {p.device} but expected to be on device {device}")
-
-                    logger.debug("Exporting model to ONNX")
-                    logger.debug(f"ONNX input shape: {input_shape} with dtype: {input_image_dtype}")
-                    logger.debug(f"ONNX output names: {output_names}")
-                    logger.debug(f"ONNX export kwargs: {onnx_export_kwargs}")
-
-                    if onnx_export_kwargs is not None and "args" in onnx_export_kwargs:
-                        raise ValueError(
-                            "`args` key found in onnx_export_kwargs. We explicitly construct dummy input (`args`) inside export() method. "
-                            "Overriding args is not supported so please remove it from the `onnx_export_kwargs`."
+                    if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
+                        logger.warning(
+                            "Support of flat predictions format in TensorRT is experimental and may not work on all versions of TensorRT. "
+                            "We recommend using TensorRT 8.5.3 or newer. On older versions of TensorRT this format will not work. "
+                            "If you encountering issues loading exported model in TensorRT, please try upgrading TensorRT to latest version. "
+                            "Alternatively, you can export the model to output predictions in batch format by "
+                            "specifying output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT. "
                         )
-                    torch.onnx.export(model=complete_model, args=onnx_input, f=output, input_names=["input"], output_names=output_names, **onnx_export_kwargs)
+                elif engine == ExportTargetBackend.ONNXRUNTIME:
+                    nms_attach_method = attach_onnx_nms
+                else:
+                    raise KeyError(f"Unsupported engine: {engine}")
 
-                # Stitch ONNX graph with NMS postprocessing
-                if attach_nms_postprocessing:
-                    if engine == ExportTargetBackend.TENSORRT:
-                        if onnx_simplify:
-                            # If TRT engine is used, we need to run onnxsim.simplify BEFORE attaching NMS,
-                            # because EfficientNMS_TRT is not supported by onnxsim and would lead to a runtime error.
-                            model_opt, simplify_successful = onnxsim.simplify(output)
-                            if not simplify_successful:
-                                raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
-                            onnx.save(model_opt, output)
-                            logger.debug(f"Ran onnxsim.simplify on model {output}")
-                            # Disable onnx_simplify to avoid running it second time.
-                            onnx_simplify = False
+                nms_attach_method(
+                    onnx_model_path=output,
+                    output_onnx_model_path=output,
+                    num_pre_nms_predictions=num_pre_nms_predictions,
+                    max_predictions_per_image=max_predictions_per_image,
+                    nms_threshold=nms_threshold,
+                    confidence_threshold=confidence_threshold,
+                    batch_size=batch_size,
+                    output_predictions_format=output_predictions_format,
+                    device=device,
+                    onnx_export_kwargs=onnx_export_kwargs,
+                )
 
-                        nms_attach_method = attach_tensorrt_nms
+            if onnx_simplify:
+                model_opt, simplify_successful = onnxsim.simplify(output)
+                if not simplify_successful:
+                    raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+                onnx.save(model_opt, output)
 
-                        if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
-                            logger.warning(
-                                "Support of flat predictions format in TensorRT is experimental and may not work on all versions of TensorRT. "
-                                "We recommend using TensorRT 8.5.3 or newer. On older versions of TensorRT this format will not work. "
-                                "If you encountering issues loading exported model in TensorRT, please try upgrading TensorRT to latest version. "
-                                "Alternatively, you can export the model to output predictions in batch format by "
-                                "specifying output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT. "
-                            )
-                    elif engine == ExportTargetBackend.ONNXRUNTIME:
-                        nms_attach_method = attach_onnx_nms
-                    else:
-                        raise KeyError(f"Unsupported engine: {engine}")
-
-                    nms_attach_method(
-                        onnx_model_path=output,
-                        output_onnx_model_path=output,
-                        num_pre_nms_predictions=num_pre_nms_predictions,
-                        max_predictions_per_image=max_predictions_per_image,
-                        nms_threshold=nms_threshold,
-                        confidence_threshold=confidence_threshold,
-                        batch_size=batch_size,
-                        output_predictions_format=output_predictions_format,
-                        device=device,
-                        onnx_export_kwargs=onnx_export_kwargs,
-                    )
-
-                if onnx_simplify:
-                    model_opt, simplify_successful = onnxsim.simplify(output)
-                    if not simplify_successful:
-                        raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
-                    onnx.save(model_opt, output)
-
-                    logger.debug(f"Ran onnxsim.simplify on {output}")
-            finally:
-                if quantization_mode == ExportQuantizationMode.INT8:
-                    # Restore functions of quant_nn back as expected
-                    quant_nn.TensorQuantizer.use_fb_fake_quant = use_fb_fake_quant_state
+                logger.debug(f"Ran onnxsim.simplify on {output}")
 
         else:
             raise ValueError(f"Unsupported export format: {engine}. Supported formats: onnxruntime, tensorrt")
@@ -651,7 +621,8 @@ class ExportableObjectDetectionModel:
             usage_instructions.append("But here is the human-friendly representation of the postprocessing module:")
             usage_instructions.append(repr(postprocessing))
 
-        return ModelExportResult(
+        return ObjectDetectionModelExportResult(
+            batch_size=batch_size,
             input_image_channels=input_image_channels,
             input_image_dtype=input_image_dtype,
             input_image_shape=input_image_shape,

@@ -509,6 +509,20 @@ def download_and_unzip_from_url(url, dir=".", unzip=True, delete=True):
         download_one(u, dir)
 
 
+def safe_untar(tar_file, extract_path):
+    """
+    Protect against Tar Slip vulnerability.
+    Calling extractall to extract all files from a tar file without sanitization
+    may result files outside destination directory to be overwritten, resulting in an arbitrary file write.
+    CVE-2007-4559 https://nvd.nist.gov/vuln/detail/CVE-2007-4559
+    """
+    with tarfile.TarFile(tar_file, "r") as tf:
+        for member in tf:
+            file_path = os.path.realpath(os.path.join(extract_path, member.name))
+            if file_path.startswith(os.path.realpath(extract_path)):
+                tf.extract(member, extract_path)
+
+
 def download_and_untar_from_url(urls: List[str], dir: Union[str, Path] = "."):
     """
     Download a file from url and untar.
@@ -533,8 +547,7 @@ def download_and_untar_from_url(urls: List[str], dir: Union[str, Path] = "."):
         assert filepath.suffix in modes.keys(), f"{filepath} has {filepath.suffix} suffix which is not supported"
 
         logger.info(f"Extracting to {dir}...")
-        with tarfile.open(filepath, mode=modes[filepath.suffix]) as f:
-            f.extractall(dir)
+        safe_untar(filepath, dir)
         filepath.unlink()
 
 
