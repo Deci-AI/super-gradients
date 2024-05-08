@@ -10,7 +10,6 @@ import torch.nn as nn
 from torch import distributed as dist
 from torch.cuda.amp import autocast
 from torch.distributed import get_rank, all_gather_object
-from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
@@ -345,8 +344,6 @@ def restart_script_with_ddp(num_gpus: int = None):
         max_restarts=0,
         monitor_interval=5,
         start_method="spawn",
-        redirects=Std.NONE,
-        tee=Std.NONE,
         metrics_cfg={},
     )
 
