@@ -24,8 +24,6 @@ criterion_params:
   bbox_assigner_topk: 12
   average_losses_in_ddp: True
   dfl_loss_weight: 0
-  size_loss_weight: 0
-  centers_loss_weight: 0
 
 optimizer: AdamW
 optimizer_params:
