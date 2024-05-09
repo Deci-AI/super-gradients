@@ -2,7 +2,7 @@ from typing import Optional, List
 from functools import lru_cache
 
 import torch
-
+from torch import nn
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.module_interfaces import HasPredict
@@ -15,7 +15,7 @@ import torchvision
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 
 
-class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
+class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
     """
     A customizable detector with backbone -> neck -> heads
     Each submodule with its parameters must be defined explicitly.
@@ -361,3 +361,6 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
             fp16=fp16,
         )
         pipeline.predict_webcam()
+
+    def get_input_channels(self) -> int:
+        return self.model.get_input_channels()

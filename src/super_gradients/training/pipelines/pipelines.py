@@ -387,6 +387,13 @@ class SlidingWindowDetectionPipeline(DetectionPipeline):
         """
         return self._decode_detection_model_output(model_input, model_output)
 
+    def _fuse_model(self, input_example: torch.Tensor):
+        logger.info("Fusing some of the model's layers. If this takes too much memory, you can deactivate it by setting `fuse_model=False`")
+        self.model = copy.deepcopy(self.model)
+        self.model.eval()
+        self.model.model.prep_model_for_conversion(input_size=input_example.shape[-2:])
+        self.fuse_model = False
+
 
 class PoseEstimationPipeline(Pipeline):
     """Pipeline specifically designed for pose estimation tasks.
