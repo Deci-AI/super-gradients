@@ -25,7 +25,6 @@ from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.media.image import ImageSource
-import torchvision
 
 
 class CustomizableDetector(HasPredict, SgModule):
@@ -46,16 +45,6 @@ class CustomizableDetector(HasPredict, SgModule):
         bn_momentum: Optional[float] = None,
         inplace_act: Optional[bool] = True,
         in_channels: int = 3,
-        use_sliding_window_validation: bool = True,
-        tile_size=640,
-        tile_step=64,
-        min_tile_threshold=30,
-        tile_nms_iou: float = 0.7,
-        tile_nms_conf: float = 0.5,
-        tile_nms_top_k: int = 1024,
-        tile_nms_max_predictions=300,
-        tile_nms_multi_label_per_box=True,
-        tile_nms_class_agnostic_nms=False,
     ):
         """
         :param backbone:    Backbone configuration.
@@ -74,13 +63,6 @@ class CustomizableDetector(HasPredict, SgModule):
         self.bn_momentum = bn_momentum
         self.inplace_act = inplace_act
         self.in_channels = in_channels
-        self.use_sliding_window_validation = use_sliding_window_validation
-        self.sliding_window_post_prediction_callback = self.get_post_prediction_callback(
-            iou=0.7, conf=0.25, nms_top_k=1024, max_predictions=300, multi_label_per_box=True, class_agnostic_nms=False
-        )
-        self.tile_size = tile_size
-        self.tile_step = tile_step
-        self.min_tile_threshold = min_tile_threshold
         factory = det_factory.DetectionModulesFactory()
 
         # move num_classes into heads params
@@ -107,71 +89,7 @@ class CustomizableDetector(HasPredict, SgModule):
         self._default_multi_label_per_box = True
         self._default_class_agnostic_nms = False
 
-    def forward_sliding_window(self, images):
-        batch_size, _, _, _ = images.shape
-        all_detections = [[] for _ in range(batch_size)]  # Create a list for each image in the batch
-
-        # Generate and process each tile
-        for img_idx in range(batch_size):
-            single_image = images[img_idx : img_idx + 1]  # Extract each image
-            tiles = self._generate_tiles(single_image, self.tile_size, self.tile_step)
-            for tile, (start_x, start_y) in tiles:
-                tile_detections = self.forward_whole_image(tile)
-                # Apply local NMS using post_prediction_callback
-                tile_detections = self.sliding_window_post_prediction_callback(tile_detections)
-                # Adjust detections to global image coordinates
-                for img_i_tile_detections in tile_detections:
-                    if len(img_i_tile_detections) > 0:
-                        img_i_tile_detections[:, :4] += torch.tensor([start_x, start_y, start_x, start_y], device=tile.device)
-                        all_detections[img_idx].append(img_i_tile_detections)
-
-        # Concatenate and apply global NMS for each image's detections
-        final_detections = []
-        for detections in all_detections:
-            if detections:
-                detections = torch.cat(detections, dim=0)
-                # Apply global NMS
-                pred_bboxes = detections[:, :4]
-                pred_cls_conf = detections[:, 4]
-                pred_cls_label = detections[:, 5]
-                idx_to_keep = torchvision.ops.boxes.batched_nms(
-                    boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=self._default_nms_iou
-                )
-
-                final_detections.append(detections[idx_to_keep])
-            else:
-                final_detections.append(torch.empty(0, 6).to(images.device))  # Empty tensor for images with no detections
-        return final_detections
-
-    def _generate_tiles(self, image, tile_size, tile_step):
-        _, _, h, w = image.shape
-        tiles = []
-
-        # Calculate the end points for the grid
-        max_y = h if (h - tile_size) % tile_step < self.min_tile_threshold else h - (h - tile_size) % tile_step + tile_size
-        max_x = w if (w - tile_size) % tile_step < self.min_tile_threshold else w - (w - tile_size) % tile_step + tile_size
-
-        # Ensure that the image has enough padding if needed
-        if max_y > h or max_x > w:
-            padded_image = torch.zeros((image.shape[0], image.shape[1], max(max_y, h), max(max_x, w)), device=image.device)
-            padded_image[:, :, :h, :w] = image  # Place the original image in the padded one
-        else:
-            padded_image = image
-
-        for y in range(0, max_y - tile_size + 1, tile_step):
-            for x in range(0, max_x - tile_size + 1, tile_step):
-                tile = padded_image[:, :, y : y + tile_size, x : x + tile_size]
-                tiles.append((tile, (x, y)))
-
-        return tiles
-
     def forward(self, x):
-        if self.use_sliding_window_validation and not self.training:
-            return self.forward_sliding_window(x)
-        else:
-            return self.forward_whole_image(x)
-
-    def forward_whole_image(self, x):
         x = self.backbone(x)
         x = self.neck(x)
         return self.heads(x)

@@ -219,19 +219,21 @@ class Pipeline(ABC):
         for image, prediction in zip(images, postprocessed_predictions):
             yield self._instantiate_image_prediction(image=image, prediction=prediction)
 
-    def pass_images_through_model(self, preprocessed_images):
+    def pass_images_through_model(self, preprocessed_images: List[np.ndarray]) -> List[Prediction]:
         with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast(enabled=self.fp16):
-            torch_inputs = torch.from_numpy(np.array(preprocessed_images)).to(self.device)
-            torch_inputs = torch_inputs.to(self.dtype)
-
-            if isinstance(self.model, SupportsInputShapeCheck):
-                self.model.validate_input_shape(torch_inputs.size())
-
-            if self.fuse_model:
-                self._fuse_model(torch_inputs)
+            torch_inputs = self._prep_inputs_for_model(preprocessed_images)
             model_output = self.model(torch_inputs)
             predictions = self._decode_model_output(model_output, model_input=torch_inputs)
         return predictions
+
+    def _prep_inputs_for_model(self, preprocessed_images: List[np.ndarray]) -> torch.Tensor:
+        torch_inputs = torch.from_numpy(np.array(preprocessed_images)).to(self.device)
+        torch_inputs = torch_inputs.to(self.dtype)
+        if isinstance(self.model, SupportsInputShapeCheck):
+            self.model.validate_input_shape(torch_inputs.size())
+        if self.fuse_model:
+            self._fuse_model(torch_inputs)
+        return torch_inputs
 
     @abstractmethod
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[Prediction]:
@@ -328,7 +330,10 @@ class DetectionPipeline(Pipeline):
         :return:                Predicted Bboxes.
         """
         post_nms_predictions = self.post_prediction_callback(model_output, device=self.device)
+        return self._decode_detection_model_output(model_input, post_nms_predictions)
 
+    @staticmethod
+    def _decode_detection_model_output(model_input: np.ndarray, post_nms_predictions: List[torch.Tensor]) -> List[DetectionPrediction]:
         predictions = []
         for prediction, image in zip(post_nms_predictions, model_input):
             prediction = prediction if prediction is not None else torch.zeros((0, 6), dtype=torch.float32)
@@ -342,7 +347,6 @@ class DetectionPipeline(Pipeline):
                     image_shape=image.shape,
                 )
             )
-
         return predictions
 
     def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
@@ -364,6 +368,24 @@ class DetectionPipeline(Pipeline):
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoDetectionPrediction:
         return VideoDetectionPrediction(_images_prediction_gen=images_predictions, fps=fps, n_frames=n_images)
+
+
+class SlidingWindowDetectionPipeline(DetectionPipeline):
+    def pass_images_through_model(self, preprocessed_images: List[np.ndarray]) -> List[Prediction]:
+        with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast(enabled=self.fp16):
+            torch_inputs = self._prep_inputs_for_model(preprocessed_images)
+            model_output = self.model(torch_inputs, sliding_window_post_prediction_callback=self.post_prediction_callback)
+            predictions = self._decode_model_output(model_output, model_input=torch_inputs)
+        return predictions
+
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
+        """Decode the model output, by applying post prediction callback. This includes NMS.
+
+        :param model_output:    Direct output of the model, without any post-processing.
+        :param model_input:     Model input (i.e. images after preprocessing).
+        :return:                Predicted Bboxes.
+        """
+        return self._decode_detection_model_output(model_input, model_output)
 
 
 class PoseEstimationPipeline(Pipeline):

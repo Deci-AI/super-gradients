@@ -64,7 +64,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
 
         # Processing params
         self._class_names: Optional[List[str]] = None
-        self._image_processor: Optional[Processing] = None
+        self._image_processor: Optional[Processing] = self.model.get_processing_params()
         self._default_nms_iou: float = tile_nms_iou
         self._default_nms_conf: float = tile_nms_conf
         self._default_nms_top_k: int = tile_nms_top_k
@@ -72,7 +72,8 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
         self._default_multi_label_per_box = tile_nms_multi_label_per_box
         self._default_class_agnostic_nms = tile_nms_class_agnostic_nms
 
-    def forward(self, images):
+    def forward(self, images: torch.Tensor, sliding_window_post_prediction_callback: DetectionPostPredictionCallback = None):
+        sliding_window_post_prediction_callback = sliding_window_post_prediction_callback or self.sliding_window_post_prediction_callback
         batch_size, _, _, _ = images.shape
         all_detections = [[] for _ in range(batch_size)]  # Create a list for each image in the batch
 
@@ -83,7 +84,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
             for tile, (start_x, start_y) in tiles:
                 tile_detections = self.model(tile)
                 # Apply local NMS using post_prediction_callback
-                tile_detections = self.sliding_window_post_prediction_callback(tile_detections)
+                tile_detections = sliding_window_post_prediction_callback(tile_detections)
                 # Adjust detections to global image coordinates
                 for img_i_tile_detections in tile_detections:
                     if len(img_i_tile_detections) > 0:
@@ -100,7 +101,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
                 pred_cls_conf = detections[:, 4]
                 pred_cls_label = detections[:, 5]
                 idx_to_keep = torchvision.ops.boxes.batched_nms(
-                    boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=self.sliding_window_post_prediction_callback.iou
+                    boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=sliding_window_post_prediction_callback.iou
                 )
 
                 final_detections.append(detections[idx_to_keep])
