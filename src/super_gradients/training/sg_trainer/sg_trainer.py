@@ -28,6 +28,7 @@ from super_gradients.common.environment.checkpoints_dir_utils import (
     validate_run_id,
     get_checkpoints_dir_path,
 )
+from super_gradients.common.factories.forward_wrappers_factory import ForwardWrappersFactory
 from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 from super_gradients.import_utils import import_pytorch_quantization_or_install
@@ -170,6 +171,7 @@ class Trainer:
         self.phase_callbacks = None
         self.checkpoint_params = None
         self.pre_prediction_callback = None
+        self.validation_forward_wrapper = None
 
         # SET THE DEFAULT PROPERTIES
         self.half_precision = False
@@ -1417,6 +1419,8 @@ class Trainer:
 
         self.pre_prediction_callback = CallbacksFactory().get(self.training_params.pre_prediction_callback)
 
+        self.validation_forward_wrapper = ForwardWrappersFactory().get(self.training_params.validation_forward_wrapper)
+
         self.training_params.mixed_precision = self._initialize_mixed_precision(self.training_params.mixed_precision)
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
@@ -2285,7 +2289,11 @@ class Trainer:
                     else:
                         self.phase_callback_handler.on_test_batch_start(context)
 
-                    output = self.net(inputs)
+                    if self.self.validation_forward_wrapper is not None:
+                        output = self.validation_forward_wrapper(inputs, self.net)
+                    else:
+                        output = self.net(inputs)
+
                     context.update_context(preds=output)
 
                     if self.criterion is not None:

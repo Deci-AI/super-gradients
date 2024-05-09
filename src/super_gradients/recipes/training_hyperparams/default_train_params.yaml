@@ -109,6 +109,8 @@ max_train_batches:  # For debug- when not None- will break out of inner train lo
 max_valid_batches:  # For debug- when not None- will break out of inner valid loop
 # (i.e iterating over valid_loader) when reaching this number of batches.
 
+validation_forward_wrapper: None # callable that expects - images: torch.Tensor, model: nn.Module and will replace the model's forward during validation.
+
 sg_logger: base_sg_logger
 sg_logger_params:
   tb_files_user_prompt: False # Asks User for Tensorboard Deletion Prompt

@@ -5,9 +5,10 @@ import torch
 from torch import nn
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
+from super_gradients.common.registry.registry import register_forward_wrapper
 from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.forward_wrappers.abstract_forward_wrapper_model import AbstractForwardWrapperModel
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models import CustomizableDetector
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import SlidingWindowDetectionPipeline
 from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
@@ -16,6 +17,7 @@ import torchvision
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 
 
+@register_forward_wrapper("SlidingWindowInferenceDetectionWrapper")
 class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperModel, nn.Module):
     """
     A customizable detector with backbone -> neck -> heads
@@ -25,7 +27,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
 
     def __init__(
         self,
-        model: SgModule,
+        model: CustomizableDetector,
         tile_size=640,
         tile_step=64,
         min_tile_threshold=30,
@@ -73,18 +75,19 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
         self._default_multi_label_per_box = tile_nms_multi_label_per_box
         self._default_class_agnostic_nms = tile_nms_class_agnostic_nms
 
-    def __call__(self, images: torch.Tensor, model: nn.Module = None, sliding_window_post_prediction_callback: DetectionPostPredictionCallback = None):
-
+    def __call__(self, inputs: torch.Tensor, model: nn.Module = None, sliding_window_post_prediction_callback: DetectionPostPredictionCallback = None):
+        model = model or self.model
         sliding_window_post_prediction_callback = sliding_window_post_prediction_callback or self.sliding_window_post_prediction_callback
-        batch_size, _, _, _ = images.shape
+
+        batch_size, _, _, _ = inputs.shape
         all_detections = [[] for _ in range(batch_size)]  # Create a list for each image in the batch
 
         # Generate and process each tile
         for img_idx in range(batch_size):
-            single_image = images[img_idx : img_idx + 1]  # Extract each image
+            single_image = inputs[img_idx : img_idx + 1]  # Extract each image
             tiles = self._generate_tiles(single_image, self.tile_size, self.tile_step)
             for tile, (start_x, start_y) in tiles:
-                tile_detections = self.model(tile)
+                tile_detections = model(tile)
                 # Apply local NMS using post_prediction_callback
                 tile_detections = sliding_window_post_prediction_callback(tile_detections)
                 # Adjust detections to global image coordinates
@@ -108,7 +111,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
 
                 final_detections.append(detections[idx_to_keep])
             else:
-                final_detections.append(torch.empty(0, 6).to(images.device))  # Empty tensor for images with no detections
+                final_detections.append(torch.empty(0, 6).to(inputs.device))  # Empty tensor for images with no detections
         return final_detections
 
     def _generate_tiles(self, image, tile_size, tile_step):
