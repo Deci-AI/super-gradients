@@ -1,0 +1,62 @@
+defaults:
+  - training_hyperparams: default_train_params
+  - checkpoint_params: default_checkpoint_params
+  - dataset_params: kitti_optical_flow_dataset_params
+  - arch_params: raft_l_arch_params
+  - _self_
+
+architecture: RAFT_L
+num_classes: 1
+
+multi_gpu: DDP
+num_gpus: 2
+
+dataset_params:
+  batch_size: 3
+
+experiment_name: ${architecture}
+ckpt_root_dir: ./checkpoints
+resume: False
+
+arch_params:
+  num_classes: ${num_classes}
+
+checkpoint_params:
+  pretrained_weights: things
+
+training_hyperparams:
+  resume: ${resume}
+
+  max_epochs: 1000
+
+  initial_lr:  1e-4
+  lr_mode: cosine
+  cosine_final_lr_ratio: 0.1
+
+  optimizer: AdamW
+  optimizer_params:
+    weight_decay: 0.00001
+
+  loss:
+    OpticalFlowLoss:
+      gamma: 0.85
+      max_flow: 400
+
+  train_metrics_list:
+    - EPE:
+        max_flow: 400
+
+  valid_metrics_list:
+    - EPE
+
+  metric_to_watch: epe
+  greater_metric_to_watch_is_better: False
+
+
+hydra:
+  searchpath:
+    - pkg://super_gradients.recipes
+  run:
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
+  job:
+    chdir: False

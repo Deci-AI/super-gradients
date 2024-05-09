@@ -12,6 +12,7 @@ from .exportable_segmentation import (
     SemanticSegmentationDecodingModule,
     BinarySegmentationDecodingModule,
 )
+from .exportable_optical_flow import ExportableOpticalFlowModel, OpticalFlowModelExportResult
 
 __all__ = [
     "HasPredict",
@@ -35,4 +36,6 @@ __all__ = [
     "AbstractSegmentationDecodingModule",
     "SemanticSegmentationDecodingModule",
     "BinarySegmentationDecodingModule",
+    "ExportableOpticalFlowModel",
+    "OpticalFlowModelExportResult",
 ]

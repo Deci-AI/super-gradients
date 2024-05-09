@@ -1,0 +1,42 @@
+in_channels: 3                                   # the number of in_channels to fnet and cnet. 1 for greyscale image.
+
+encoder_params:
+  in_planes: 32
+  hidden_dim: 96
+  context_dim: 64
+  corr_levels: 4
+  corr_radius: 3
+  dropout: 0
+  fnet:                                           # Feature encoder
+    block: BottleneckBlock
+    output_dim: 128
+    norm_fn: 'instance'                           # 'instance' - for instance normalization
+  cnet:                                           # Context encoder
+    block: BottleneckBlock
+    norm_fn: 'none'                               # 'batch' - for batch normalization
+    output_dim: 160                               # context_dim + hidden_dim
+  update_block:
+    hidden_dim: ${..hidden_dim}
+    use_mask: False
+    motion_encoder:
+      num_corr_conv: 1                            # limited to max 2 conv layers
+      convc1_output_dim: 96
+      convc2_output_dim:                          # convc2 layer is set only for raft_l
+      convf1_output_dim: 64
+      convf2_output_dim: 32
+      conv_output_dim: 80
+    gru:
+      block: ConvGRU
+      hidden_dim: ${...hidden_dim}
+      input_dim: 146
+    flow_head:
+      hidden_dim: 128
+      input_dim: ${arch_params.encoder_params.update_block.gru.hidden_dim}
+
+corr_params:
+  alternate_corr: False
+
+flow_params:
+  training_iters: 12                              # the number of iterations during training the optimization loop will run to refine the optical flow predictions over multiple iterations
+  validation_iters: 24                            # the number of iterations during validating
+  upsample_mode:                                  # if none, then using a predefined upsample function (upflow8) OR convex with large model only

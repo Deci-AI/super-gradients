@@ -14,7 +14,7 @@ from super_gradients.common.factories.collate_functions_factory import CollateFu
 from super_gradients.common.factories.datasets_factory import DatasetsFactory
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.common.object_names import Dataloaders
-from super_gradients.training.datasets import ImageNetDataset
+from super_gradients.training.datasets import ImageNetDataset, KITTIOpticalFlowDataset
 from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar10,
     Cifar100,
@@ -880,6 +880,28 @@ def coco2017_rescoring_val(dataset_params: Dict = None, dataloader_params: Dict 
     return get_data_loader(
         config_name="coco_pose_estimation_rescoring_dataset_params",
         dataset_cls=ValTrainRescoringDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader(Dataloaders.KITTI2015_OPTICAL_FLOW_TRAIN)
+def kitti2015_optical_flow_train(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
+    return get_data_loader(
+        config_name="kitti_optical_flow_dataset_params",
+        dataset_cls=KITTIOpticalFlowDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader(Dataloaders.KITTI2015_OPTICAL_FLOW_VAL)
+def kitti2015_optical_flow_val(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
+    return get_data_loader(
+        config_name="kitti_optical_flow_dataset_params",
+        dataset_cls=KITTIOpticalFlowDataset,
         train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,

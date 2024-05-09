@@ -59,6 +59,8 @@ MODEL_URLS = {
     "yolo_nas_pose_s_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_s_coco_pose.pth",
     "yolo_nas_pose_m_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_m_coco_pose.pth",
     "yolo_nas_pose_l_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_l_coco_pose.pth",
+    "raft_s_flying_things": "s3://yael-tmp/raft-small.pth",
+    "raft_l_flying_things": "s3://yael-tmp/raft-sintel.pth",
 }
 
 PRETRAINED_NUM_CLASSES = {
@@ -69,6 +71,7 @@ PRETRAINED_NUM_CLASSES = {
     "coco": 80,
     "coco_pose": 17,
     "cifar10": 10,
+    "flying_things": 1,
 }
 
 DATASET_LICENSES = {
