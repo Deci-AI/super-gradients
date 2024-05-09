@@ -6,16 +6,17 @@ from torch import nn
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.module_interfaces import HasPredict
+from super_gradients.training.forward_wrappers.abstract_forward_wrapper_model import AbstractForwardWrapperModel
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
-from super_gradients.training.pipelines.pipelines import DetectionPipeline
+from super_gradients.training.pipelines.pipelines import SlidingWindowDetectionPipeline
 from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
 from super_gradients.training.utils.media.image import ImageSource
 import torchvision
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 
 
-class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
+class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperModel, nn.Module):
     """
     A customizable detector with backbone -> neck -> heads
     Each submodule with its parameters must be defined explicitly.
@@ -63,7 +64,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
         self.min_tile_threshold = min_tile_threshold
 
         # Processing params
-        self._class_names: Optional[List[str]] = None
+        self._class_names: Optional[List[str]] = self.model.get_class_names()
         self._image_processor: Optional[Processing] = self.model.get_processing_params()
         self._default_nms_iou: float = tile_nms_iou
         self._default_nms_conf: float = tile_nms_conf
@@ -72,7 +73,8 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
         self._default_multi_label_per_box = tile_nms_multi_label_per_box
         self._default_class_agnostic_nms = tile_nms_class_agnostic_nms
 
-    def forward(self, images: torch.Tensor, sliding_window_post_prediction_callback: DetectionPostPredictionCallback = None):
+    def __call__(self, images: torch.Tensor, model: nn.Module = None, sliding_window_post_prediction_callback: DetectionPostPredictionCallback = None):
+
         sliding_window_post_prediction_callback = sliding_window_post_prediction_callback or self.sliding_window_post_prediction_callback
         batch_size, _, _, _ = images.shape
         all_detections = [[] for _ in range(batch_size)]  # Create a list for each image in the batch
@@ -101,7 +103,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
                 pred_cls_conf = detections[:, 4]
                 pred_cls_label = detections[:, 5]
                 idx_to_keep = torchvision.ops.boxes.batched_nms(
-                    boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=sliding_window_post_prediction_callback.iou
+                    boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=sliding_window_post_prediction_callback.score_threshold
                 )
 
                 final_detections.append(detections[idx_to_keep])
@@ -224,7 +226,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
         multi_label_per_box: Optional[bool] = None,
         class_agnostic_nms: Optional[bool] = None,
         fp16: bool = True,
-    ) -> DetectionPipeline:
+    ) -> SlidingWindowDetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
         :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
@@ -260,7 +262,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
         else:
             image_processor = self._image_processor
 
-        pipeline = DetectionPipeline(
+        pipeline = SlidingWindowDetectionPipeline(
             model=self,
             image_processor=image_processor,
             post_prediction_callback=self.get_post_prediction_callback(

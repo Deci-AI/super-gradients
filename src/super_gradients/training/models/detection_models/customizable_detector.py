@@ -197,6 +197,9 @@ class CustomizableDetector(HasPredict, SgModule):
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
 
+    def get_class_names(self) -> Optional[List[str]]:
+        return self._class_names
+
     @lru_cache(maxsize=1)
     def _get_pipeline(
         self,
