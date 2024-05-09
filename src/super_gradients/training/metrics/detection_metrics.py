@@ -179,7 +179,8 @@ class DetectionMetrics(Metric):
         targets = target.clone()
         crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.clone()
 
-        preds = self.post_prediction_callback(preds, device=device)
+        if self.post_prediction_callback is not None:
+            preds = self.post_prediction_callback(preds, device=device)
 
         new_matching_info = compute_detection_matching(
             preds,

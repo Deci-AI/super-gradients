@@ -27,9 +27,9 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
 
     def __init__(
         self,
-        model: CustomizableDetector,
-        tile_size=640,
-        tile_step=64,
+        tile_size: int,
+        tile_step: int,
+        model: Optional[CustomizableDetector],
         min_tile_threshold=30,
         tile_nms_iou: float = 0.7,
         tile_nms_conf: float = 0.5,
@@ -78,7 +78,8 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
     def __call__(self, inputs: torch.Tensor, model: nn.Module = None, sliding_window_post_prediction_callback: DetectionPostPredictionCallback = None):
         model = model or self.model
         sliding_window_post_prediction_callback = sliding_window_post_prediction_callback or self.sliding_window_post_prediction_callback
-
+        if None in [model, sliding_window_post_prediction_callback]:
+            raise RuntimeError("model and sliding_window_post_prediction_callback must be passed when model is not " "passed in __init__.")
         batch_size, _, _, _ = inputs.shape
         all_detections = [[] for _ in range(batch_size)]  # Create a list for each image in the batch
 
@@ -152,14 +153,17 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
                                     If False NMS is performed separately for each class.
         :return:
         """
-        return self.model.get_post_prediction_callback(
-            conf=conf,
-            iou=iou,
-            nms_top_k=nms_top_k,
-            max_predictions=max_predictions,
-            multi_label_per_box=multi_label_per_box,
-            class_agnostic_nms=class_agnostic_nms,
-        )
+        if self.model:
+            return self.model.get_post_prediction_callback(
+                conf=conf,
+                iou=iou,
+                nms_top_k=nms_top_k,
+                max_predictions=max_predictions,
+                multi_label_per_box=multi_label_per_box,
+                class_agnostic_nms=class_agnostic_nms,
+            )
+        else:
+            return None
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(
@@ -177,10 +181,10 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
 
         :param class_names:         (Optional) Names of the dataset the model was trained on.
         :param image_processor:     (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
-        :param iou:                 (Optional) IoU threshold for the nms algorithm
+        :param iou:                 (Optional) IoU threshold for the nms algorithm applied.
         :param conf:                (Optional) Below the confidence threshold, prediction are discarded
-        :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS.
-        :param max_predictions:     (Optional) The maximum number of detections to return.
+        :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS in each tile.
+        :param max_predictions:     (Optional) The maximum number of detections to return in each tile.
         :param multi_label_per_box: (Optional) If True, each anchor can produce multiple labels of different classes.
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  (Optional) If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
@@ -232,13 +236,14 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
     ) -> SlidingWindowDetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
-        :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param iou:                 (Optional) IoU threshold for the nms algorithm.
+         If None, the default value associated to the training is used.
         :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
                                     If None, the default value associated to the training is used.
         :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         :param skip_image_resizing: If True, the image processor will not resize the images.
-        :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS.
-        :param max_predictions:     (Optional) The maximum number of detections to return.
+        :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS for each tile.
+        :param max_predictions:     (Optional) The maximum number of detections to return for each tile.
         :param multi_label_per_box: (Optional) If True, each anchor can produce multiple labels of different classes.
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  (Optional) If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).

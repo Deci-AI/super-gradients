@@ -9,6 +9,10 @@ import torch
 
 
 class OutputsCollectorCallback(Callback):
+    """
+    Simple callback that collects validation and train outputs for testing
+    """
+
     def __init__(self):
         self.validation_outputs = []
         self.train_outputs = []
@@ -21,11 +25,25 @@ class OutputsCollectorCallback(Callback):
 
 
 class DummyForwardWrapper:
+    """
+    Simple foward wrapper that ignores the model output and returns output of the same shape as the model filled with ones.
+    """
+
     def __call__(self, inputs: torch.Tensor, model: torch.nn.Module):
         return torch.ones_like(model(inputs))
 
 
 def compare_tensor_lists(list1, list2):
+    """
+    Compares two lists of PyTorch tensors for element-wise equality, ensuring all operations are performed on the CPU.
+
+    :param list1: The first list of tensors. Each element must be a PyTorch Tensor.
+    :param list2: The second list of tensors. Each element must be a PyTorch Tensor.
+    :return: True if all tensors in both lists are equal element-wise, False otherwise.
+
+    Note: This function explicitly moves all tensors to the CPU before comparison,
+    making it suitable for environments where GPU resources are not desired or available.
+    """
     if len(list1) != len(list2):
         return False
 
