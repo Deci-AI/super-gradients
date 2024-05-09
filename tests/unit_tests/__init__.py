@@ -2,6 +2,7 @@
 from tests.unit_tests.crash_tips_test import CrashTipTest
 from tests.unit_tests.double_training_test import CallTrainTwiceTest
 from tests.unit_tests.factories_test import FactoriesTest
+from tests.unit_tests.forward_wrapper_test import TestForwardWrapper
 from tests.unit_tests.optimizer_params_override_test import TrainOptimizerParamsOverride
 from tests.unit_tests.resume_training_test import ResumeTrainingTest
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
@@ -63,4 +64,5 @@ __all__ = [
     "TestClassificationAdapter",
     "TestDetectionAdapter",
     "TestSegmentationAdapter",
+    "TestForwardWrapper",
 ]

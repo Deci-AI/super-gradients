@@ -30,6 +30,7 @@ from tests.unit_tests import (
     TestClassificationAdapter,
     TestDetectionAdapter,
     TestSegmentationAdapter,
+    TestForwardWrapper,
 )
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.depth_estimation_dataset_test import DepthEstimationDatasetTest
@@ -192,6 +193,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ClassBalancerTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ClassBalancedSamplerTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationModelExport))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestForwardWrapper))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

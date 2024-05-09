@@ -2289,8 +2289,8 @@ class Trainer:
                     else:
                         self.phase_callback_handler.on_test_batch_start(context)
 
-                    if self.self.validation_forward_wrapper is not None:
-                        output = self.validation_forward_wrapper(inputs, self.net)
+                    if self.validation_forward_wrapper is not None:
+                        output = self.validation_forward_wrapper(inputs=inputs, model=self.net)
                     else:
                         output = self.net(inputs)
 
