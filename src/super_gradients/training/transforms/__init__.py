@@ -16,6 +16,7 @@ from super_gradients.training.transforms.transforms import (
     OpticalFlowRandomRescale,
     OpticalFlowRandomFlip,
     OpticalFlowCrop,
+    OpticalFlowInputPadder,
     OpticalFlowNormalize,
 )
 from super_gradients.training.transforms.keypoints import (
@@ -89,6 +90,7 @@ __all__ = [
     "OpticalFlowRandomRescale",
     "OpticalFlowRandomFlip",
     "OpticalFlowCrop",
+    "OpticalFlowInputPadder",
     "OpticalFlowNormalize",
 ]
 

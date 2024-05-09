@@ -1874,14 +1874,50 @@ class OpticalFlowCrop(AbstractOpticalFlowTransform):
         pad_width = max(0, crop_width - img1.shape[1])
 
         # Pad the cropped image using the bottom-right method
-        img1 = np.pad(img1, ((0, pad_height), (0, pad_width), (0, 0)), mode="constant", constant_values=0)
-        img2 = np.pad(img2, ((0, pad_height), (0, pad_width), (0, 0)), mode="constant", constant_values=0)
-        flow_map = np.pad(flow_map, ((0, pad_height), (0, pad_width), (0, 0)), mode="constant", constant_values=0)
+        img1 = np.pad(img1, ((0, pad_height), (0, pad_width), (0, 0)), mode="symmetric")
+        img2 = np.pad(img2, ((0, pad_height), (0, pad_width), (0, 0)), mode="symmetric")
+        flow_map = np.pad(flow_map, ((0, pad_height), (0, pad_width), (0, 0)), mode="symmetric")
         valid = np.pad(valid, ((0, pad_height), (0, pad_width)), mode="constant", constant_values=0)
 
         images = np.stack([img1, img2])
 
         return OpticalFlowSample(images=images, flow_map=flow_map, valid=valid)
+
+
+@register_transform(Transforms.OpticalFlowInputPadder)
+class OpticalFlowInputPadder(AbstractOpticalFlowTransform):
+    """
+    Pads images such that dimensions are divisible by pad_factor.
+
+    :param dataset_mode: The padding method is determined by the dataset.
+    :param pad_factor: The factor which the padded image should be divisible by.
+    """
+
+    def __init__(self, dataset_mode: str, pad_factor: int = 8):
+        self.dataset_mode = dataset_mode
+        self.pad_factor = pad_factor
+
+    def __call__(self, sample: OpticalFlowSample) -> OpticalFlowSample:
+        img1, img2 = sample.images[0], sample.images[1]
+
+        # Get the input image dims
+        ht, wd = img1.shape[:2]
+
+        # Calculate padding amounts
+        pad_ht = (((ht // self.pad_factor) + 1) * self.pad_factor - ht) % self.pad_factor
+        pad_wd = (((wd // self.pad_factor) + 1) * self.pad_factor - wd) % self.pad_factor
+        if self.dataset_mode == "sintel":
+            pad = [pad_wd // 2, pad_wd - pad_wd // 2, pad_ht // 2, pad_ht - pad_ht // 2]
+        else:
+            pad = [pad_wd // 2, pad_wd - pad_wd // 2, 0, pad_ht]
+
+        # Pad the cropped image using the bottom-right method
+        img1 = np.pad(img1, ((pad[2], pad[3]), (pad[0], pad[1]), (0, 0)), mode="symmetric")
+        img2 = np.pad(img2, ((pad[2], pad[3]), (pad[0], pad[1]), (0, 0)), mode="symmetric")
+
+        images = np.stack([img1, img2])
+
+        return OpticalFlowSample(images=images, flow_map=sample.flow_map, valid=sample.valid)
 
 
 @register_transform(Transforms.OpticalFlowNormalize)

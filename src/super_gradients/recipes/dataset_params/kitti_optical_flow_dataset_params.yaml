@@ -3,7 +3,7 @@ image_size: [288, 960]
 batch_size: 3
 
 train_dataset_params:
-  root: '/home/yael.baron/data/kitti'
+  root: 'https://www.cvlibs.net/datasets/kitti/eval_scene_flow.php?benchmark=flow'
   transforms:
     - OpticalFlowColorJitter:
         brightness: 0.3
@@ -22,10 +22,10 @@ train_dataset_params:
 
 
 val_dataset_params:
-  root: '/home/yael.baron/data/kitti'
+  root: 'https://www.cvlibs.net/datasets/kitti/eval_scene_flow.php?benchmark=flow'
   transforms:
     - OpticalFlowCrop:
-        crop_size: [368, 1240]
+        crop_size: [376, 1248]
     - OpticalFlowNormalize
 
 train_dataloader_params:

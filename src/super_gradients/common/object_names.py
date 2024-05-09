@@ -90,6 +90,7 @@ class Transforms:
     OpticalFlowRandomRescale = "OpticalFlowRandomRescale"
     OpticalFlowRandomFlip = "OpticalFlowRandomFlip"
     OpticalFlowCrop = "OpticalFlowCrop"
+    OpticalFlowInputPadder = "OpticalFlowInputPadder"
     OpticalFlowNormalize = "OpticalFlowNormalize"
     #
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
@@ -429,6 +430,8 @@ class Dataloaders:
     PASCAL_VOC_DETECTION_VAL = "pascal_voc_detection_val"
     ROBOFLOW_TRAIN_BASE = "roboflow_train_yolox"
     ROBOFLOW_VAL_BASE = "roboflow_val_yolox"
+    KITTI2015_OPTICAL_FLOW_TRAIN = "kitti2015_optical_flow_train"
+    KITTI2015_OPTICAL_FLOW_VAL = "kitti2015_optical_flow_val"
 
 
 class Datasets:

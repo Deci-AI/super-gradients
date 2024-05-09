@@ -10,16 +10,17 @@ from super_gradients.training.transforms.transforms import (
     OpticalFlowRandomFlip,
     OpticalFlowCrop,
     OpticalFlowNormalize,
+    OpticalFlowInputPadder,
 )
 
 
 class OpticalFlowTransformsTest(unittest.TestCase):
     def setUp(self):
         # Create an OpticalFlowSample
-        h, w = 400, 400
-        img1 = np.random.randint(0, 255, size=(h, w, 3), dtype=np.uint8)
-        img2 = np.random.randint(0, 255, size=(h, w, 3), dtype=np.uint8)
-        flow_map = np.random.randn(h, w, 2)
+        self.h, self.w = 400, 400
+        img1 = np.random.randint(0, 255, size=(self.h, self.w, 3), dtype=np.uint8)
+        img2 = np.random.randint(0, 255, size=(self.h, self.w, 3), dtype=np.uint8)
+        flow_map = np.random.randn(self.h, self.w, 2)
         valid = (np.abs(flow_map[:, :, 0]) < 1000) & (np.abs(flow_map[:, :, 1]) < 1000)
 
         self.sample = OpticalFlowSample(images=np.stack([img1, img2]), flow_map=flow_map, valid=valid)
@@ -73,6 +74,23 @@ class OpticalFlowTransformsTest(unittest.TestCase):
         transformed_sample = transform(self.sample)
         self.assertIsInstance(transformed_sample.images, np.ndarray)
         self.assertEqual(transformed_sample.images.shape, (2, 50, 50, 3))
+
+    def test_OpticalFlowInputPadder(self):
+        pad_factor = 8
+        transformer = OpticalFlowInputPadder(dataset_mode="kitti", pad_factor=pad_factor)
+
+        # Apply the transform
+        transformed_sample = transformer(self.sample)
+
+        # Calculate the expected padded dimensions
+        expected_pad_ht = (((self.h // pad_factor) + 1) * pad_factor - self.h) % pad_factor
+        expected_pad_wd = (((self.w // pad_factor) + 1) * pad_factor - self.w) % pad_factor
+        expected_padded_height = self.h + expected_pad_ht
+        expected_padded_width = self.w + expected_pad_wd
+
+        # Check if padding is applied correctly
+        self.assertEqual(transformed_sample.images.shape[1], expected_padded_height)
+        self.assertEqual(transformed_sample.images.shape[2], expected_padded_width)
 
     def test_OpticalFlowNormalize(self):
         transform = OpticalFlowNormalize()

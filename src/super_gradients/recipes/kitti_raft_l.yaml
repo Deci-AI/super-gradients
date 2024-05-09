@@ -1,37 +1,29 @@
 defaults:
   - training_hyperparams: default_train_params
   - checkpoint_params: default_checkpoint_params
-  - dataset_params: kitti_dataset_params
+  - dataset_params: kitti_optical_flow_dataset_params
   - arch_params: raft_l_arch_params
   - _self_
 
-# MODEL
 architecture: RAFT_L
 num_classes: 1
 
-# GPUS
 multi_gpu: DDP
 num_gpus: 2
 
-# DATASET PARAMS
 dataset_params:
   batch_size: 3
 
-# EXPERIMENT
-experiment_suffix: "kitti_no-flip_metric-fix_val-full-resolution"
-experiment_name: ${architecture}_${experiment_suffix}
+experiment_name: ${architecture}
 ckpt_root_dir: ./checkpoints
 resume: False
 
-# ARCHITECTURE PARAMS
 arch_params:
   num_classes: ${num_classes}
 
-# CHECKPOINT PARAMS
 checkpoint_params:
-  checkpoint_path: /home/yael.baron/checkpoints/RAFT_pretrained_weights/raft-things.pth
+  pretrained_weights: things
 
-# TRAINING HYPERPARAMS
 training_hyperparams:
   resume: ${resume}
 
@@ -50,27 +42,15 @@ training_hyperparams:
       gamma: 0.85
       max_flow: 400
 
-
-  train_metrics_list: # metrics for evaluation
+  train_metrics_list:
     - EPE:
         max_flow: 400
 
-  valid_metrics_list: # metrics for evaluation
-    - EPE:
-        max_flow: 400
+  valid_metrics_list:
+    - EPE
 
   metric_to_watch: epe
   greater_metric_to_watch_is_better: False
-
-  # Logger
-  sg_logger: wandb_sg_logger
-  sg_logger_params:
-    project_name: sg-optical-flow
-    entity: cfdle
-    api_server: https://wandb.research.deci.ai
-    save_checkpoints_remote: False
-    save_tensorboard_remote: True
-    save_logs_remote: True
 
 
 hydra:
