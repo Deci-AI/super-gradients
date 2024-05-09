@@ -10,7 +10,6 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
-from super_gradients.training.utils.detection_utils import IdentityPostPredictionCallback
 from super_gradients.training.utils.media.image import ImageSource
 import torchvision
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
@@ -62,8 +61,16 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
         self.tile_size = tile_size
         self.tile_step = tile_step
         self.min_tile_threshold = min_tile_threshold
+
+        # Processing params
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
+        self._default_nms_iou: float = tile_nms_iou
+        self._default_nms_conf: float = tile_nms_conf
+        self._default_nms_top_k: int = tile_nms_top_k
+        self._default_max_predictions = tile_nms_max_predictions
+        self._default_multi_label_per_box = tile_nms_multi_label_per_box
+        self._default_class_agnostic_nms = tile_nms_class_agnostic_nms
 
     def forward(self, images):
         batch_size, _, _, _ = images.shape
@@ -74,7 +81,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
             single_image = images[img_idx : img_idx + 1]  # Extract each image
             tiles = self._generate_tiles(single_image, self.tile_size, self.tile_step)
             for tile, (start_x, start_y) in tiles:
-                tile_detections = self.forward_whole_image(tile)
+                tile_detections = self.model(tile)
                 # Apply local NMS using post_prediction_callback
                 tile_detections = self.sliding_window_post_prediction_callback(tile_detections)
                 # Adjust detections to global image coordinates
@@ -177,18 +184,28 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
             self._class_names = tuple(class_names)
         if image_processor is not None:
             self._image_processor = image_processor
-        if iou is not None:
-            self.sliding_window_post_prediction_callback.iou = float(iou)
-        if conf is not None:
-            self.sliding_window_post_prediction_callback.conf = float(conf)
-        if nms_top_k is not None:
-            self.sliding_window_post_prediction_callback.nms_top_k = int(nms_top_k)
-        if max_predictions is not None:
-            self.sliding_window_post_prediction_callback.max_predictions = int(max_predictions)
-        if multi_label_per_box is not None:
-            self.sliding_window_post_prediction_callback.multi_label_per_box = bool(multi_label_per_box)
-        if class_agnostic_nms is not None:
-            self.sliding_window_post_prediction_callback.class_agnostic_nms = bool(class_agnostic_nms)
+
+        if iou is None:
+            iou = self._default_nms_iou
+        if conf is None:
+            conf = self._default_nms_conf
+        if nms_top_k is None:
+            nms_top_k = self._default_nms_top_k
+        if max_predictions is None:
+            max_predictions = self._default_max_predictions
+        if multi_label_per_box is None:
+            multi_label_per_box = self._default_multi_label_per_box
+        if class_agnostic_nms is None:
+            class_agnostic_nms = self._default_class_agnostic_nms
+
+        self.sliding_window_post_prediction_callback = self.get_post_prediction_callback(
+            iou=float(iou),
+            conf=float(conf),
+            nms_top_k=int(nms_top_k),
+            max_predictions=int(max_predictions),
+            multi_label_per_box=bool(multi_label_per_box),
+            class_agnostic_nms=bool(class_agnostic_nms),
+        )
 
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
@@ -227,18 +244,12 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
                 "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
             )
 
-        self.sliding_window_post_prediction_callback.iou = self.sliding_window_post_prediction_callback.iou if iou is None else iou
-        self.sliding_window_post_prediction_callback.nms_conf = self.sliding_window_post_prediction_callback.nms_conf if conf is None else conf
-        self.sliding_window_post_prediction_callback.nms_top_k = self.sliding_window_post_prediction_callback.nms_top_k if nms_top_k is None else nms_top_k
-        self.sliding_window_post_prediction_callback.max_predictions = (
-            self.sliding_window_post_prediction_callback.max_predictions if max_predictions is None else max_predictions
-        )
-        self.sliding_window_post_prediction_callback.multi_label_per_box = (
-            self.sliding_window_post_prediction_callback.multi_label_per_box if multi_label_per_box is None else multi_label_per_box
-        )
-        self.sliding_window_post_prediction_callback.class_agnostic_nms = (
-            self.sliding_window_post_prediction_callback.class_agnostic_nms if class_agnostic_nms is None else class_agnostic_nms
-        )
+        iou = self._default_nms_iou if iou is None else iou
+        conf = self._default_nms_conf if conf is None else conf
+        nms_top_k = self._default_nms_top_k if nms_top_k is None else nms_top_k
+        max_predictions = self._default_max_predictions if max_predictions is None else max_predictions
+        multi_label_per_box = self._default_multi_label_per_box if multi_label_per_box is None else multi_label_per_box
+        class_agnostic_nms = self._default_class_agnostic_nms if class_agnostic_nms is None else class_agnostic_nms
 
         # Ensure that the image size is divisible by 32.
         if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
@@ -251,7 +262,14 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, SgModule):
         pipeline = DetectionPipeline(
             model=self,
             image_processor=image_processor,
-            post_prediction_callback=IdentityPostPredictionCallback(),
+            post_prediction_callback=self.get_post_prediction_callback(
+                iou=iou,
+                conf=conf,
+                nms_top_k=nms_top_k,
+                max_predictions=max_predictions,
+                multi_label_per_box=multi_label_per_box,
+                class_agnostic_nms=class_agnostic_nms,
+            ),
             class_names=self._class_names,
             fuse_model=fuse_model,
             fp16=fp16,

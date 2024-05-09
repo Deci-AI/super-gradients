@@ -23,7 +23,7 @@ import super_gradients.common.factories.detection_modules_factory as det_factory
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
-from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IdentityPostPredictionCallback
+from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.media.image import ImageSource
 import torchvision
 
@@ -328,22 +328,17 @@ class CustomizableDetector(HasPredict, SgModule):
         else:
             image_processor = self._image_processor
 
-        if self.use_sliding_window_validation:
-            post_prediction_callback = IdentityPostPredictionCallback()
-        else:
-            post_prediction_callback = self.get_post_prediction_callback(
+        pipeline = DetectionPipeline(
+            model=self,
+            image_processor=image_processor,
+            post_prediction_callback=self.get_post_prediction_callback(
                 iou=iou,
                 conf=conf,
                 nms_top_k=nms_top_k,
                 max_predictions=max_predictions,
                 multi_label_per_box=multi_label_per_box,
                 class_agnostic_nms=class_agnostic_nms,
-            )
-
-        pipeline = DetectionPipeline(
-            model=self,
-            image_processor=image_processor,
-            post_prediction_callback=post_prediction_callback,
+            ),
             class_names=self._class_names,
             fuse_model=fuse_model,
             fp16=fp16,

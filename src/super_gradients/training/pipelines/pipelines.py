@@ -207,6 +207,19 @@ class Pipeline(ABC):
                 )
 
         # Predict
+        predictions = self.pass_images_through_model(preprocessed_images)
+
+        # Postprocess
+        postprocessed_predictions = []
+        for image, prediction, processing_metadata in zip(images, predictions, processing_metadatas):
+            prediction = self.image_processor.postprocess_predictions(predictions=prediction, metadata=processing_metadata)
+            postprocessed_predictions.append(prediction)
+
+        # Yield results one by one
+        for image, prediction in zip(images, postprocessed_predictions):
+            yield self._instantiate_image_prediction(image=image, prediction=prediction)
+
+    def pass_images_through_model(self, preprocessed_images):
         with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast(enabled=self.fp16):
             torch_inputs = torch.from_numpy(np.array(preprocessed_images)).to(self.device)
             torch_inputs = torch_inputs.to(self.dtype)
@@ -218,16 +231,7 @@ class Pipeline(ABC):
                 self._fuse_model(torch_inputs)
             model_output = self.model(torch_inputs)
             predictions = self._decode_model_output(model_output, model_input=torch_inputs)
-
-        # Postprocess
-        postprocessed_predictions = []
-        for image, prediction, processing_metadata in zip(images, predictions, processing_metadatas):
-            prediction = self.image_processor.postprocess_predictions(predictions=prediction, metadata=processing_metadata)
-            postprocessed_predictions.append(prediction)
-
-        # Yield results one by one
-        for image, prediction in zip(images, postprocessed_predictions):
-            yield self._instantiate_image_prediction(image=image, prediction=prediction)
+        return predictions
 
     @abstractmethod
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[Prediction]:
