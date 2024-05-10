@@ -2,12 +2,9 @@ from typing import Tuple
 
 import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.import_utils import import_onnx_graphsurgeon_or_fail_with_instructions
 from torch import nn, Tensor
 
 logger = get_logger(__name__)
-
-gs = import_onnx_graphsurgeon_or_fail_with_instructions()
 
 
 class OBBNMSAndReturnAsBatchedResult(nn.Module):
