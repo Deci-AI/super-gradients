@@ -5,6 +5,7 @@ import typing
 import warnings
 from copy import deepcopy
 from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
+import concurrent.futures
 
 import hydra
 import numpy as np
@@ -115,12 +116,12 @@ from super_gradients.training.utils.export_utils import infer_image_shape_from_m
 
 logger = get_logger(__name__)
 
+
 class PrefetchIterable:
     def __init__(self, iterable):
         self.iterable = iterable
 
     def __iter__(self):
-        import concurrent.futures
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
         try:
@@ -140,6 +141,7 @@ class PrefetchIterable:
 
         finally:
             executor.shutdown()
+
 
 class Trainer:
     """
