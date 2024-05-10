@@ -153,8 +153,8 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
                 pred_cls_label = pred_cls_label[topk_candidates.indices]
 
             # NMS
-            # idx_to_keep_orig = rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
-            idx_to_keep = rboxes_matrix_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold, already_sorted=False)
+            idx_to_keep = rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
+            # idx_to_keep = rboxes_matrix_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold, already_sorted=False) # noqa
 
             pred_rboxes = pred_rboxes[idx_to_keep]  # [Instances,5]
             pred_cls_conf = pred_cls_conf[idx_to_keep]  # [Instances,]
