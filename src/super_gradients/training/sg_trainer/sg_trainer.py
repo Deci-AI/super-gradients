@@ -116,31 +116,6 @@ from super_gradients.training.utils.export_utils import infer_image_shape_from_m
 
 logger = get_logger(__name__)
 
-class PrefetchIterable:
-    def __init__(self, iterable):
-        self.iterable = iterable
-
-    def __iter__(self):
-        import concurrent.futures
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-
-        try:
-            iterator = iter(self.iterable)
-
-            def _prefetch():
-                return next(iterator)
-
-            prefetch_future = executor.submit(_prefetch)
-            while True:
-                try:
-                    value = prefetch_future.result()
-                except StopIteration:
-                    return
-                prefetch_future = executor.submit(_prefetch)
-                yield value
-
-        finally:
-            executor.shutdown()
 
 class PrefetchIterable:
     def __init__(self, iterable):
