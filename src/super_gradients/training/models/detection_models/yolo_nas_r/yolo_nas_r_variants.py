@@ -9,7 +9,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry import register_model
-from super_gradients.module_interfaces import AbstractPoseEstimationDecodingModule, SupportsInputShapeCheck
+from super_gradients.module_interfaces import SupportsInputShapeCheck, AbstractOBBDetectionDecodingModule, ExportableOBBDetectionModel
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback import YoloNASRPostPredictionCallback
@@ -20,10 +20,12 @@ from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.utils import HpmStruct
 from torch import Tensor
 
+from .yolo_nas_r_ndfl_heads import YoloNASRLogits
+
 logger = get_logger(__name__)
 
 
-class YoloNASRDecodingModule(AbstractPoseEstimationDecodingModule):
+class YoloNASRDecodingModule(AbstractOBBDetectionDecodingModule):
     __constants__ = ["num_pre_nms_predictions"]
 
     def __init__(
@@ -37,61 +39,56 @@ class YoloNASRDecodingModule(AbstractPoseEstimationDecodingModule):
     def infer_total_number_of_predictions(self, inputs: Any) -> int:
         """
 
-        :param inputs: YoloNASPose model outputs
+        :param inputs: YoloNAS-R model outputs
         :return:
         """
         if torch.jit.is_tracing():
-            pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores = inputs
+            pred_bboxes_cxcywhr, pred_bboxes_conf = inputs
         else:
-            pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores = inputs[0]
+            decoded = inputs.as_decoded()
+            pred_bboxes_cxcywhr = decoded.boxes_cxcywhr
 
-        return pred_bboxes_xyxy.size(1)
+        return pred_bboxes_cxcywhr.size(1)
 
     def get_num_pre_nms_predictions(self) -> int:
         return self.num_pre_nms_predictions
 
-    def forward(self, inputs: Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]):
+    def forward(self, inputs: Union[Tuple[Tensor, Tensor], YoloNASRLogits]):
         """
-        Decode YoloNASPose model outputs into bounding boxes, confidence scores and pose coordinates and scores
+        Decode YoloNAS-R model outputs into bounding boxes, confidence scores and pose coordinates and scores
 
-        :param inputs: YoloNASPose model outputs
-        :return: Tuple of (pred_bboxes, pred_scores, pred_joints)
-        - pred_bboxes: [Batch, num_pre_nms_predictions, 4] Bounding of associated with pose in XYXY format
+        :param inputs: YoloNAS-R model outputs
+        :return: Tuple of (pred_bboxes, pred_scores)
+        - pred_bboxes: [Batch, num_pre_nms_predictions, 5] Bounding of associated with pose in CXCYWHR format
         - pred_scores: [Batch, num_pre_nms_predictions, 1] Confidence scores [0..1] for entire pose
-        - pred_joints: [Batch, num_pre_nms_predictions, Num Joints, 3] Joints in (x,y,confidence) format
         """
         if torch.jit.is_tracing():
-            pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores = inputs
+            pred_bboxes_cxcywhr, pred_scores = inputs
         else:
-            pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores = inputs[0]
+            decoded = inputs.as_decoded()
+            pred_bboxes_cxcywhr, pred_scores = decoded.boxes_cxcywhr, decoded.scores
 
         nms_top_k = self.num_pre_nms_predictions
-        batch_size, num_anchors, _ = pred_bboxes_conf.size()
+        batch_size, num_anchors, _ = pred_scores.size()
 
-        topk_candidates = torch.topk(pred_bboxes_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
+        pred_cls_conf, _ = torch.max(pred_scores, dim=2)  # [B, Anchors]
+        topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
 
-        offsets = num_anchors * torch.arange(batch_size, device=pred_bboxes_conf.device)
-        indices_with_offset = topk_candidates.indices + offsets.reshape(batch_size, 1, 1)
+        offsets = num_anchors * torch.arange(batch_size, device=pred_cls_conf.device)
+        indices_with_offset = topk_candidates.indices + offsets.reshape(batch_size, 1)
         flat_indices = torch.flatten(indices_with_offset)
 
-        pred_poses_and_scores = torch.cat([pred_pose_coords, pred_pose_scores.unsqueeze(3)], dim=3)
-
-        output_pred_bboxes = pred_bboxes_xyxy.reshape(-1, pred_bboxes_xyxy.size(2))[flat_indices, :].reshape(
-            pred_bboxes_xyxy.size(0), nms_top_k, pred_bboxes_xyxy.size(2)
+        output_pred_bboxes = pred_bboxes_cxcywhr.reshape(-1, pred_bboxes_cxcywhr.size(2))[flat_indices, :].reshape(
+            pred_bboxes_cxcywhr.size(0), nms_top_k, pred_bboxes_cxcywhr.size(2)
         )
-        output_pred_scores = pred_bboxes_conf.reshape(-1, pred_bboxes_conf.size(2))[flat_indices, :].reshape(
-            pred_bboxes_conf.size(0), nms_top_k, pred_bboxes_conf.size(2)
-        )
-        output_pred_joints = pred_poses_and_scores.reshape(-1, pred_poses_and_scores.size(2), 3)[flat_indices, :, :].reshape(
-            pred_poses_and_scores.size(0), nms_top_k, pred_poses_and_scores.size(2), pred_poses_and_scores.size(3)
-        )
+        output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
 
-        return output_pred_bboxes, output_pred_scores, output_pred_joints
+        return output_pred_bboxes, output_pred_scores
 
 
-class YoloNASR(CustomizableDetector, SupportsInputShapeCheck):
+class YoloNASR(ExportableOBBDetectionModel, CustomizableDetector, SupportsInputShapeCheck):
     """
-    YoloNASR model
+    YoloNAS-R model for Oriented Bounding Box (OBB) Detection.
     """
 
     def __init__(
@@ -120,9 +117,6 @@ class YoloNASR(CustomizableDetector, SupportsInputShapeCheck):
         self._default_nms_iou = None
         self._default_pre_nms_max_predictions = None
         self._default_post_nms_max_predictions = None
-
-    def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractPoseEstimationDecodingModule:
-        return YoloNASRDecodingModule(num_pre_nms_predictions)
 
     def predict(
         self,
@@ -259,6 +253,9 @@ class YoloNASR(CustomizableDetector, SupportsInputShapeCheck):
         processing = self.get_processing_params()
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
+
+    def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractOBBDetectionDecodingModule:
+        return YoloNASRDecodingModule(num_pre_nms_predictions)
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(

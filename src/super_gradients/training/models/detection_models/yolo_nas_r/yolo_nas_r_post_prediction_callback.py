@@ -6,6 +6,51 @@ from super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_ndfl
 from torch import Tensor
 
 
+def rboxes_matrix_nms(
+    rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float, already_sorted: bool, class_agnostic_nms=False, kernel: str = "gaussian", sigma: float = 3.0
+) -> Tensor:
+    """
+    Implementation of NMS method for rotated boxes.
+    This implementation uses approximate IoU calculation for rotated boxes based on gaussian bbox representation.
+
+    :param rboxes_cxcywhr: Input rotated boxes in CXCYWHR format
+    :param scores: Confidence scores for each box
+    :param iou_threshold: IoU threshold for NMS
+    :return: Indexes of boxes to keep
+    """
+    from super_gradients.training.losses.yolo_nas_r_loss import pairwise_cxcywhr_iou
+
+    if not already_sorted:
+        order_by_conf_desc = torch.argsort(scores, dim=-1, descending=True)
+        rboxes_cxcywhr = rboxes_cxcywhr[order_by_conf_desc]
+
+    iou = pairwise_cxcywhr_iou(rboxes_cxcywhr, rboxes_cxcywhr)
+    iou = torch.triu(iou, diagonal=1)
+
+    # if not class_agnostic_nms:
+    #     # CREATE A LABELS MASK, WE WANT ONLY BOXES WITH THE SAME LABEL TO AFFECT EACH OTHER
+    #     labels = pred[:, :, 5:]
+    #     labeles_matrix = (labels == labels.transpose(2, 1)).float().triu(1)
+    #     ious *= labeles_matrix
+
+    ious_cmax = iou.max(-2).values.unsqueeze(-1)
+
+    if kernel == "gaussian":
+        decay_matrix = torch.exp(-1 * sigma * (iou**2))
+        compensate_matrix = torch.exp(-1 * sigma * (ious_cmax**2))
+        decay = (decay_matrix / compensate_matrix).min(dim=-2).values
+    else:
+        decay = (1 - iou) / (1 - ious_cmax)
+        decay = decay.min(dim=-2).values
+
+    keep = scores * decay > iou_threshold
+
+    if not already_sorted:
+        return order_by_conf_desc[keep]
+    else:
+        return keep
+
+
 def rboxes_nms(rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float) -> Tensor:
     """
     Implementation of NMS method for rotated boxes.
@@ -108,7 +153,8 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
                 pred_cls_label = pred_cls_label[topk_candidates.indices]
 
             # NMS
-            idx_to_keep = rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
+            # idx_to_keep_orig = rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
+            idx_to_keep = rboxes_matrix_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold, already_sorted=False)
 
             pred_rboxes = pred_rboxes[idx_to_keep]  # [Instances,5]
             pred_cls_conf = pred_cls_conf[idx_to_keep]  # [Instances,]

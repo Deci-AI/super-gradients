@@ -13,7 +13,7 @@ class OBBVisualization:
         rboxes_cxcywhr: np.ndarray,
         scores: Optional[np.ndarray],
         labels: np.ndarray,
-        class_labels,
+        class_names: List[str],
         class_colors: Union[List[Tuple], np.ndarray],
         show_labels: bool = True,
         show_confidence: bool = True,
@@ -28,7 +28,7 @@ class OBBVisualization:
         :param rboxes_cxcywhr: [N, 5] - List of rotated bounding boxes in format [cx, cy, w, h, r]
         :param labels: [N] - List of class indices
         :param scores: [N] - List of confidence scores. Can be None, in which case confidence is not shown
-        :param class_labels: [C] - List of class names
+        :param class_names: [C] - List of class names
         :param class_colors: [C, 3] - List of class colors
         :param thickness: Thickness of the bounding box
         :param show_labels: Boolean flag that indicates if labels should be shown (Default: True)
@@ -38,7 +38,7 @@ class OBBVisualization:
 
         :return: [H, W, 3] - Image with bounding boxes drawn
         """
-        if len(class_labels) != len(class_colors):
+        if len(class_names) != len(class_colors):
             raise ValueError("Number of class labels and colors should match")
 
         overlay = image.copy()
@@ -65,7 +65,7 @@ class OBBVisualization:
             cv2.polylines(overlay, box[None, :, :].astype(int), True, color, thickness=thickness, lineType=cv2.LINE_AA)
 
             if show_labels:
-                class_label = class_labels[class_index]
+                class_label = class_names[class_index]
                 label_title = f"{label_prefix}{class_label}"
                 if show_confidence:
                     conf = scores[i]

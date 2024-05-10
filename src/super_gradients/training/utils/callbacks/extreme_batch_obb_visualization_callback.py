@@ -164,7 +164,7 @@ class ExtremeBatchOBBVisualizationCallback(ExtremeBatchCaseVisualizationCallback
                 labels=labels_i,
                 scores=scores_i,
                 class_colors=class_colors,
-                class_labels=class_names,
+                class_names=class_names,
                 show_confidence=True,
                 show_labels=True,
             )
