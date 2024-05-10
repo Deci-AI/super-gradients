@@ -115,6 +115,31 @@ from super_gradients.training.utils.export_utils import infer_image_shape_from_m
 
 logger = get_logger(__name__)
 
+class PrefetchIterable:
+    def __init__(self, iterable):
+        self.iterable = iterable
+
+    def __iter__(self):
+        import concurrent.futures
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+
+        try:
+            iterator = iter(self.iterable)
+
+            def _prefetch():
+                return next(iterator)
+
+            prefetch_future = executor.submit(_prefetch)
+            while True:
+                try:
+                    value = prefetch_future.result()
+                except StopIteration:
+                    return
+                prefetch_future = executor.submit(_prefetch)
+                yield value
+
+        finally:
+            executor.shutdown()
 
 class Trainer:
     """
@@ -471,7 +496,7 @@ class Trainer:
 
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
         with tqdm(
-            self.train_loader, total=expected_iterations, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode
+            PrefetchIterable(self.train_loader), total=expected_iterations, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode
         ) as progress_bar_train_loader:
             progress_bar_train_loader.set_description(f"Train epoch {context.epoch}")
 
@@ -483,31 +508,7 @@ class Trainer:
 
             context.update_context(loss_avg_meter=loss_avg_meter, metrics_compute_fn=self.train_metrics)
 
-            class PrefetchIterator:
-                def __init__(self, iterator):
-                    self.iterator = iterator
-                    import concurrent.futures
-                    self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-                    self.prefetch()
-
-                def prefetch(self):
-                    self.prefetch_future = self.executor.submit(self._prefetch)
-
-                def _prefetch(self):
-                    return next(self.iterator)
-
-                def __iter__(self):
-                    return self
-
-                def __next__(self):
-                    value = self.prefetch_future.result()
-                    self.prefetch()
-                    return value
-
-                def close(self):
-                    self.executor.shutdown()
-
-            for batch_idx, batch_items in PrefetchIterator(enumerate(progress_bar_train_loader)):
+            for batch_idx, batch_items in enumerate(progress_bar_train_loader):
                 if expected_iterations <= batch_idx:
                     break
 
@@ -2282,7 +2283,7 @@ class Trainer:
         expected_iterations = len(data_loader) if max_batches is None else max_batches
 
         with tqdm(
-            data_loader, total=expected_iterations, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode
+            PrefetchIterable(data_loader), total=expected_iterations, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode
         ) as progress_bar_data_loader:
             if not silent_mode:
                 # PRINT TITLES
