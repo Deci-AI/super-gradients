@@ -245,8 +245,6 @@ class Trainer:
             num_gpus=core_utils.get_param(cfg, "num_gpus"),
         )
 
-        torch.set_anomaly_enabled(True, True)
-
         # Create resolved config before instantiation
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
 
