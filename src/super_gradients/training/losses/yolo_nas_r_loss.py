@@ -83,21 +83,21 @@ def cxcywhr_iou(obb1: Tensor, obb2: Tensor, include_ciou_term: bool = False, eps
 
     t1 = (((a1 + a2) * (y1 - y2).pow(2) + (b1 + b2) * (x1 - x2).pow(2)) / ((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2) + eps)) * 0.25
     t2 = (((c1 + c2) * (x2 - x1) * (y1 - y2)) / ((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2) + eps)) * 0.5
-    # t3 = (
-    #     ((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2)) / (4 * ((a1 * b1 - c1.pow(2)).clamp_(0) * (a2 * b2 - c2.pow(2)).clamp_(0) + eps).sqrt() + eps) + eps
-    # ).log() * 0.5
+    t3 = (
+        ((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2)) / (4 * ((a1 * b1 - c1.pow(2)).clamp_(0) * (a2 * b2 - c2.pow(2)).clamp_(0) + eps).sqrt() + eps) + eps
+    ).log() * 0.5
 
-    t3 = 0.5 * (
-        torch.log(((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2))) - 0.5 * torch.log(4 * ((a1 * b1 - c1.pow(2)).clamp_(0) * (a2 * b2 - c2.pow(2)).clamp_(0)) + eps)
-    )
+    # t3 = 0.5 * (
+    #     torch.log(((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2))) - 0.5 * torch.log(4 * ((a1 * b1 - c1.pow(2)).clamp_(0) * (a2 * b2 - c2.pow(2)).clamp_(0)) + eps)
+    # )
 
-    if not torch.isfinite(t3).all():
-        raise ValueError("t3 must be finite")
+    # if not torch.isfinite(t3).all():
+    #     raise ValueError("t3 must be finite")
 
     bd = (t1 + t2 + t3).clamp(eps, 100.0)
     hd = (1.0 - (-bd).exp().clamp_min(eps)).sqrt()
-    if not torch.isfinite(hd).all():
-        raise ValueError("t3 must be finite")
+    # if not torch.isfinite(hd).all():
+    #     raise ValueError("t3 must be finite")
 
     iou = 1 - hd
 
