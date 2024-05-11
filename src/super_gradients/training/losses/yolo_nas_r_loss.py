@@ -94,7 +94,7 @@ def cxcywhr_iou(obb1: Tensor, obb2: Tensor, include_ciou_term: bool = False, eps
     # if not torch.isfinite(t3).all():
     #     raise ValueError("t3 must be finite")
 
-    bd = (t1 + t2 + t3).clamp(eps, 10.0)
+    bd = (t1 + t2 + t3).clamp(eps, 9.0)
     # hd = (1.0 - (-bd).exp().clamp_min(eps)).sqrt()
     hd = torch.sqrt(-torch.expm1(-bd))
 
