@@ -17,9 +17,12 @@ defaults:
   - _self_
   - variable_setup
 
+training_hyperparams:
+  mixed_precision: True
+
 dataset_params:
   train_dataloader_params:
-    batch_size: 32
+    batch_size: 16
 
   val_dataloader_params:
     batch_size: 8
