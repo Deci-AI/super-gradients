@@ -22,7 +22,7 @@ training_hyperparams:
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 16
+    batch_size: 24
 
   val_dataloader_params:
     batch_size: 8
