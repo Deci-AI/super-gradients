@@ -18,6 +18,7 @@ defaults:
   - variable_setup
 
 training_hyperparams:
+  initial_lr: 1e-4
   mixed_precision: False
 
 dataset_params:
