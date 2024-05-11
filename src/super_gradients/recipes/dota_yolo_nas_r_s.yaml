@@ -19,7 +19,7 @@ defaults:
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 16
+    batch_size: 32
 
   val_dataloader_params:
     batch_size: 8
@@ -29,11 +29,11 @@ arch_params:
 
 architecture: yolo_nas_r_s
 
-multi_gpu: Off
-num_gpus: 1
+multi_gpu: DDP
+num_gpus: 8
 
 experiment_suffix: ""
-experiment_name: dota_${architecture}${experiment_suffix}
+experiment_name: dota2_${architecture}${experiment_suffix}
 
 checkpoint_params:
   # For training Yolo-NAS-R we use pretrained weights for Yolo-NAS-S object detection model.

@@ -1,7 +1,7 @@
 defaults:
   - default_train_params
 
-max_epochs: 300
+max_epochs: 100
 
 warmup_mode: LinearBatchLRWarmup
 warmup_initial_lr: 1e-6
@@ -23,11 +23,13 @@ loss: YoloNASRLoss
 criterion_params:
   bbox_assigner_topk: 12
   average_losses_in_ddp: True
-  dfl_loss_weight: 0
+  dfl_loss_weight: 0.5
+  classification_loss_weight: 2.5
+  iou_loss_weight: 2.0
 
 optimizer: AdamW
 optimizer_params:
-  weight_decay: 0.000001
+  weight_decay: 3.5e-6
 
 ema: True
 ema_params:

@@ -19,7 +19,7 @@ class_names:
   - airport
   - helipad
 
-mixup_prob: 0.5
+mixup_prob: 0.0
 
 train_dataset_params:
   data_dir: h:\DOTA\DOTA-v2.0-tiles\train
@@ -57,8 +57,10 @@ train_dataset_params:
     - OBBRemoveSmallObjects:
         min_size: 8
         min_area: 64
+
     - OBBDetectionMixup:
         prob: ${dataset_params.mixup_prob}
+
     - OBBDetectionStandardize:
         max_value: 255.
 
@@ -72,6 +74,11 @@ train_dataloader_params:
   pin_memory: True
   persistent_workers: True
   collate_fn: OrientedBoxesCollate
+  sampler:
+    ClassBalancedSampler:
+      num_samples: 65536
+      oversample_threshold: 0.99
+      oversample_aggressiveness: 0.9945267123516118
 
 val_dataset_params:
   data_dir: h:\DOTA\DOTA-v2.0-tiles\val

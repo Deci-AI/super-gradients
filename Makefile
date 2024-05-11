@@ -55,22 +55,26 @@ check_notebooks_version_match: $(NOTEBOOKS_TO_CHECK)
 	python tests/verify_notebook_version.py $^
 
 
-yolo_nas_r:
-	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=4
-
-yolo_nas_r_balanced:
-	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_balanced dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=4
-
 YOLONASR_WANDB_PARAMS = training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai +training_hyperparams.sg_logger_params.entity=super-gradients training_hyperparams.sg_logger_params.launch_tensorboard=false training_hyperparams.sg_logger_params.monitor_system=true +training_hyperparams.sg_logger_params.project_name=YoloNAS-R training_hyperparams.sg_logger_params.save_checkpoints_remote=true training_hyperparams.sg_logger_params.save_logs_remote=false training_hyperparams.sg_logger_params.save_tensorboard_remote=false training_hyperparams.sg_logger_params.tb_files_user_prompt=false
 
-yolo_nas_r_tzag:
-	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r $(YOLONASR_WANDB_PARAMS) dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=8
+dota_yolo_nas_r_s:
+	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_s $(YOLONASR_WANDB_PARAMS) \
+    dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train \
+    dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val \
+    multi_gpu=DDP num_gpus=8
 
-yolo_nas_r_tzag_balanced:
-	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_balanced $(YOLONASR_WANDB_PARAMS) dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=8
+dota_yolo_nas_r_m:
+	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_m $(YOLONASR_WANDB_PARAMS) \
+    dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train \
+    dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val \
+    multi_gpu=DDP num_gpus=8
 
-dota_yolo_nas_r_balanced_no_mixup:
-	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_balanced_no_mixup $(YOLONASR_WANDB_PARAMS) dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=8
+dota_yolo_nas_r_l:
+	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_l $(YOLONASR_WANDB_PARAMS) \
+    dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train \
+    dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val \
+    multi_gpu=DDP num_gpus=8
+
 
 dota_yolo_nas_r_balanced_pretrain:
 	python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_balanced $(YOLONASR_WANDB_PARAMS) dataset_params.train_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/train dataset_params.val_dataset_params.data_dir=/home/eugene.khvedchenia/dota2/DOTA-v2.0-tiles/val multi_gpu=DDP num_gpus=8 epochs=20
