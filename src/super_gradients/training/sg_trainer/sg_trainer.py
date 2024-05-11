@@ -486,7 +486,7 @@ class Trainer:
 
             context.update_context(loss_avg_meter=loss_avg_meter, metrics_compute_fn=self.train_metrics)
 
-            for batch_idx, batch_items in PrefetchIterator(enumerate(progress_bar_train_loader)):
+            for batch_idx, batch_items in enumerate(progress_bar_train_loader):
                 if expected_iterations <= batch_idx:
                     break
 
@@ -2877,29 +2877,3 @@ class Trainer:
             )
 
         return export_result
-
-
-class PrefetchIterator:
-    def __init__(self, iterator):
-        self.iterator = iterator
-        import concurrent.futures
-
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        self.prefetch()
-
-    def prefetch(self):
-        self.prefetch_future = self.executor.submit(self._prefetch)
-
-    def _prefetch(self):
-        return next(self.iterator)
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        value = self.prefetch_future.result()
-        self.prefetch()
-        return value
-
-    def close(self):
-        self.executor.shutdown()
