@@ -7,6 +7,7 @@ from functools import partial
 from pathlib import Path
 from typing import Tuple, Iterable
 
+from super_gradients.module_interfaces import HasPreprocessingParams
 from super_gradients.training.datasets.data_formats.obb.cxcywhr import poly_to_cxcywhr
 from tqdm import tqdm
 
@@ -23,7 +24,7 @@ __all__ = ["DOTAOBBDataset"]
 
 
 @register_dataset()
-class DOTAOBBDataset(Dataset, HasClassesInformation):
+class DOTAOBBDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
     @resolve_param("transforms", TransformsFactory())
     def __init__(
         self,
@@ -115,8 +116,8 @@ class DOTAOBBDataset(Dataset, HasClassesInformation):
         params = dict(
             class_names=self.class_names,
             image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
-            iou=0.65,
-            conf=0.5,
+            iou=0.25,
+            conf=0.1,
         )
         return params
 

@@ -87,19 +87,14 @@ def cxcywhr_iou(obb1: Tensor, obb2: Tensor, include_ciou_term: bool = False, eps
         ((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2)) / (4 * ((a1 * b1 - c1.pow(2)).clamp_(0) * (a2 * b2 - c2.pow(2)).clamp_(0) + eps).sqrt() + eps) + eps
     ).log() * 0.5
 
-    # t3 = 0.5 * (
-    #     torch.log(((a1 + a2) * (b1 + b2) - (c1 + c2).pow(2))) - 0.5 * torch.log(4 * ((a1 * b1 - c1.pow(2)).clamp_(0) * (a2 * b2 - c2.pow(2)).clamp_(0)) + eps)
-    # )
-
-    # if not torch.isfinite(t3).all():
-    #     raise ValueError("t3 must be finite")
-
     bd = (t1 + t2 + t3).clamp(eps, 9.0)
-    # hd = (1.0 - (-bd).exp().clamp_min(eps)).sqrt()
-    hd = torch.sqrt(-torch.expm1(-bd))
 
-    # if not torch.isfinite(hd).all():
-    #     raise ValueError("t3 must be finite")
+    # Use of expm1 is preferred since it's more numerically stable (needed during training).
+    # However, it is not supported for exporting to ONNX, so we use exp + clamp_min instead
+    if torch.jit.is_tracing() or torch.jit.is_scripting():
+        hd = (1.0 - (-bd).exp().clamp_min(eps)).sqrt()
+    else:
+        hd = torch.sqrt(-torch.expm1(-bd))
 
     iou = 1 - hd
 

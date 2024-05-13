@@ -111,8 +111,8 @@ def default_yolo_nas_r_dota_processing_params() -> dict:
     params = dict(
         class_names=DOTA2_DEFAULT_CLASSES_LIST,
         image_processor=image_processor,
-        iou=0.7,
-        conf=0.25,
+        iou=0.25,
+        conf=0.1,
     )
     return params
 

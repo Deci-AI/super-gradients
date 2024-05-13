@@ -7,31 +7,45 @@ from torch import Tensor
 
 
 def rboxes_matrix_nms(
-    rboxes_cxcywhr: Tensor, scores: Tensor, iou_threshold: float, already_sorted: bool, class_agnostic_nms=False, kernel: str = "gaussian", sigma: float = 3.0
+    rboxes_cxcywhr: Tensor,
+    scores: Tensor,
+    labels: Tensor,
+    iou_threshold: float,
+    already_sorted: bool,
+    class_agnostic_nms=False,
+    kernel: str = "gaussian",
+    sigma: float = 3.0,
 ) -> Tensor:
     """
     Implementation of NMS method for rotated boxes.
     This implementation uses approximate IoU calculation for rotated boxes based on gaussian bbox representation.
 
-    :param rboxes_cxcywhr: Input rotated boxes in CXCYWHR format
-    :param scores: Confidence scores for each box
+    :param rboxes_cxcywhr: Input rotated boxes [..., N, 5] in CXCYWHR format
+    :param scores: Confidence scores for each box [..., N]
+    :param labels: Labels for each box [..., N]
     :param iou_threshold: IoU threshold for NMS
     :return: Indexes of boxes to keep
     """
     from super_gradients.training.losses.yolo_nas_r_loss import pairwise_cxcywhr_iou
 
+    if len(rboxes_cxcywhr) == 0:
+        # Return empty index tensor of [...., N] shape
+        shape = list(rboxes_cxcywhr.size())
+        return torch.tensor([], device=rboxes_cxcywhr.device, dtype=torch.long).view(*shape[:-1])
+
     if not already_sorted:
         order_by_conf_desc = torch.argsort(scores, dim=-1, descending=True)
         rboxes_cxcywhr = rboxes_cxcywhr[order_by_conf_desc]
+        scores = scores[order_by_conf_desc]
+        labels = labels[order_by_conf_desc]
 
     iou = pairwise_cxcywhr_iou(rboxes_cxcywhr, rboxes_cxcywhr)
     iou = torch.triu(iou, diagonal=1)
 
-    # if not class_agnostic_nms:
-    #     # CREATE A LABELS MASK, WE WANT ONLY BOXES WITH THE SAME LABEL TO AFFECT EACH OTHER
-    #     labels = pred[:, :, 5:]
-    #     labeles_matrix = (labels == labels.transpose(2, 1)).float().triu(1)
-    #     ious *= labeles_matrix
+    if not class_agnostic_nms:
+        # Create a labels mask, we want only boxes with the same label to affect each other
+        labels_matrix = (labels[..., None] == labels[..., None, :]).float().triu(1)
+        iou *= labels_matrix
 
     ious_cmax = iou.max(-2).values.unsqueeze(-1)
 
@@ -93,6 +107,7 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
         pre_nms_max_predictions: int,
         post_nms_max_predictions: int,
         output_device="cpu",
+        class_agnostic_nms: bool = False,
     ):
         """
         :param score_threshold: Detection confidence threshold
@@ -106,6 +121,7 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
         super().__init__()
         self.score_threshold = score_threshold
         self.nms_iou_threshold = nms_iou_threshold
+        self.class_agnostic_nms = class_agnostic_nms
         self.pre_nms_max_predictions = pre_nms_max_predictions
         self.post_nms_max_predictions = post_nms_max_predictions
         self.output_device = output_device
@@ -118,7 +134,6 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
         :param outputs: Output of the model's forward() method
         :return:        List of decoded predictions for each image in the batch.
         """
-        # First is model predictions, second element of tuple is logits for loss computation
         if isinstance(outputs, YoloNASRLogits):
             predictions = outputs.as_decoded()
             boxes = predictions.boxes_cxcywhr
@@ -133,9 +148,6 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
         ) in zip(boxes, scores):
             # pred_rboxes [Anchors, 5] in CXCYWHR format
             # pred_scores [Anchors, C] confidence scores [0..1]
-            if self.output_device is not None:
-                pred_rboxes = pred_rboxes.to(self.output_device)
-                pred_scores = pred_scores.to(self.output_device)
 
             pred_cls_conf, pred_cls_label = torch.max(pred_scores, dim=1)
 
@@ -153,12 +165,24 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
                 pred_cls_label = pred_cls_label[topk_candidates.indices]
 
             # NMS
-            idx_to_keep = rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
-            # idx_to_keep = rboxes_matrix_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold, already_sorted=False) # noqa
+            # idx_to_keep = rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
+            idx_to_keep = rboxes_matrix_nms(
+                rboxes_cxcywhr=pred_rboxes,
+                scores=pred_cls_conf,
+                labels=pred_cls_label,
+                iou_threshold=self.nms_iou_threshold,
+                already_sorted=False,
+                class_agnostic_nms=self.class_agnostic_nms,
+            )  # noqa
 
             pred_rboxes = pred_rboxes[idx_to_keep]  # [Instances,5]
             pred_cls_conf = pred_cls_conf[idx_to_keep]  # [Instances,]
             pred_cls_label = pred_cls_label[idx_to_keep]  # [Instances,]
+
+            if self.output_device is not None:
+                pred_rboxes = pred_rboxes.to(self.output_device)
+                pred_cls_conf = pred_cls_conf.to(self.output_device)
+                pred_cls_label = pred_cls_label.to(self.output_device)
 
             p = OBBPredictions(
                 scores=pred_cls_conf[: self.post_nms_max_predictions],
