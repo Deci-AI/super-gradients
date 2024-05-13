@@ -3,38 +3,28 @@ import numbers
 import typing
 from typing import Dict, Optional, Union, Tuple, List
 
+import cv2
 import numpy as np
 import super_gradients
 import super_gradients.common.environment.ddp_utils
 import torch
+import torchvision.ops
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.registry.registry import register_metric
 from super_gradients.module_interfaces.obb_predictions import OBBPredictions
+from super_gradients.training.datasets.data_formats.obb.cxcywhr import cxcywhr_to_poly, poly_to_xyxy
 from super_gradients.training.transforms.obb import OBBSample
 from super_gradients.training.utils import tensor_container_to_device
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
 from super_gradients.training.utils.detection_utils import (
     compute_detection_metrics,
-    DistanceMetric,
     DetectionMatching,
     get_top_k_idx_per_cls,
 )
+from torch import Tensor
 from torchmetrics import Metric
 
 logger = get_logger(__name__)
-
-
-class OBBIOUDistance(DistanceMetric):
-    def calculate_distance(self, predicted: torch.Tensor, target: torch.Tensor):
-        """
-        Calculate the Intersection over Union (IoU) between the oriented bounding boxes (OBBs) of preds_box and targets_box.
-        :param predicted: [N, 5] tensor for N predicted bounding boxes (x, y, w, h, r)
-        :param target: [M,5] tensor for M target bounding boxes (x, y, w, h, r)
-        :return: [N,M] tensor representing pairwise IoU values
-        """
-        from super_gradients.training.losses.yolo_nas_r_loss import cxcywhr_iou
-
-        return cxcywhr_iou(predicted, target)
 
 
 class OBBIoUMatching(DetectionMatching):
@@ -59,6 +49,82 @@ class OBBIoUMatching(DetectionMatching):
         """
         return self.iou_thresholds
 
+    @classmethod
+    def pairwise_cxcywhr_iou_accurate(cls, obb1: Tensor, obb2: Tensor) -> Tensor:
+        """
+        Calculate the pairwise IoU between oriented bounding boxes.
+
+        :param obb1: First set of boxes. Tensor of shape (N, 5) representing ground truth boxes, with cxcywhr format.
+        :param obb2: Second set of boxes. Tensor of shape (M, 5) representing predicted boxes, with cxcywhr format.
+        :return: A tensor of shape (N, M) representing IoU scores between corresponding boxes.
+        """
+        import numpy as np
+
+        if len(obb1.shape) != 2 or len(obb2.shape) != 2:
+            raise ValueError("Expected obb1 and obb2 to be 2D tensors")
+
+        poly1 = cxcywhr_to_poly(obb1.detach().cpu().numpy())
+        poly2 = cxcywhr_to_poly(obb2.detach().cpu().numpy())
+
+        # Compute bounding boxes from polygons
+        xyxy1 = poly_to_xyxy(poly1)
+        xyxy2 = poly_to_xyxy(poly2)
+        bbox_iou = torchvision.ops.box_iou(torch.from_numpy(xyxy1), torch.from_numpy(xyxy2)).numpy()
+        iou = np.zeros((poly1.shape[0], poly2.shape[0]))
+
+        # We use bounding box IoU to filter out pairs of polygons that has no intersection
+        # Only polygons that have non-zero bounding box IoU are considered for polygon-polygon IoU calculation
+        nz_indexes = np.nonzero(bbox_iou)
+        for i, j in zip(*nz_indexes):
+            iou[i, j] = cls.polygon_polygon_iou(poly1[i], poly2[j])
+        return torch.from_numpy(iou).to(obb1.device)
+
+    @classmethod
+    def polygon_polygon_iou(cls, gt_rect, pred_rect):
+        """
+        Performs intersection over union calculation for two polygons using integer coordinates of
+        vertices. This is a workaround for a bug in cv2.intersectConvexConvex function that returns
+        incorrect results for polygons with float coordinates that are almost identical
+
+        Args:
+            gt_rect: [4,2]
+            pred_rect: [4,2]
+
+        Returns:
+
+        """
+        # Multiply by 1000 to account for rounding errors when going from float to int. 1000 should be enough to get rid of any rounding errors
+        # It has no effect on IOU since it is scale-less
+        pred_rect_int = (pred_rect * 1000).astype(int)
+        gt_rect_int = (gt_rect * 1000).astype(int)
+
+        try:
+            intersection, _ = cv2.intersectConvexConvex(pred_rect_int, gt_rect_int, handleNested=True)
+        except Exception as e:
+            raise RuntimeError(
+                "Detected error in cv2.intersectConvexConvex while calculating polygon_polygon_iou\n"
+                f"pred_rect_int: {pred_rect_int}\n"
+                f"gt_rect_int: {gt_rect_int}"
+            ) from e
+
+        gt_area = cv2.contourArea(gt_rect_int)
+        pred_area = cv2.contourArea(pred_rect_int)
+
+        # Second condition is to avoid division by zero when predicted polygon is degenerate (point or line)
+        if intersection > 0 and pred_area > 0:
+            union = gt_area + pred_area - intersection
+            if union == 0:
+                raise ZeroDivisionError(
+                    f"ZeroDivisionError at polygon_polygon_iou_int\n"
+                    f"Intersection is {intersection}\n"
+                    f"Union is {union}\n"
+                    f"gt_rect_int {gt_rect_int}\n"
+                    f"pred_rect_int {pred_rect_int}"
+                )
+            return intersection / max(union, 1e-7)
+
+        return 0
+
     def compute_targets(
         self,
         preds_cxcywhr: torch.Tensor,
@@ -82,9 +148,7 @@ class OBBIoUMatching(DetectionMatching):
         :return: (torch.Tensor) Computed matching targets.
         """
         # shape = (n_preds x n_targets)
-        from super_gradients.training.losses.yolo_nas_r_loss import pairwise_cxcywhr_iou
-
-        iou = pairwise_cxcywhr_iou(preds_cxcywhr[preds_idx_to_use], targets_cxcywhr)
+        iou = self.pairwise_cxcywhr_iou_accurate(preds_cxcywhr[preds_idx_to_use], targets_cxcywhr)
 
         # Fill IoU values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
         # Filling with 0 is equivalent to ignore these values since with want IoU > iou_threshold > 0
@@ -143,13 +207,11 @@ class OBBIoUMatching(DetectionMatching):
         :param preds_idx_to_use: (torch.Tensor) Indices of predictions to use.
         :return: (Tuple[torch.Tensor, torch.Tensor]) Computed matching targets for crowd scenarios.
         """
-        from super_gradients.training.losses.yolo_nas_r_loss import pairwise_cxcywhr_iou
-
         # Crowd targets can be matched with many predictions.
         # Therefore, for every prediction we just need to check if it has IoU large enough with any crowd target.
 
         # shape = (n_preds_to_use x n_crowd_targets)
-        iou = pairwise_cxcywhr_iou(preds_cxcywhr[preds_idx_to_use], crowd_targets_cxcywhr)
+        iou = self.pairwise_cxcywhr_iou_accurate(preds_cxcywhr[preds_idx_to_use], crowd_targets_cxcywhr)
 
         # Fill IoA values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
         # Filling with 0 is equivalent to ignore these values since with want IoA > threshold > 0

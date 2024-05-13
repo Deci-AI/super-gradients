@@ -19,7 +19,7 @@ defaults:
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 64
+    batch_size: 32
 
   val_dataloader_params:
     batch_size: 8
@@ -28,6 +28,10 @@ arch_params:
   num_classes: ${dataset_params.num_classes}
 
 architecture: yolo_nas_r_s
+
+training_hyperparams:
+  initial_lr: 5e-5
+  mixed_precision: False
 
 multi_gpu: DDP
 num_gpus: 8

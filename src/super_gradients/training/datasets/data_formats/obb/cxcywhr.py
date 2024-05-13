@@ -43,3 +43,16 @@ def poly_to_cxcywhr(poly: np.ndarray) -> np.ndarray:
         rboxes[i] = [cx, cy, w, h, angle]
 
     return rboxes.reshape(*shape[:-2], 5)
+
+
+def poly_to_xyxy(poly: np.ndarray) -> np.ndarray:
+    """
+    Convert oriented bounding boxes in polygon format to XYXY format
+    :param poly: [..., 4, 2]
+    :return: [..., 4]
+    """
+    x1 = poly[..., :, 0].min(axis=-1)
+    y1 = poly[..., :, 1].min(axis=-1)
+    x2 = poly[..., :, 0].max(axis=-1)
+    y2 = poly[..., :, 1].max(axis=-1)
+    return np.stack([x1, y1, x2, y2], axis=-1)

@@ -143,6 +143,7 @@ class ExportableOBBDetectionModel:
         output: str,
         confidence_threshold: Optional[float] = None,
         nms_threshold: Optional[float] = None,
+        class_agnostic_nms: bool = False,
         quantization_mode: Optional[ExportQuantizationMode] = None,
         selective_quantizer: Optional["SelectiveQuantizer"] = None,  # noqa
         calibration_loader: Optional[DataLoader] = None,
@@ -169,6 +170,7 @@ class ExportableOBBDetectionModel:
 
         :param output: Output file name of the exported model.
         :param nms_threshold: (float) NMS threshold for the exported model.
+        :param class_agnostic_nms: (bool) If True, NMS will be class agnostic.
         :param confidence_threshold: (float) Confidence threshold for the exported model.
         :param quantization_mode: (QuantizationMode) Sets the quantization mode for the exported model.
             If None, the model is exported as-is without any changes to mode weights.
@@ -386,6 +388,7 @@ class ExportableOBBDetectionModel:
                     confidence_threshold=confidence_threshold,
                     iou_threshold=nms_threshold,
                     batch_size=batch_size,
+                    class_agnostic_nms=class_agnostic_nms,
                     num_pre_nms_predictions=num_pre_nms_predictions,
                     max_predictions_per_image=max_predictions_per_image,
                 )
@@ -394,6 +397,7 @@ class ExportableOBBDetectionModel:
                     confidence_threshold=confidence_threshold,
                     iou_threshold=nms_threshold,
                     batch_size=batch_size,
+                    class_agnostic_nms=class_agnostic_nms,
                     num_pre_nms_predictions=num_pre_nms_predictions,
                     max_predictions_per_image=max_predictions_per_image,
                 )

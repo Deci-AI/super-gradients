@@ -8,9 +8,17 @@ logger = get_logger(__name__)
 
 
 class OBBNMSAndReturnAsBatchedResult(nn.Module):
-    __constants__ = ("batch_size", "confidence_threshold", "iou_threshold", "num_pre_nms_predictions", "max_predictions_per_image")
+    __constants__ = ("batch_size", "confidence_threshold", "iou_threshold", "class_agnostic_nms", "num_pre_nms_predictions", "max_predictions_per_image")
 
-    def __init__(self, confidence_threshold: float, iou_threshold: float, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int):
+    def __init__(
+        self,
+        confidence_threshold: float,
+        iou_threshold: float,
+        batch_size: int,
+        class_agnostic_nms: bool,
+        num_pre_nms_predictions: int,
+        max_predictions_per_image: int,
+    ):
         """
         Perform NMS on the output of the model and return the results in batched format.
         This module implements MatrixNMS algorithm for rotated bounding boxes.
@@ -22,6 +30,7 @@ class OBBNMSAndReturnAsBatchedResult(nn.Module):
                multiplication of predicted confidence score and decay factor for the bounding box (A decay applied to
                boxes that that has overlap with the current box).
         :param batch_size:                A fixed batch size for the model
+        :param class_agnostic_nms:        If True, NMS will be class agnostic
         :param num_pre_nms_predictions:   The number of predictions before NMS step
         :param max_predictions_per_image: Maximum number of predictions per image
         """
@@ -31,6 +40,7 @@ class OBBNMSAndReturnAsBatchedResult(nn.Module):
             )
         super().__init__()
         self.batch_size = batch_size
+        self.class_agnostic_nms = class_agnostic_nms
         self.confidence_threshold = confidence_threshold
         self.iou_threshold = iou_threshold
         self.num_pre_nms_predictions = num_pre_nms_predictions
@@ -57,20 +67,26 @@ class OBBNMSAndReturnAsBatchedResult(nn.Module):
 
         # Apply confidence threshold
         pred_cls_conf = torch.masked_fill(pred_cls_conf, mask=pred_cls_conf < self.confidence_threshold, value=0)
-        keep = rboxes_matrix_nms(pred_boxes, pred_cls_conf, iou_threshold=self.iou_threshold, already_sorted=True)
-
+        keep = rboxes_matrix_nms(
+            rboxes_cxcywhr=pred_boxes,
+            scores=pred_cls_conf,
+            labels=pred_cls_labels,
+            class_agnostic_nms=self.class_agnostic_nms,
+            iou_threshold=self.iou_threshold,
+            already_sorted=True,
+        )
         num_predictions = []
         batched_pred_boxes = []
         batched_pred_scores = []
         batched_pred_classes = []
         for i in range(self.batch_size):
             keep_i = keep[i]
-            pred_boxes_i = pred_boxes[keep_i]
-            pred_scores_i = pred_cls_conf[keep_i]
-            pred_classes_i = pred_cls_labels[keep_i]
+            pred_boxes_i = pred_boxes[i][keep_i]
+            pred_scores_i = pred_cls_conf[i][keep_i]
+            pred_classes_i = pred_cls_labels[i][keep_i]
             num_predictions_i = keep_i.sum()
 
-            pad_size = self.max_predictions_per_image - pred_boxes.size(0)
+            pad_size = self.max_predictions_per_image - pred_boxes_i.size(0)
             pred_boxes_i = torch.nn.functional.pad(pred_boxes_i, [0, 0, 0, pad_size], value=-1, mode="constant")
             pred_scores_i = torch.nn.functional.pad(pred_scores_i, [0, pad_size], value=-1, mode="constant")
             pred_classes_i = torch.nn.functional.pad(pred_classes_i, [0, pad_size], value=-1, mode="constant")
@@ -100,9 +116,17 @@ class OBBNMSAndReturnAsFlatResult(nn.Module):
 
     """
 
-    __constants__ = ("iou_threshold", "confidence_threshold", "batch_size", "num_pre_nms_predictions", "max_predictions_per_image")
+    __constants__ = ("iou_threshold", "confidence_threshold", "batch_size", "class_agnostic_nms", "num_pre_nms_predictions", "max_predictions_per_image")
 
-    def __init__(self, confidence_threshold, iou_threshold: float, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int):
+    def __init__(
+        self,
+        confidence_threshold,
+        iou_threshold: float,
+        batch_size: int,
+        class_agnostic_nms: bool,
+        num_pre_nms_predictions: int,
+        max_predictions_per_image: int,
+    ):
         """
         Perform NMS on the output of the model and return the results in flat format.
         This module implements MatrixNMS algorithm for rotated bounding boxes.
@@ -114,11 +138,13 @@ class OBBNMSAndReturnAsFlatResult(nn.Module):
                multiplication of predicted confidence score and decay factor for the bounding box (A decay applied to
                boxes that that has overlap with the current box).
         :param batch_size:                A fixed batch size for the model
+        :param class_agnostic_nms:        If True, NMS will be class agnostic
         :param num_pre_nms_predictions:   The number of predictions before NMS step
         :param max_predictions_per_image: Maximum number of predictions per image
         """
         super().__init__()
         self.batch_size = batch_size
+        self.class_agnostic_nms = class_agnostic_nms
         self.confidence_threshold = confidence_threshold
         self.num_pre_nms_predictions = num_pre_nms_predictions
         self.max_predictions_per_image = max_predictions_per_image
@@ -143,7 +169,14 @@ class OBBNMSAndReturnAsFlatResult(nn.Module):
 
         # Apply confidence threshold
         pred_cls_conf = torch.masked_fill(pred_cls_conf, mask=pred_cls_conf < self.confidence_threshold, value=0)
-        keep = rboxes_matrix_nms(pred_boxes, pred_cls_conf, iou_threshold=self.iou_threshold, already_sorted=True)
+        keep = rboxes_matrix_nms(
+            rboxes_cxcywhr=pred_boxes,
+            scores=pred_cls_conf,
+            labels=pred_cls_labels,
+            class_agnostic_nms=self.class_agnostic_nms,
+            iou_threshold=self.iou_threshold,
+            already_sorted=True,
+        )
 
         flat_results = []
         for i in range(self.batch_size):
