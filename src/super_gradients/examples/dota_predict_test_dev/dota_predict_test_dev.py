@@ -24,7 +24,7 @@ from tqdm import tqdm
 @torch.jit.optimized_execution(False)
 def main():
     args = argparse.ArgumentParser()
-    args.add_argument("model_name", type=str, default=None, required=True, help="Model name")
+    args.add_argument("model_name", type=str, default=None, help="Model name")
     args.add_argument("checkpoint_path", type=str, help="Path to the model checkpoint")
     args.add_argument("images_dir", type=str, help="Path to the images directory with DOTA test-dev images")
     args.add_argument("--submission_dir", type=str, default=None, help="Path to save submission files")
