@@ -6,6 +6,7 @@
 #
 # Example usage:
 # dota_predict_test_dev.py yolo_nas_r_s checkpoints/yolo_nas_r_s_dota2_best.pth /path/to/DOTA-v2.0/test-dev/images /path/to/save/submission
+from pathlib import Path
 
 import cv2
 import PIL
@@ -53,7 +54,7 @@ def main():
         images_dir = os.path.abspath(images_dir)
 
     if submission_dir is None:
-        submission_dir = os.path.join(os.path.dirname(checkpoint_path), "dota_submission")
+        submission_dir = os.path.join(os.path.dirname(checkpoint_path), str(Path(checkpoint_path).stem) + "_dota_submission")
 
     print(f"checkpoint_path: {checkpoint_path}")
     print(f"model_name:      {model_name}")
