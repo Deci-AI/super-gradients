@@ -109,6 +109,7 @@ def cxcywhr_iou(obb1: Tensor, obb2: Tensor, include_ciou_term: bool = False, eps
             alpha = v / (v - iou + (1 + eps))
         return iou - v * alpha  # CIoU
 
+    iou = torch.masked_fill(iou, ~torch.isfinite(iou), 0)
     return iou
 
 
