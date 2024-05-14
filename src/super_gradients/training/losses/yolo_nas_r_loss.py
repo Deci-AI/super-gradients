@@ -10,6 +10,9 @@ from torch import nn, Tensor
 
 from .ppyolo_loss import gather_topk_anchors, compute_max_iou_anchor
 from ..models.detection_models.yolo_nas_r.yolo_nas_r_ndfl_heads import YoloNASRLogits
+from ...common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__file__)
 
 
 def check_points_inside_rboxes(points: Tensor, rboxes: Tensor) -> Tensor:
@@ -437,6 +440,10 @@ class YoloNASRLoss(nn.Module):
         bs = bbox_weight.size(0)
         # IOU
         iou = cxcywhr_iou(pred_bboxes, assign_result.assigned_rboxes, include_ciou_term=False)
+        nan_iou = ~torch.isfinite(iou)
+        if nan_iou.any():
+            for pred_box, true_box in zip(pred_bboxes[nan_iou], assign_result.assigned_rboxes[nan_iou]):
+                logger.error(f"Found NaN for OBB: Pred {pred_box} True {true_box}")
 
         loss_iou = 1 - iou
         loss_iou = (loss_iou * bbox_weight).sum(dtype=torch.float32)
