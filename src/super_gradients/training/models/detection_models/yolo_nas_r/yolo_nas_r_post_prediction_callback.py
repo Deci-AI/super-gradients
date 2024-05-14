@@ -12,7 +12,7 @@ def rboxes_matrix_nms(
     labels: Tensor,
     iou_threshold: float,
     already_sorted: bool,
-    class_agnostic_nms=False,
+    class_agnostic_nms: bool = False,
     kernel: str = "gaussian",
     sigma: float = 3.0,
 ) -> Tensor:
@@ -24,11 +24,15 @@ def rboxes_matrix_nms(
     :param scores: Confidence scores for each box [..., N]
     :param labels: Labels for each box [..., N]
     :param iou_threshold: IoU threshold for NMS
+    :param already_sorted: If True, input boxes are already sorted by confidence
+    :param class_agnostic_nms: If True, NMS will be class agnostic
+    :param kernel: Kernel function for NMS. Can be "gaussian" or "linear"
+    :param sigma: Sigma parameter for gaussian kernel. Larger sigma will make NMS more aggressive
     :return: Indexes of boxes to keep
     """
     from super_gradients.training.losses.yolo_nas_r_loss import pairwise_cxcywhr_iou
 
-    if len(rboxes_cxcywhr) == 0:
+    if rboxes_cxcywhr.shape[0] == 0:
         # Return empty index tensor of [...., N] shape
         shape = list(rboxes_cxcywhr.size())
         return torch.tensor([], device=rboxes_cxcywhr.device, dtype=torch.long).view(*shape[:-1])
@@ -165,7 +169,6 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
                 pred_cls_label = pred_cls_label[topk_candidates.indices]
 
             # NMS
-            # idx_to_keep = rboxes_nms(rboxes_cxcywhr=pred_rboxes, scores=pred_cls_conf, iou_threshold=self.nms_iou_threshold)
             idx_to_keep = rboxes_matrix_nms(
                 rboxes_cxcywhr=pred_rboxes,
                 scores=pred_cls_conf,
@@ -173,7 +176,7 @@ class YoloNASRPostPredictionCallback(AbstractOBBPostPredictionCallback):
                 iou_threshold=self.nms_iou_threshold,
                 already_sorted=False,
                 class_agnostic_nms=self.class_agnostic_nms,
-            )  # noqa
+            )
 
             pred_rboxes = pred_rboxes[idx_to_keep]  # [Instances,5]
             pred_cls_conf = pred_cls_conf[idx_to_keep]  # [Instances,]
