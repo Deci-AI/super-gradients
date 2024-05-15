@@ -33,6 +33,8 @@ class DetectionMetrics(Metric):
 
     :param num_cls:                         Number of classes.
     :param post_prediction_callback:        DetectionPostPredictionCallback to be applied on net's output prior to the metric computation (NMS).
+     When None, the direct outputs of the model will be used.
+
     :param normalize_targets:               Whether to normalize bbox coordinates by image size.
     :param iou_thres:                       IoU threshold to compute the mAP.
                                             Could be either instance of IouThreshold, a tuple (lower bound, upper_bound) or single scalar.

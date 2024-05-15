@@ -29,7 +29,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
         self,
         tile_size: int,
         tile_step: int,
-        model: Optional[CustomizableDetector],
+        model: Optional[CustomizableDetector] = None,
         min_tile_threshold=30,
         tile_nms_iou: float = 0.7,
         tile_nms_conf: float = 0.5,
@@ -53,21 +53,26 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
         super().__init__()
         self.model = model
 
-        self.sliding_window_post_prediction_callback = self.get_post_prediction_callback(
-            iou=tile_nms_iou,
-            conf=tile_nms_conf,
-            nms_top_k=tile_nms_top_k,
-            max_predictions=tile_nms_max_predictions,
-            multi_label_per_box=tile_nms_multi_label_per_box,
-            class_agnostic_nms=tile_nms_class_agnostic_nms,
-        )
         self.tile_size = tile_size
         self.tile_step = tile_step
         self.min_tile_threshold = min_tile_threshold
 
         # Processing params
-        self._class_names: Optional[List[str]] = self.model.get_class_names()
-        self._image_processor: Optional[Processing] = self.model.get_processing_params()
+        if self.model is not None:
+            self._class_names: Optional[List[str]] = self.model.get_class_names()
+            self._image_processor: Optional[Processing] = self.model.get_processing_params()
+            self.sliding_window_post_prediction_callback = self.get_post_prediction_callback(
+                iou=tile_nms_iou,
+                conf=tile_nms_conf,
+                nms_top_k=tile_nms_top_k,
+                max_predictions=tile_nms_max_predictions,
+                multi_label_per_box=tile_nms_multi_label_per_box,
+                class_agnostic_nms=tile_nms_class_agnostic_nms,
+            )
+        else:
+            self._class_names: Optional[List[str]] = None
+            self._image_processor: Optional[Processing] = None
+            self.sliding_window_post_prediction_callback = None
         self._default_nms_iou: float = tile_nms_iou
         self._default_nms_conf: float = tile_nms_conf
         self._default_nms_top_k: int = tile_nms_top_k
@@ -75,14 +80,28 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
         self._default_multi_label_per_box = tile_nms_multi_label_per_box
         self._default_class_agnostic_nms = tile_nms_class_agnostic_nms
 
-    def __call__(self, inputs: torch.Tensor, model: nn.Module = None, sliding_window_post_prediction_callback: DetectionPostPredictionCallback = None):
-        model = model or self.model
-        sliding_window_post_prediction_callback = sliding_window_post_prediction_callback or self.sliding_window_post_prediction_callback
+    def __call__(self, inputs: torch.Tensor, model: CustomizableDetector = None):
+        if model is not None:
+            sliding_window_post_prediction_callback = model.get_post_prediction_callback(
+                conf=self._default_nms_conf,
+                iou=self._default_nms_iou,
+                nms_top_k=self._default_nms_top_k,
+                max_predictions=self._default_max_predictions,
+                multi_label_per_box=self._default_multi_label_per_box,
+                class_agnostic_nms=self._default_class_agnostic_nms,
+            )
+        else:
+            model = self.model
+            sliding_window_post_prediction_callback = self.sliding_window_post_prediction_callback
+
         if None in [model, sliding_window_post_prediction_callback]:
-            raise RuntimeError("model and sliding_window_post_prediction_callback must be passed when model is not " "passed in __init__.")
+            raise RuntimeError("model must be passed explicitly if not passed in __init__ ")
+
+        return self.forward_with_explicit_model_and_post_prediction_callback(inputs, model, sliding_window_post_prediction_callback)
+
+    def forward_with_explicit_model_and_post_prediction_callback(self, inputs, model, sliding_window_post_prediction_callback):
         batch_size, _, _, _ = inputs.shape
         all_detections = [[] for _ in range(batch_size)]  # Create a list for each image in the batch
-
         # Generate and process each tile
         for img_idx in range(batch_size):
             single_image = inputs[img_idx : img_idx + 1]  # Extract each image
@@ -96,7 +115,6 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
                     if len(img_i_tile_detections) > 0:
                         img_i_tile_detections[:, :4] += torch.tensor([start_x, start_y, start_x, start_y], device=tile.device)
                         all_detections[img_idx].append(img_i_tile_detections)
-
         # Concatenate and apply global NMS for each image's detections
         final_detections = []
         for detections in all_detections:
@@ -114,6 +132,8 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
             else:
                 final_detections.append(torch.empty(0, 6).to(inputs.device))  # Empty tensor for images with no detections
         return final_detections
+
+    # def forward_with_explicit_post_prediction_callback(self, ):
 
     def _generate_tiles(self, image, tile_size, tile_step):
         _, _, h, w = image.shape
@@ -153,7 +173,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
                                     If False NMS is performed separately for each class.
         :return:
         """
-        if self.model:
+        if self.model is not None:
             return self.model.get_post_prediction_callback(
                 conf=conf,
                 iou=iou,
