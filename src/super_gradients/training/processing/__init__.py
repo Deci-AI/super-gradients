@@ -1,4 +1,5 @@
 from .processing import (
+    Processing,
     StandardizeImage,
     DetectionRescale,
     DetectionLongestMaxSizeRescale,
@@ -14,8 +15,10 @@ from .processing import (
     SegmentationPadShortToCropSize,
     SegmentationPadToDivisible,
 )
+from .defaults import get_pretrained_processing_params
 
 __all__ = [
+    "Processing",
     "StandardizeImage",
     "DetectionRescale",
     "DetectionLongestMaxSizeRescale",
@@ -30,4 +33,5 @@ __all__ = [
     "SegmentationResize",
     "SegmentationPadShortToCropSize",
     "SegmentationPadToDivisible",
+    "get_pretrained_processing_params",
 ]
