@@ -51,6 +51,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
         :param tile_nms_class_agnostic_nms:
         """
         super().__init__()
+
         self.model = model
 
         self.tile_size = tile_size
@@ -133,8 +134,6 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
                 final_detections.append(torch.empty(0, 6).to(inputs.device))  # Empty tensor for images with no detections
         return final_detections
 
-    # def forward_with_explicit_post_prediction_callback(self, ):
-
     def _generate_tiles(self, image, tile_size, tile_step):
         _, _, h, w = image.shape
         tiles = []
@@ -183,7 +182,10 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
                 class_agnostic_nms=class_agnostic_nms,
             )
         else:
-            return None
+            raise RuntimeError(
+                "self.model must not be None before calling get_post_prediction_callback(). Pass "
+                "instantiated CustomizableDetector through the 'model' arg on __init__"
+            )
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(
@@ -272,7 +274,9 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
-                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
+                "You must set the dataset processing parameters before calling predict.\n"
+                "Please call "
+                "`model.set_dataset_processing_params(...)` first or do so on self.model. "
             )
 
         iou = self._default_nms_iou if iou is None else iou
@@ -368,7 +372,6 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
         :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
                                     If None, the default value associated to the training is used.
-        :param batch_size:          Maximum number of images to process at the same time.
         :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         :param skip_image_resizing: If True, the image processor will not resize the images.
         :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS.
