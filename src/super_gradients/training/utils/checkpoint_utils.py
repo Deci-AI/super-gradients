@@ -1582,7 +1582,12 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
             "https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.YOLONAS-POSE.md\n"
             "By downloading the pre-trained weight files you agree to comply with these terms."
         )
-
+    elif architecture in {Models.YOLO_NAS_R_S, Models.YOLO_NAS_R_M, Models.YOLO_NAS_R_L}:
+        logger.info(
+            "License Notification: YOLO-NAS-R pre-trained weights are subjected to the specific license terms and conditions detailed in \n"
+            "https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.YOLONAS-R.md\n"
+            "By downloading the pre-trained weight files you agree to comply with these terms."
+        )
     # Basically this check allows settings pretrained weights from local path using file:///path/to/weights scheme
     # which is a valid URI scheme for local files
     # Supporting local files and file URI allows us modification of pretrained weights dics in unit tests
