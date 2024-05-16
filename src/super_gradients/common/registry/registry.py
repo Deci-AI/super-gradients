@@ -160,10 +160,6 @@ register_sg_logger = create_register_decorator(registry=SG_LOGGERS)
 ALL_COLLATE_FUNCTIONS = {}
 register_collate_function = create_register_decorator(registry=ALL_COLLATE_FUNCTIONS)
 
-FORWARD_WRAPPERS = {}
-register_forward_wrapper = create_register_decorator(registry=FORWARD_WRAPPERS)
-
-
 SAMPLERS = {
     Samplers.DISTRIBUTED: torch.utils.data.DistributedSampler,
     Samplers.SEQUENTIAL: torch.utils.data.SequentialSampler,

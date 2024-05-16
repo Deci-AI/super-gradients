@@ -5,9 +5,7 @@ import torch
 from torch import nn
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
-from super_gradients.common.registry.registry import register_forward_wrapper
 from super_gradients.module_interfaces import HasPredict
-from super_gradients.training.forward_wrappers.abstract_forward_wrapper_model import AbstractForwardWrapperModel
 from super_gradients.training.models import CustomizableDetector
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import SlidingWindowDetectionPipeline
@@ -17,52 +15,62 @@ import torchvision
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 
 
-@register_forward_wrapper("SlidingWindowInferenceDetectionWrapper")
-class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperModel, nn.Module):
+class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
     """
-    A customizable detector with backbone -> neck -> heads
-    Each submodule with its parameters must be defined explicitly.
-    Modules should follow the interface of BaseDetectionModule
+    Implements a sliding window inference wrapper for a customizable detector.
+
+    Parameters:
+        tile_size (int): The size of each square tile (in pixels) used in the sliding window.
+        tile_step (int): The step size (in pixels) between consecutive tiles in the sliding window.
+        model (CustomizableDetector): The detection model to which the sliding window inference is applied.
+        min_tile_threshold (int): Minimum dimension size for edge tiles before padding is applied.
+                                  If the remainder of the image (after the full tiles have been applied)
+                                  is smaller than this threshold, it will not be processed.
+        tile_nms_iou (Optional[float]): IoU threshold for Non-Maximum Suppression (NMS) of bounding boxes.
+                                        Defaults to the model's internal setting if None.
+        tile_nms_conf (Optional[float]): Confidence threshold for predictions to consider in post-processing.
+                                         Defaults to the model's internal setting if None.
+        tile_nms_top_k (Optional[int]): Maximum number of top-scoring detections to consider for NMS in each tile.
+                                        Defaults to the model's internal setting if None.
+        tile_nms_max_predictions (Optional[int]): Maximum number of detections to return from each tile.
+                                                  Defaults to the model's internal setting if None.
+        tile_nms_multi_label_per_box (Optional[bool]): Allows multiple labels per box if True. Each anchor can produce
+                                                       multiple labels of different classes that pass the confidence threshold.
+                                                       Only the highest-scoring class is considered per anchor if False.
+                                                       Defaults to the model's internal setting if None.
+        tile_nms_class_agnostic_nms (Optional[bool]): Performs class-agnostic NMS if True, where the IoU of boxes across
+                                                      different classes is considered. Performs class-specific NMS if False.
+                                                      Defaults to the model's internal setting if None.
     """
 
     def __init__(
         self,
         tile_size: int,
         tile_step: int,
-        model: Optional[CustomizableDetector] = None,
-        min_tile_threshold=30,
-        tile_nms_iou: float = 0.7,
-        tile_nms_conf: float = 0.5,
-        tile_nms_top_k: int = 1024,
-        tile_nms_max_predictions=300,
-        tile_nms_multi_label_per_box=True,
-        tile_nms_class_agnostic_nms=False,
+        model: Optional[CustomizableDetector],
+        min_tile_threshold: int = 30,
+        tile_nms_iou: Optional[float] = None,
+        tile_nms_conf: Optional[float] = None,
+        tile_nms_top_k: Optional[int] = None,
+        tile_nms_max_predictions: Optional[int] = None,
+        tile_nms_multi_label_per_box: Optional[bool] = None,
+        tile_nms_class_agnostic_nms: Optional[bool] = None,
     ):
-        """
 
-        :param tile_size:
-        :param tile_step:
-        :param min_tile_threshold:
-        :param tile_nms_iou:
-        :param tile_nms_conf:
-        :param tile_nms_top_k:
-        :param tile_nms_max_predictions:
-        :param tile_nms_multi_label_per_box:
-        :param tile_nms_class_agnostic_nms:
-        """
         super().__init__()
-
-        self.model = model
-
         self.tile_size = tile_size
         self.tile_step = tile_step
         self.min_tile_threshold = min_tile_threshold
 
         # Processing params
-        if self.model is not None:
-            self._class_names: Optional[List[str]] = self.model.get_class_names()
-            self._image_processor: Optional[Processing] = self.model.get_processing_params()
-            self.sliding_window_post_prediction_callback = self.get_post_prediction_callback(
+        self.model = model
+        self.set_dataset_processing_params(**self.model.get_dataset_processing_params())
+
+        if any(
+            arg is not None
+            for arg in [tile_nms_iou, tile_nms_conf, tile_nms_top_k, tile_nms_max_predictions, tile_nms_multi_label_per_box, tile_nms_class_agnostic_nms]
+        ):
+            self.set_dataset_processing_params(
                 iou=tile_nms_iou,
                 conf=tile_nms_conf,
                 nms_top_k=tile_nms_top_k,
@@ -70,37 +78,19 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
                 multi_label_per_box=tile_nms_multi_label_per_box,
                 class_agnostic_nms=tile_nms_class_agnostic_nms,
             )
-        else:
-            self._class_names: Optional[List[str]] = None
-            self._image_processor: Optional[Processing] = None
-            self.sliding_window_post_prediction_callback = None
-        self._default_nms_iou: float = tile_nms_iou
-        self._default_nms_conf: float = tile_nms_conf
-        self._default_nms_top_k: int = tile_nms_top_k
-        self._default_max_predictions = tile_nms_max_predictions
-        self._default_multi_label_per_box = tile_nms_multi_label_per_box
-        self._default_class_agnostic_nms = tile_nms_class_agnostic_nms
 
-    def __call__(self, inputs: torch.Tensor, model: CustomizableDetector = None):
-        if model is not None:
-            sliding_window_post_prediction_callback = model.get_post_prediction_callback(
-                conf=self._default_nms_conf,
-                iou=self._default_nms_iou,
-                nms_top_k=self._default_nms_top_k,
-                max_predictions=self._default_max_predictions,
-                multi_label_per_box=self._default_multi_label_per_box,
-                class_agnostic_nms=self._default_class_agnostic_nms,
-            )
-        else:
-            model = self.model
-            sliding_window_post_prediction_callback = self.sliding_window_post_prediction_callback
+        self.sliding_window_post_prediction_callback = self.get_post_prediction_callback(
+            iou=self._default_nms_iou,
+            conf=self._default_nms_conf,
+            nms_top_k=self._default_nms_top_k,
+            max_predictions=self._default_max_predictions,
+            multi_label_per_box=self._default_multi_label_per_box,
+            class_agnostic_nms=self._default_class_agnostic_nms,
+        )
 
-        if None in [model, sliding_window_post_prediction_callback]:
-            raise RuntimeError("model must be passed explicitly if not passed in __init__ ")
+    def forward(self, inputs: torch.Tensor, sliding_window_post_prediction_callback: Optional[DetectionPostPredictionCallback] = None) -> List[torch.Tensor]:
 
-        return self.forward_with_explicit_model_and_post_prediction_callback(inputs, model, sliding_window_post_prediction_callback)
-
-    def forward_with_explicit_model_and_post_prediction_callback(self, inputs, model, sliding_window_post_prediction_callback):
+        sliding_window_post_prediction_callback = sliding_window_post_prediction_callback or self.sliding_window_post_prediction_callback
         batch_size, _, _, _ = inputs.shape
         all_detections = [[] for _ in range(batch_size)]  # Create a list for each image in the batch
         # Generate and process each tile
@@ -108,7 +98,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
             single_image = inputs[img_idx : img_idx + 1]  # Extract each image
             tiles = self._generate_tiles(single_image, self.tile_size, self.tile_step)
             for tile, (start_x, start_y) in tiles:
-                tile_detections = model(tile)
+                tile_detections = self.model(tile)
                 # Apply local NMS using post_prediction_callback
                 tile_detections = sliding_window_post_prediction_callback(tile_detections)
                 # Adjust detections to global image coordinates
@@ -164,28 +154,22 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, AbstractForwardWrapperM
 
         :param conf:                A minimum confidence threshold for predictions to be used in post-processing.
         :param iou:                 A IoU threshold for boxes non-maximum suppression.
-        :param nms_top_k:           The maximum number of detections to consider for NMS.
-        :param max_predictions:     The maximum number of detections to return.
+        :param nms_top_k:           The maximum number of detections to consider for the NMS applied on each tile.
+        :param max_predictions:     The maximum number of detections to return in each tile.
         :param multi_label_per_box: If True, each anchor can produce multiple labels of different classes.
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
                                     If False NMS is performed separately for each class.
         :return:
         """
-        if self.model is not None:
-            return self.model.get_post_prediction_callback(
-                conf=conf,
-                iou=iou,
-                nms_top_k=nms_top_k,
-                max_predictions=max_predictions,
-                multi_label_per_box=multi_label_per_box,
-                class_agnostic_nms=class_agnostic_nms,
-            )
-        else:
-            raise RuntimeError(
-                "self.model must not be None before calling get_post_prediction_callback(). Pass "
-                "instantiated CustomizableDetector through the 'model' arg on __init__"
-            )
+        return self.model.get_post_prediction_callback(
+            conf=conf,
+            iou=iou,
+            nms_top_k=nms_top_k,
+            max_predictions=max_predictions,
+            multi_label_per_box=multi_label_per_box,
+            class_agnostic_nms=class_agnostic_nms,
+        )
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(

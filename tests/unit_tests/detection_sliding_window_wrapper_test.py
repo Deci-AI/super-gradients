@@ -4,7 +4,7 @@ from pathlib import Path
 from super_gradients.training import models
 from super_gradients.training.dataloaders import coco2017_val_yolo_nas
 from super_gradients.training import Trainer
-from super_gradients.training.forward_wrappers.sliding_window_detection_forward_wrapper import SlidingWindowInferenceDetectionWrapper
+from super_gradients.training.models.detection_models.sliding_window_detection_forward_wrapper import SlidingWindowInferenceDetectionWrapper
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training import training_hyperparams
 
