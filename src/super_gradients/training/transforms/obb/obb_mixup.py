@@ -21,18 +21,18 @@ class OBBDetectionMixup(AbstractOBBDetectionTransform):
     # and then apply KeypointsMixup to get a single sample.
     train_dataset_params:
         transforms:
-            - KeypointsLongestMaxSize:
+            - OBBDetectionLongestMaxSize:
                 max_height: ${dataset_params.image_size}
                 max_width: ${dataset_params.image_size}
 
-            - KeypointsPadIfNeeded:
+            - OBBDetectionPadIfNeeded:
                 min_height: ${dataset_params.image_size}
                 min_width: ${dataset_params.image_size}
                 image_pad_value: [127, 127, 127]
                 mask_pad_value: 1
                 padding_mode: center
 
-            - KeypointsMixup:
+            - OBBDetectionMixup:
                 prob: 0.5
     ```
 

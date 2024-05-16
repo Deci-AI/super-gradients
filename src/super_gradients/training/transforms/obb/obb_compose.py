@@ -44,24 +44,15 @@ class OBBDetectionCompose(AbstractOBBDetectionTransform):
 
         ```
           transforms:
-            - KeypointsBrightnessContrast:
-                brightness_range: [ 0.8, 1.2 ]
-                contrast_range: [ 0.8, 1.2 ]
-                prob: 0.5
-            - KeypointsHSV:
-                hgain: 20
-                sgain: 20
-                vgain: 20
-                prob: 0.5
-            - KeypointsLongestMaxSize:
+            - OBBDetectionLongestMaxSize:
                 max_height: ${dataset_params.image_size}
                 max_width: ${dataset_params.image_size}
-            - KeypointsMixup:
+            - OBBDetectionMixup:
                 prob: ${dataset_params.mixup_prob}
         ```
 
-        In the example above all samples in mixup will be forwarded through KeypointsBrightnessContrast, KeypointsHSV,
-        KeypointsLongestMaxSize and only then mixed up.
+        In the example above all samples in mixup will be forwarded through OBBDetectionLongestMaxSize,
+        and only then mixed up.
 
         :param sample:         Input data sample
         :param transforms:     List of transformations to apply
