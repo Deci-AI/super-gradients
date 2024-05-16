@@ -12,7 +12,9 @@ __all__ = [
 NumpyArrayOrTensor = Union[np.ndarray, torch.Tensor]
 
 
-def iterate_over_obb_detection_predictions_in_flat_format(predictions: NumpyArrayOrTensor, batch_size: int):
+def iterate_over_obb_detection_predictions_in_flat_format(
+    predictions: NumpyArrayOrTensor, batch_size: int
+) -> Iterable[Tuple[int, NumpyArrayOrTensor, NumpyArrayOrTensor, NumpyArrayOrTensor]]:
     """
     Iterate over object detection predictions in flat format.
     This method is suitable for iterating over predictions of object detection models exported to ONNX format
@@ -27,12 +29,12 @@ def iterate_over_obb_detection_predictions_in_flat_format(predictions: NumpyArra
     >>>     ...
 
     :param predictions: An array of [N, 7] shape where N is a total number of detections in batch.
-                        Each detection is represented by [image_index, x1, y1, x2, y2, score, label] values.
+                        Each detection is represented by [image_index, cx, cy, w, h, r, score, label] values.
     :param batch_size:  A number of images in batch. This must be passed explicitly because batch size
                         cannot be inferred from predictions array.
     :return:            A generator that yields (image_index, bboxes, scores, labels) for each image in batch
                         image_index: An index of image in batch
-                        bboxes: A 2D array of shape (num_predictions, 4) containing bounding boxes in format (x1, y1, x2, y2)
+                        bboxes: A 2D array of shape (num_predictions, 5) containing bounding boxes in format (cx, cy, w, h, r,)
                         scores: A 1D array of shape (num_predictions,) containing class scores
                         labels: A 1D array of shape (num_predictions,) containing class labels. Class labels casted to int.
     """
@@ -47,7 +49,7 @@ def iterate_over_obb_detection_predictions_in_flat_format(predictions: NumpyArra
 
     for image_index in range(batch_size):
         mask = predictions[:, 0] == image_index
-        pred_bboxes = predictions[mask, 1:6]
+        pred_rboxes = predictions[mask, 1:6]
         pred_scores = predictions[mask, 6]
         pred_labels = predictions[mask, 7]
 
@@ -56,7 +58,7 @@ def iterate_over_obb_detection_predictions_in_flat_format(predictions: NumpyArra
         else:
             pred_labels = pred_labels.astype(int)
 
-        yield image_index, pred_bboxes, pred_scores, pred_labels
+        yield image_index, pred_rboxes, pred_scores, pred_labels
 
 
 def iterate_over_obb_detection_predictions_in_batched_format(
@@ -87,11 +89,11 @@ def iterate_over_obb_detection_predictions_in_batched_format(
                            labels: A 1D array of shape (num_predictions,) containing class labels. Class labels casted to int.
 
     """
-    num_detections, detected_bboxes, detected_scores, detected_labels = predictions
+    num_detections, detected_rboxes, detected_scores, detected_labels = predictions
     num_detections = num_detections.reshape(-1)
     batch_size = len(num_detections)
 
-    detected_bboxes = detected_bboxes.reshape(batch_size, -1, 5)
+    detected_rboxes = detected_rboxes.reshape(batch_size, -1, 5)
     detected_scores = detected_scores.reshape(batch_size, -1)
     detected_labels = detected_labels.reshape(batch_size, -1)
 
@@ -103,8 +105,8 @@ def iterate_over_obb_detection_predictions_in_batched_format(
     for image_index in range(batch_size):
         num_detection_in_image = num_detections[image_index]
 
-        pred_bboxes = detected_bboxes[image_index, :num_detection_in_image]
+        pred_rboxes = detected_rboxes[image_index, :num_detection_in_image]
         pred_scores = detected_scores[image_index, :num_detection_in_image]
         pred_labels = detected_labels[image_index, :num_detection_in_image]
 
-        yield image_index, pred_bboxes, pred_scores, pred_labels
+        yield image_index, pred_rboxes, pred_scores, pred_labels
