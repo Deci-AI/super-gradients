@@ -22,7 +22,7 @@
 #         yolo_nas_r_l: python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_l
 #
 # Training times and accuracies (mAP@0.5 (Pascal Voc mAP, test on 1024x1024 images):
-#         yolo_nas_r_s: 7h  on 8 NVIDIA GeForce RTX 3090, mAP: 63.424 (val)
+#         yolo_nas_r_s: 7h  on 8 NVIDIA GeForce RTX 3090, mAP: 63.424 (val), 56.56 (test-dev)
 #         yolo_nas_r_m: 9h  on 8 NVIDIA GeForce RTX 3090, mAP: 64.647 (val)
 #         yolo_nas_r_l: 12h on 8 NVIDIA GeForce RTX 3090, mAP: 66.223 (val)
 #
