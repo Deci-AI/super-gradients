@@ -8,7 +8,7 @@ warmup_initial_lr: 1e-6
 lr_warmup_steps: 100
 lr_warmup_epochs: 0
 
-initial_lr: 2e-4
+initial_lr: 5e-5
 
 
 lr_mode: CosineLRScheduler
@@ -37,7 +37,7 @@ ema_params:
   decay_type: exp
   beta: 50
 
-mixed_precision: True
+mixed_precision: False
 sync_bn: False
 
 # This is how you can enable visualization of predictions during training

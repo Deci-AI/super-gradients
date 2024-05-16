@@ -1,12 +1,30 @@
-# YoloNAS-S Detection training on COCO2017 Dataset:
-# This training recipe is for demonstration purposes only. Pretrained models were trained using a different recipe.
-# So it will not be possible to reproduce the results of the pretrained models using this recipe.
-
+# Recipe for training YoloNAS-R OBB Detection training on Dota 2.0 Dataset:
+# YoloNAS-R trained in 640x640 crops and validated on 1024x1024 images.
+#
 # Instructions:
-#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
-#   1. Move to the project root (where you will find the ReadMe and src folder)
-#   2. Run the command you want:
-#         yolo_nas_s: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolo_nas_s
+#   0. Make sure that you have downloaded DOTA 2.0 dataset
+#
+#   1. Run super_gradients/examples/dota_prepare_dataset/dota_prepare_dataset.py
+#      This scrip is needed to slice the original images into patches of 1024x1024 pixels:
+#      python dota_prepare_dataset.py --input_dir <PATH-TO-DOTA-DATASET> --output_dir <OUTPUT_PATH>
+#
+#   2. Update data dir in dataset_params:
+#      Using CLI:
+#       python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_l dataset_params.data_dir=${OUTPUT_PATH}
+#
+#      By overriding the root YAML config file:
+#        dataset_params:
+#         data_dir: <OUTPUT_PATH>
+#
+#   3. Run the command you want:
+#         yolo_nas_r_s: python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_s
+#         yolo_nas_r_m: python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_m
+#         yolo_nas_r_l: python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_l
+#
+# Training times and accuracies (mAP@0.5 (Pascal Voc mAP, test on 1024x1024 images):
+#         yolo_nas_r_s: 7h  on 8 NVIDIA GeForce RTX 3090, mAP: 63.424 (val)
+#         yolo_nas_r_m: 9h  on 8 NVIDIA GeForce RTX 3090, mAP: 64.647 (val)
+#         yolo_nas_r_l: 12h on 8 NVIDIA GeForce RTX 3090, mAP: 66.223 (val)
 #
 
 defaults:
@@ -19,7 +37,7 @@ defaults:
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 32
+    batch_size: 24
 
   val_dataloader_params:
     batch_size: 8
