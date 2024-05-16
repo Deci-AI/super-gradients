@@ -241,12 +241,14 @@ class Trainer:
         :return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
-        # TODO: bind checkpoint_run_id
         setup_device(
             device=core_utils.get_param(cfg, "device"),
             multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
             num_gpus=core_utils.get_param(cfg, "num_gpus"),
         )
+
+        # Create resolved config before instantiation
+        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -285,7 +287,6 @@ class Trainer:
 
         test_loaders = maybe_instantiate_test_loaders(cfg)
 
-        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
         res = trainer.train(
             model=model,
