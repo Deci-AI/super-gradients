@@ -630,12 +630,6 @@ class Trainer:
         if global_step % self.batch_accumulate == 0:
             self.phase_callback_handler.on_train_batch_gradient_step_start(context)
 
-            # Compute the maximum gradient value & layer name
-            self.scaler.unscale_(self.optimizer)
-            name_and_max_grad = [(name, p.grad.abs().max()) for name, p in self.net.named_parameters() if p.grad is not None]
-            name_and_max_grad = next(iter(sorted(name_and_max_grad, key=lambda x: x[1], reverse=True)))
-            logger.debug(f"Max gradient value: {name_and_max_grad[1]} in layer: {name_and_max_grad[0]}")
-
             # APPLY GRADIENT CLIPPING IF REQUIRED
             if self.training_params.clip_grad_norm:
                 self.scaler.unscale_(self.optimizer)
