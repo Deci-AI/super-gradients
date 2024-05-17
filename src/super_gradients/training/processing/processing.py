@@ -7,6 +7,7 @@ from typing import Tuple, List, Union, Optional
 import cv2
 import numpy as np
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.deprecate import deprecated
 from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_processing
 from super_gradients.training.transforms.utils import (
@@ -907,3 +908,14 @@ class SegmentationPadToDivisible(Processing):
     @property
     def resizes_image(self) -> bool:
         return True
+
+
+@deprecated(
+    reason="This method is deprecated. Please use `super_gradients.training.processing.get_pretrained_processing_params` instead.",
+    deprecated_since="3.8.0",
+    removed_from="4.0.0",
+)
+def get_pretrained_processing_params(model_name: str, pretrained_weights: str):
+    from .defaults import get_pretrained_processing_params as _get_pretrained_processing_params
+
+    return _get_pretrained_processing_params(model_name, pretrained_weights)

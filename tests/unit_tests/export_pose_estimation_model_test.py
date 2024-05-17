@@ -17,14 +17,16 @@ from super_gradients.module_interfaces import ExportablePoseEstimationModel, Pos
 from super_gradients.training import models
 from super_gradients.training.dataloaders import coco2017_val  # noqa
 from super_gradients.training.models.pose_estimation_models.yolo_nas_pose.yolo_nas_pose_variants import YoloNASPoseDecodingModule
-from super_gradients.training.processing.processing import (
-    default_yolo_nas_pose_coco_processing_params,
+from super_gradients.training.processing import (
     ComposeProcessing,
     ReverseImageChannels,
-    KeypointsLongestMaxSizeRescale,
-    KeypointsBottomRightPadding,
     StandardizeImage,
     ImagePermute,
+)
+from super_gradients.training.processing.defaults import (
+    default_yolo_nas_pose_coco_processing_params,
+    KeypointsLongestMaxSizeRescale,
+    KeypointsBottomRightPadding,
 )
 from super_gradients.training.utils.media.image import load_image
 from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
