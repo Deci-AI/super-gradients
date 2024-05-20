@@ -23,7 +23,7 @@ class SlidingWindowWrapperTest(unittest.TestCase):
             num_cls=80,
         )
         metric_values = trainer.test(model=model, test_loader=dl, test_metrics_list=[metric])
-        self.assertAlmostEqual(metric_values[metric.map_str], 0.331, delta=0.001)
+        self.assertAlmostEqual(metric_values[metric.map_str], 0.342, delta=0.001)
 
 
 if __name__ == "__main__":

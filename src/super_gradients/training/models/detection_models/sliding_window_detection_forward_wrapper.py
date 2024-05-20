@@ -128,7 +128,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
                 pred_cls_conf = detections[:, 4]
                 pred_cls_label = detections[:, 5]
                 idx_to_keep = torchvision.ops.boxes.batched_nms(
-                    boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=sliding_window_post_prediction_callback.score_threshold
+                    boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=sliding_window_post_prediction_callback.nms_threshold
                 )
 
                 final_detections.append(detections[idx_to_keep])
