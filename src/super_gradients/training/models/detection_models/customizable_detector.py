@@ -202,7 +202,7 @@ class CustomizableDetector(HasPredict, SgModule):
             conf=self._default_nms_iou,
             nms_top_k=self._default_nms_top_k,
             max_predictions=self._default_max_predictions,
-            multi_label_per_box=self._multi_label_per_box,
+            multi_label_per_box=self._default_multi_label_per_box,
             class_agnostic_nms=self._default_class_agnostic_nms,
         )
 

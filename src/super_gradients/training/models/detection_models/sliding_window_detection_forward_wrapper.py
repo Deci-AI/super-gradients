@@ -62,6 +62,15 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
         self.tile_step = tile_step
         self.min_tile_threshold = min_tile_threshold
 
+        self._class_names: Optional[List[str]] = None
+        self._image_processor: Optional[Processing] = None
+        self._default_nms_iou: float = 0.7
+        self._default_nms_conf: float = 0.5
+        self._default_nms_top_k: int = 1024
+        self._default_max_predictions = 300
+        self._default_multi_label_per_box = True
+        self._default_class_agnostic_nms = False
+
         # Processing params
         self.model = model
         self.set_dataset_processing_params(**self.model.get_dataset_processing_params())
