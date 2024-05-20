@@ -493,7 +493,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
 
             # Plot `max_samples_per_plot` images.
             for img_i in range(max_samples_per_plot):
-                index = img_i + plot_i * 16
+                index = img_i + plot_i * max_samples_per_plot
 
                 # LOAD IMAGE/TARGETS
                 if plot_transformed_data:
@@ -518,7 +518,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
 
                 image = DetectionVisualization.visualize_image(image_np=image, class_names=self.classes, target_boxes=targets_label_xyxy, gt_alpha=1)
 
-                plt.subplot(n_subplot, n_subplot, img_i + 1).imshow(image[:, :, ::-1])
+                plt.subplot(n_subplot, n_subplot, img_i + 1).imshow(image)
                 plt.imshow(image)
                 plt.axis("off")
 
