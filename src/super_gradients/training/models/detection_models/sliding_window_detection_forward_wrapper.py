@@ -19,28 +19,25 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
     """
     Implements a sliding window inference wrapper for a customizable detector.
 
-    Parameters:
-        tile_size (int): The size of each square tile (in pixels) used in the sliding window.
-        tile_step (int): The step size (in pixels) between consecutive tiles in the sliding window.
-        model (CustomizableDetector): The detection model to which the sliding window inference is applied.
-        min_tile_threshold (int): Minimum dimension size for edge tiles before padding is applied.
-                                  If the remainder of the image (after the full tiles have been applied)
-                                  is smaller than this threshold, it will not be processed.
-        tile_nms_iou (Optional[float]): IoU threshold for Non-Maximum Suppression (NMS) of bounding boxes.
-                                        Defaults to the model's internal setting if None.
-        tile_nms_conf (Optional[float]): Confidence threshold for predictions to consider in post-processing.
-                                         Defaults to the model's internal setting if None.
-        tile_nms_top_k (Optional[int]): Maximum number of top-scoring detections to consider for NMS in each tile.
-                                        Defaults to the model's internal setting if None.
-        tile_nms_max_predictions (Optional[int]): Maximum number of detections to return from each tile.
-                                                  Defaults to the model's internal setting if None.
-        tile_nms_multi_label_per_box (Optional[bool]): Allows multiple labels per box if True. Each anchor can produce
-                                                       multiple labels of different classes that pass the confidence threshold.
-                                                       Only the highest-scoring class is considered per anchor if False.
-                                                       Defaults to the model's internal setting if None.
-        tile_nms_class_agnostic_nms (Optional[bool]): Performs class-agnostic NMS if True, where the IoU of boxes across
-                                                      different classes is considered. Performs class-specific NMS if False.
-                                                      Defaults to the model's internal setting if None.
+    :param tile_size: (int) The size of each square tile (in pixels) used in the sliding window.
+    :param tile_step: (int) The step size (in pixels) between consecutive tiles in the sliding window.
+    :param model: (CustomizableDetector) The detection model to which the sliding window inference is applied.
+    :param min_tile_threshold: (int) Minimum dimension size for edge tiles before padding is applied.
+        If the remainder of the image (after the full tiles have been applied) is smaller than this threshold,
+        it will not be processed.
+    :param tile_nms_iou: (Optional[float]) IoU threshold for Non-Maximum Suppression (NMS) of bounding boxes.
+        Defaults to the model's internal setting if None.
+    :param tile_nms_conf: (Optional[float]) Confidence threshold for predictions to consider in post-processing.
+        Defaults to the model's internal setting if None.
+    :param tile_nms_top_k: (Optional[int]) Maximum number of top-scoring detections to consider for NMS in each tile.
+        Defaults to the model's internal setting if None.
+    :param tile_nms_max_predictions: (Optional[int]) Maximum number of detections to return from each tile.
+        Defaults to the model's internal setting if None.
+    :param tile_nms_multi_label_per_box: (Optional[bool]) Allows multiple labels per box if True. Each anchor can produce
+        multiple labels of different classes that pass the confidence threshold. Only the highest-scoring class is considered
+        per anchor if False. Defaults to the model's internal setting if None.
+    :param tile_nms_class_agnostic_nms: (Optional[bool]) Performs class-agnostic NMS if True, where the IoU of boxes across
+        different classes is considered. Performs class-specific NMS if False. Defaults to the model's internal setting if None.
     """
 
     def __init__(
