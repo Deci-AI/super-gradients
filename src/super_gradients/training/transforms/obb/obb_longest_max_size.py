@@ -7,7 +7,7 @@ from super_gradients.common.object_names import Processings
 from super_gradients.common.registry import register_transform
 from super_gradients.training.transforms.utils import _rescale_bboxes
 
-from .obb_sample import OBBSample
+from super_gradients.training.samples.obb_sample import OBBSample
 from .abstract_obb_transform import AbstractOBBDetectionTransform
 
 

@@ -4,7 +4,7 @@ import numpy as np
 from super_gradients.common.registry import register_transform
 
 from .abstract_obb_transform import AbstractOBBDetectionTransform
-from .obb_sample import OBBSample
+from super_gradients.training.samples.obb_sample import OBBSample
 
 
 @register_transform()

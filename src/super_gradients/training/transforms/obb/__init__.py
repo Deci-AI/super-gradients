@@ -1,4 +1,4 @@
-from .obb_sample import OBBSample
+from super_gradients.training.samples.obb_sample import OBBSample
 from .abstract_obb_transform import AbstractOBBDetectionTransform
 from .obb_pad_if_needed import OBBDetectionPadIfNeeded
 from .obb_longest_max_size import OBBDetectionLongestMaxSize

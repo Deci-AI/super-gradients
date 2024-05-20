@@ -1,7 +1,7 @@
 from typing import List
 
 from .abstract_obb_transform import AbstractOBBDetectionTransform
-from .obb_sample import OBBSample
+from super_gradients.training.samples.obb_sample import OBBSample
 
 
 class OBBDetectionCompose(AbstractOBBDetectionTransform):

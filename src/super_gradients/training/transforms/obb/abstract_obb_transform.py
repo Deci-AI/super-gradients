@@ -3,7 +3,7 @@ import warnings
 from abc import abstractmethod
 from typing import List
 
-from .obb_sample import OBBSample
+from super_gradients.training.samples.obb_sample import OBBSample
 
 __all__ = ["AbstractOBBDetectionTransform"]
 
