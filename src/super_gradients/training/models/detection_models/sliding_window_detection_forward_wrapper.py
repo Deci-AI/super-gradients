@@ -62,6 +62,7 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
         self.tile_step = tile_step
         self.min_tile_threshold = min_tile_threshold
 
+        # GENERAL DEFAULTS
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
         self._default_nms_iou: float = 0.7
@@ -71,10 +72,11 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
         self._default_multi_label_per_box = True
         self._default_class_agnostic_nms = False
 
-        # Processing params
+        # TAKE PROCESSING PARAMS FROM THE WRAPPED MODEL IF THEY ARE AVAILABLE, OTHERWISE USE THE GENERAL DEFAULTS
         self.model = model
         self.set_dataset_processing_params(**self.model.get_dataset_processing_params())
 
+        # OVERRIDE WITH ANY EXPLICITLY PASSED PROCESSING PARAMS
         if any(
             arg is not None
             for arg in [tile_nms_iou, tile_nms_conf, tile_nms_top_k, tile_nms_max_predictions, tile_nms_multi_label_per_box, tile_nms_class_agnostic_nms]
@@ -87,15 +89,16 @@ class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
                 multi_label_per_box=tile_nms_multi_label_per_box,
                 class_agnostic_nms=tile_nms_class_agnostic_nms,
             )
+        else:
 
-        self.sliding_window_post_prediction_callback = self.get_post_prediction_callback(
-            iou=self._default_nms_iou,
-            conf=self._default_nms_conf,
-            nms_top_k=self._default_nms_top_k,
-            max_predictions=self._default_max_predictions,
-            multi_label_per_box=self._default_multi_label_per_box,
-            class_agnostic_nms=self._default_class_agnostic_nms,
-        )
+            self.sliding_window_post_prediction_callback = self.get_post_prediction_callback(
+                iou=self._default_nms_iou,
+                conf=self._default_nms_conf,
+                nms_top_k=self._default_nms_top_k,
+                max_predictions=self._default_max_predictions,
+                multi_label_per_box=self._default_multi_label_per_box,
+                class_agnostic_nms=self._default_class_agnostic_nms,
+            )
 
     def forward(self, inputs: torch.Tensor, sliding_window_post_prediction_callback: Optional[DetectionPostPredictionCallback] = None) -> List[torch.Tensor]:
 
