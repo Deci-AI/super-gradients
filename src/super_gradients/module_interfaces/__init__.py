@@ -12,6 +12,7 @@ from .exportable_segmentation import (
     SemanticSegmentationDecodingModule,
     BinarySegmentationDecodingModule,
 )
+from .obb_predictions import OBBPredictions, AbstractOBBPostPredictionCallback
 
 __all__ = [
     "HasPredict",
@@ -35,4 +36,6 @@ __all__ = [
     "AbstractSegmentationDecodingModule",
     "SemanticSegmentationDecodingModule",
     "BinarySegmentationDecodingModule",
+    "OBBPredictions",
+    "AbstractOBBPostPredictionCallback",
 ]

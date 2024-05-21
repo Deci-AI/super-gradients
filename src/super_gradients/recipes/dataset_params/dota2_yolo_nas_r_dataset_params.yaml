@@ -1,0 +1,111 @@
+num_classes: 18
+class_names:
+  - plane
+  - ship
+  - storage-tank
+  - baseball-diamond
+  - tennis-court
+  - basketball-court
+  - ground-track-field
+  - harbor
+  - bridge
+  - large-vehicle
+  - small-vehicle
+  - helicopter
+  - roundabout
+  - soccer-ball-field
+  - swimming-pool
+  - container-crane
+  - airport
+  - helipad
+
+data_dir: ???
+
+mixup_prob: 0.5
+
+train_dataset_params:
+  data_dir: ${dataset_params.data_dir}/train
+  class_names: ${dataset_params.class_names}
+  ignore_empty_annotations: True
+  transforms:
+    - Albumentations:
+        Compose:
+          keypoint_params:
+          transforms:
+            - ShiftScaleRotate:
+                shift_limit: 0.1
+                scale_limit: 0.75
+                rotate_limit: 45
+                interpolation: 1
+                border_mode: 0
+            - RandomBrightnessContrast:
+                brightness_limit: 0.2
+                contrast_limit: 0.2
+                p: 0.5
+            - RandomCrop:
+                p: 1.0
+                height: 640
+                width: 640
+            - HueSaturationValue:
+                hue_shift_limit: 20
+                sat_shift_limit: 30
+                val_shift_limit: 20
+                p: 0.5
+            - RandomRotate90:
+                p: 1.0
+            - HorizontalFlip:
+                p: 0.5
+
+    - OBBRemoveSmallObjects:
+        min_size: 8
+        min_area: 64
+
+    - OBBDetectionMixup:
+        prob: ${dataset_params.mixup_prob}
+
+    - OBBDetectionStandardize:
+        max_value: 255.
+
+train_dataloader_params:
+  dataset: DOTAOBBDataset
+  batch_size: 16
+  num_workers: 8
+  shuffle: True
+  drop_last: True
+  pin_memory: True
+  persistent_workers: True
+  collate_fn: OrientedBoxesCollate
+  sampler:
+    ClassBalancedSampler:
+      num_samples: 65536
+      oversample_threshold: 0.99
+      oversample_aggressiveness: 0.9945267123516118
+
+val_dataset_params:
+  data_dir: ${dataset_params.data_dir}/val
+  class_names: ${dataset_params.class_names}
+  ignore_empty_annotations: True
+  transforms:
+    - OBBDetectionLongestMaxSize:
+        max_height: 1024
+        max_width: 1024
+    - OBBDetectionPadIfNeeded:
+        min_height: 1024
+        min_width: 1024
+        pad_value: 114
+        padding_mode: bottom_right
+    - OBBDetectionStandardize:
+        max_value: 255.
+
+
+val_dataloader_params:
+  dataset: DOTAOBBDataset
+  batch_size: 16
+  num_workers: 8
+  drop_last: False
+  shuffle: False
+  pin_memory: True
+  persistent_workers: True
+  collate_fn: OrientedBoxesCollate
+
+_convert_: all
