@@ -12,7 +12,7 @@ def cxcywhr_to_poly(boxes: np.ndarray) -> np.ndarray:
     if shape[-1] != 5:
         raise ValueError(f"Expected last dimension to be 5, got {shape[-1]}")
 
-    flat_rboxes = boxes.reshape(-1, 5)
+    flat_rboxes = boxes.reshape(-1, 5).astype(np.float32)
     polys = np.zeros((flat_rboxes.shape[0], 4, 2), dtype=np.float32)
     for i, box in enumerate(flat_rboxes):
         cx, cy, w, h, r = box
