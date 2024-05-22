@@ -17,14 +17,14 @@ from super_gradients.common.registry import register_dataset
 from super_gradients.dataset_interfaces import HasClassesInformation
 from super_gradients.training.transforms import OBBDetectionCompose
 from super_gradients.training.transforms.obb import OBBSample
-from torch.utils.data import Dataset
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from .abstract_obb_dataset import AbstractOBBDataset
 
 __all__ = ["DOTAOBBDataset"]
 
 
 @register_dataset()
-class DOTAOBBDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
+class DOTAOBBDataset(AbstractOBBDataset, HasPreprocessingParams, HasClassesInformation):
     @resolve_param("transforms", TransformsFactory())
     def __init__(
         self,
