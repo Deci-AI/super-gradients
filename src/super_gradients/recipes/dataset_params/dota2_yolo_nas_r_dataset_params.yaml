@@ -1,3 +1,7 @@
+# Configuration file for the dataset parameters of the DOTA2 dataset for the YOLO-NAS-R model.
+# A data_dir parameter should be explicitly defined in the config file that includes this file.
+# Please check documentation/source/Dataset_Setup_Instructions.md for more information on how to set up the dataset.
+
 num_classes: 18
 class_names:
   - plane
