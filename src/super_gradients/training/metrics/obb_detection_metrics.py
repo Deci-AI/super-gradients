@@ -1,12 +1,7 @@
-import collections
-import numbers
 import typing
-from typing import Dict, Optional, Union, Tuple, List
+from typing import Optional, Union, Tuple, List
 
 import cv2
-import numpy as np
-import super_gradients
-import super_gradients.common.environment.ddp_utils
 import torch
 import torchvision.ops
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -14,15 +9,14 @@ from super_gradients.common.registry.registry import register_metric
 from super_gradients.module_interfaces.obb_predictions import OBBPredictions
 from super_gradients.training.datasets.data_formats.obb.cxcywhr import cxcywhr_to_poly, poly_to_xyxy
 from super_gradients.training.transforms.obb import OBBSample
-from super_gradients.training.utils import tensor_container_to_device
-from super_gradients.training.utils.detection_utils import IouThreshold
 from super_gradients.training.utils.detection_utils import (
-    compute_detection_metrics,
     DetectionMatching,
     get_top_k_idx_per_cls,
 )
+from super_gradients.training.utils.detection_utils import IouThreshold
 from torch import Tensor
-from torchmetrics import Metric
+
+from .detection_metrics import DetectionMetrics
 
 logger = get_logger(__name__)
 
@@ -319,11 +313,9 @@ def compute_obb_detection_matching(
 
 
 @register_metric()
-class OBBDetectionMetrics(Metric):
+class OBBDetectionMetrics(DetectionMetrics):
     """
-    OBBDetectionMetrics
-
-    Metric class for computing F1, Precision, Recall and Mean Average Precision.
+    Metric class for computing F1, Precision, Recall and Mean Average Precision for Oriented Bounding Box (OBB) detection tasks.
 
     :param num_cls:                         Number of classes.
     :param post_prediction_callback:        A post-prediction callback to be applied on net's output prior to the metric computation (NMS).
@@ -369,7 +361,7 @@ class OBBDetectionMetrics(Metric):
         self,
         num_cls: int,
         post_prediction_callback: "AbstractOBBPostPredictionCallback",
-        iou_thres: Tuple[float, ...],
+        iou_thres: Union[IouThreshold, Tuple[float, float], float],
         top_k_predictions: Optional[int] = None,
         recall_thres: Tuple[float, ...] = None,
         score_thres: Optional[float] = 0.01,
@@ -380,81 +372,21 @@ class OBBDetectionMetrics(Metric):
         class_names: List[str] = None,
         state_dict_prefix: str = "",
     ):
-        if class_names is None:
-            if include_classwise_ap:
-                logger.warning(
-                    "Parameter 'include_classwise_ap' is set to True, but no class names are provided. "
-                    "We will generate dummy class names, but we recommend to provide class names explicitly to"
-                    "have meaningful names in reported metrics."
-                )
-            class_names = ["class_" + str(i) for i in range(num_cls)]
-        else:
-            class_names = list(class_names)
-
-        if class_names is not None and len(class_names) != num_cls:
-            raise ValueError(f"Number of class names ({len(class_names)}) does not match number of classes ({num_cls})")
-
-        super().__init__(dist_sync_on_step=dist_sync_on_step)
-        self.num_cls = num_cls
-        self.iou_thres = iou_thres
-        self.class_names = class_names
-
-        if isinstance(iou_thres, IouThreshold):
-            self.iou_thresholds = iou_thres.to_tensor()
-        elif isinstance(iou_thres, tuple):
-            low, high = iou_thres
-            self.iou_thresholds = IouThreshold.from_bounds(low, high)
-        elif isinstance(iou_thres, typing.Iterable):
-            self.iou_thresholds = torch.tensor(list(iou_thres)).float()
-        elif isinstance(iou_thres, np.ndarray):
-            self.iou_thresholds = torch.from_numpy(iou_thres).float()
-        elif isinstance(iou_thres, numbers.Number):
-            self.iou_thresholds = torch.tensor([iou_thres], dtype=torch.float32)
-
-        self.map_str = "mAP" + self._get_range_str()
-        self.include_classwise_ap = include_classwise_ap
-
-        self.precision_metric_key = f"{state_dict_prefix}Precision{self._get_range_str()}"
-        self.recall_metric_key = f"{state_dict_prefix}Recall{self._get_range_str()}"
-        self.f1_metric_key = f"{state_dict_prefix}F1{self._get_range_str()}"
-        self.map_metric_key = f"{state_dict_prefix}mAP{self._get_range_str()}"
-
-        greater_component_is_better = [
-            (self.precision_metric_key, True),
-            (self.recall_metric_key, True),
-            (self.map_metric_key, True),
-            (self.f1_metric_key, True),
-        ]
-
-        if self.include_classwise_ap:
-            self.per_class_ap_names = [f"{state_dict_prefix}AP{self._get_range_str()}_{class_name}" for class_name in class_names]
-            greater_component_is_better += [(key, True) for key in self.per_class_ap_names]
-
-        self.greater_component_is_better = collections.OrderedDict(greater_component_is_better)
-        self.component_names = list(self.greater_component_is_better.keys())
-        self.calc_best_score_thresholds = calc_best_score_thresholds
-        self.best_threshold_per_class_names = [f"Best_score_threshold_{class_name}" for class_name in class_names]
-
-        if self.calc_best_score_thresholds:
-            self.component_names.append("Best_score_threshold")
-
-        if self.calc_best_score_thresholds and self.include_classwise_ap:
-            self.component_names += self.best_threshold_per_class_names
-
-        self.components = len(self.component_names)
-
-        self.post_prediction_callback = post_prediction_callback
-        self.is_distributed = super_gradients.is_distributed()
-        self.world_size = None
-        self.rank = None
-        self.state_key = f"{state_dict_prefix}matching_info{self._get_range_str()}"
-        self.add_state(self.state_key, default=[], dist_reduce_fx=None)
-
-        self.recall_thresholds = torch.linspace(0, 1, 101) if recall_thres is None else torch.tensor(recall_thres, dtype=torch.float32)
-        self.score_threshold = score_thres
-        self.top_k_predictions = top_k_predictions
-
-        self.accumulate_on_cpu = accumulate_on_cpu
+        super().__init__(
+            num_cls=num_cls,
+            post_prediction_callback=post_prediction_callback,
+            normalize_targets=False,
+            iou_thres=iou_thres,
+            top_k_predictions=top_k_predictions,
+            recall_thres=recall_thres,
+            score_thres=score_thres,
+            dist_sync_on_step=dist_sync_on_step,
+            accumulate_on_cpu=accumulate_on_cpu,
+            calc_best_score_thresholds=calc_best_score_thresholds,
+            include_classwise_ap=include_classwise_ap,
+            class_names=class_names,
+            state_dict_prefix=state_dict_prefix,
+        )
 
     def update(self, preds, gt_samples: List[OBBSample]) -> None:
         """
@@ -478,95 +410,6 @@ class OBBDetectionMetrics(Metric):
 
             accumulated_matching_info = getattr(self, self.state_key)
             setattr(self, self.state_key, accumulated_matching_info + [image_mathing])
-
-    def compute(self) -> Dict[str, Union[float, torch.Tensor]]:
-        """Compute the metrics for all the accumulated results.
-        :return: Metrics of interest
-        """
-        mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold = -1.0, -1.0, -1.0, -1.0, -1.0
-        accumulated_matching_info = getattr(self, self.state_key)
-        best_score_threshold_per_cls = np.zeros(self.num_cls)
-        mean_ap_per_class = np.zeros(self.num_cls)
-
-        if len(accumulated_matching_info):
-            matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
-
-            # shape (n_class, nb_iou_thresh)
-            (
-                ap_per_present_classes,
-                precision_per_present_classes,
-                recall_per_present_classes,
-                f1_per_present_classes,
-                present_classes,
-                best_score_threshold,
-                best_score_thresholds_per_present_classes,
-            ) = compute_detection_metrics(
-                *matching_info_tensors,
-                recall_thresholds=self.recall_thresholds,
-                score_threshold=self.score_threshold,
-                device="cpu" if self.accumulate_on_cpu else self.device,
-            )
-
-            # Precision, recall and f1 are computed for IoU threshold range, averaged over classes
-            # results before version 3.0.4 (Dec 11 2022) were computed only for smallest value (i.e IoU 0.5 if metric is @0.5:0.95)
-            mean_precision, mean_recall, mean_f1 = precision_per_present_classes.mean(), recall_per_present_classes.mean(), f1_per_present_classes.mean()
-
-            # MaP is averaged over IoU thresholds and over classes
-            mean_ap = ap_per_present_classes.mean()
-
-            # Fill array of per-class AP scores with values for classes that were present in the dataset
-            ap_per_class = ap_per_present_classes.mean(1)
-            for i, class_index in enumerate(present_classes):
-                mean_ap_per_class[class_index] = float(ap_per_class[i])
-                best_score_threshold_per_cls[class_index] = float(best_score_thresholds_per_present_classes[i])
-
-        output_dict = {
-            self.precision_metric_key: float(mean_precision),
-            self.recall_metric_key: float(mean_recall),
-            self.map_metric_key: float(mean_ap),
-            self.f1_metric_key: float(mean_f1),
-        }
-
-        if self.include_classwise_ap:
-            for i, ap_i in enumerate(mean_ap_per_class):
-                output_dict[self.per_class_ap_names[i]] = float(ap_i)
-
-        if self.calc_best_score_thresholds:
-            output_dict["Best_score_threshold"] = float(best_score_threshold)
-
-        if self.include_classwise_ap and self.calc_best_score_thresholds:
-            for threshold_per_class_names, threshold_value in zip(self.best_threshold_per_class_names, best_score_threshold_per_cls):
-                output_dict[threshold_per_class_names] = float(threshold_value)
-
-        return output_dict
-
-    def _sync_dist(self, dist_sync_fn=None, process_group=None):
-        """
-        When in distributed mode, stats are aggregated after each forward pass to the metric state. Since these have all
-        different sizes we override the synchronization function since it works only for tensors (and use
-        all_gather_object)
-        :param dist_sync_fn:
-        :return:
-        """
-        if self.world_size is None:
-            self.world_size = super_gradients.common.environment.ddp_utils.get_world_size() if self.is_distributed else -1
-        if self.rank is None:
-            self.rank = torch.distributed.get_rank() if self.is_distributed else -1
-
-        if self.is_distributed:
-            local_state_dict = {attr: getattr(self, attr) for attr in self._reductions.keys()}
-            gathered_state_dicts = [None] * self.world_size
-            torch.distributed.barrier()
-            torch.distributed.all_gather_object(gathered_state_dicts, local_state_dict)
-            matching_info = []
-            for state_dict in gathered_state_dicts:
-                matching_info += state_dict[self.state_key]
-            matching_info = tensor_container_to_device(matching_info, device="cpu" if self.accumulate_on_cpu else self.device)
-
-            setattr(self, self.state_key, matching_info)
-
-    def _get_range_str(self):
-        return "@%.2f" % self.iou_thresholds[0] if not len(self.iou_thresholds) > 1 else "@%.2f:%.2f" % (self.iou_thresholds[0], self.iou_thresholds[-1])
 
 
 @register_metric()
