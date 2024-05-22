@@ -511,3 +511,63 @@ train_set = COCOKeypointsDataset(data_dir='.../coco', images_dir='images/train20
 valid_set = COCOKeypointsDataset(data_dir='.../coco', images_dir='images/val2017', json_file='annotations/instances_val2017.json', ...)
 ```
 </details>
+
+
+
+### Oriented Box Detection Datasets
+
+
+
+<details>
+<summary>DOTA 2.0</summary>
+
+1. Download DOTA dataset: https://captain-whu.github.io/DOTA/dataset.html
+
+2. Unzip and organize it as below:
+```
+    dota
+    └── train
+        ├── images
+        │   ├─ 000000000001.jpg
+        │   └─ ...
+        └── ann
+            └─ 000000000001.txt
+    └── val
+        ├── images
+        │   ├─ 000000000002.jpg
+        │   └─ ...
+        └── ann
+            └─ 000000000002.txt
+```
+
+
+3. Run script to slice the dataset into tiles:
+
+```bash
+python src/super_gradients/examples/dota_prepare_dataset/dota_prepare_dataset.py --data_dir <path-to>/dota --output_dir <path-to>/dota_tiles
+```
+
+4. Specify path to the sliced dataset in the dataset (CLI):
+```bash
+python -m super_gradients.train_from_recipe --config-name yolo_nas_r_s_dota dataset_params.data_dir=<path-to>/dota_tiles
+```
+
+4. Specify path to the sliced dataset in the dataset (YAML):
+```yaml
+dataset_params:
+  train_dataset_params:
+    data_dir: <path-to>/dota_tiles/train
+  val_dataset_params:
+    data_dir: <path-to>/dota_tiles/train
+```
+
+4. Specify path to the sliced dataset in the dataset (CODE):
+
+```python
+
+from super_gradients.training.datasets import DOTAOBBDataset
+
+train_loader = DOTAOBBDataset(data_dir="<path-to>/dota_tiles/train", ...)
+```
+
+</details>

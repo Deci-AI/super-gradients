@@ -266,7 +266,8 @@ class DOTAOBBDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
         cls,
         data_dir,
         output_dir,
-        ann_subdir_name,
+        input_ann_subdir_name,
+        output_ann_subdir_name,
         tile_size: int,
         tile_step: int,
         scale_factors: Tuple,
@@ -274,15 +275,37 @@ class DOTAOBBDataset(Dataset, HasPreprocessingParams, HasClassesInformation):
         min_area,
         num_workers: int,
         output_image_ext=".jpg",
-    ):
+    ) -> None:
+        """
+        Helper function to slice a dataset into tiles of a given size and step.
+        Slicing dataset is a necessary preparation step in order to train a model on DOTA dataset.
+        This method is not meant to be used directly by user.
+        Please check src/super_gradients/examples/dota_prepare_dataset/dota_prepare_dataset.py for an example usage.
+
+        :param data_dir: Input DOTA dataset directory
+        :param output_dir: Output location of the sliced dataset
+        :param input_ann_subdir_name: Name of the annotations subdirectory. Usually 'ann'
+        :param output_ann_subdir_name: Name of the output annotations subdirectory. Usually 'ann-obb'
+               This is to distinguish the OBB vs HBB annotations
+        :param tile_size: Size of the image tile (pixels)
+        :param tile_step: Step size in pixels between consecutive tiles
+        :param scale_factors: Tuple of scale factors to apply to the image before slicing
+               For training a range of scale factors is usually used, e.g. (0.75, 1, 1.25)
+               For validation a single scale factor is used, e.g. (1,)
+        :param min_visibility: A faction of the bounding box that must be visible in the tile for it to be included
+        :param min_area: Minimum area of the bounding box that must be visible in the tile for it to be included
+        :param num_workers: Number of workers to use for multiprocessing
+        :param output_image_ext: Extension of the output image files. Default value is '.jpg' which is more
+               size efficient than '.png'.
+        """
         data_dir = Path(data_dir)
         input_images_dir = data_dir / "images"
-        input_ann_dir = data_dir / ann_subdir_name
+        input_ann_dir = data_dir / input_ann_subdir_name
         images, labels = cls.find_images_and_labels(input_images_dir, input_ann_dir, ".png")
 
         output_dir = Path(output_dir)
         output_images_dir = output_dir / "images"
-        output_ann_dir = output_dir / ann_subdir_name
+        output_ann_dir = output_dir / output_ann_subdir_name
 
         output_images_dir.mkdir(parents=True, exist_ok=True)
         output_ann_dir.mkdir(parents=True, exist_ok=True)
