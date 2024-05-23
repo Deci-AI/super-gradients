@@ -1,3 +1,9 @@
 from .iterate_over_predictions import iterate_over_detection_predictions_in_batched_format, iterate_over_detection_predictions_in_flat_format
+from .iterate_over_obb_predictions import iterate_over_obb_detection_predictions_in_batched_format, iterate_over_obb_detection_predictions_in_flat_format
 
-__all__ = ["iterate_over_detection_predictions_in_batched_format", "iterate_over_detection_predictions_in_flat_format"]
+__all__ = [
+    "iterate_over_detection_predictions_in_batched_format",
+    "iterate_over_detection_predictions_in_flat_format",
+    "iterate_over_obb_detection_predictions_in_batched_format",
+    "iterate_over_obb_detection_predictions_in_flat_format",
+]
