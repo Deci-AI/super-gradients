@@ -1,0 +1,95 @@
+defaults:
+  - default_train_params
+
+max_epochs: 100
+
+warmup_mode: LinearBatchLRWarmup
+warmup_initial_lr: 1e-6
+lr_warmup_steps: 100
+lr_warmup_epochs: 0
+
+initial_lr: 5e-5
+
+
+lr_mode: CosineLRScheduler
+cosine_final_lr_ratio: 0.1
+
+zero_weight_decay_on_bias_and_bn: True
+batch_accumulate: 1
+
+save_ckpt_epoch_list: [ ]
+
+loss: YoloNASRLoss
+criterion_params:
+  bbox_assigner_topk: 12
+  average_losses_in_ddp: True
+  dfl_loss_weight: 0.5
+  classification_loss_weight: 2.5
+  iou_loss_weight: 2.0
+
+optimizer: AdamW
+optimizer_params:
+  weight_decay: 3.5e-6
+
+ema: True
+ema_params:
+  decay: 0.9997
+  decay_type: exp
+  beta: 50
+
+mixed_precision: False
+sync_bn: False
+
+# This is how you can enable visualization of predictions during training
+# A batch with the largest loss will be visualized for train and valid loaders
+# Visualization images will be logged using configured logger
+phase_callbacks: []
+#phase_callbacks:
+#  - ExtremeBatchOBBVisualizationCallback:
+#      loss_to_monitor: "YoloNASRLoss/loss"
+#      max: True
+#      freq: 1
+#      enable_on_train_loader: True
+#      enable_on_valid_loader: True
+#      class_names: ${dataset_params.class_names}
+#
+#      post_prediction_callback:
+#        _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
+#        score_threshold: 0.25
+#        pre_nms_max_predictions: 4096
+#        post_nms_max_predictions: 512
+#        nms_iou_threshold: 0.6
+
+valid_metrics_list:
+  - OBBDetectionMetrics_050:
+      num_cls: ${dataset_params.num_classes}
+      class_names: ${dataset_params.class_names}
+      recall_thres: [ 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
+      include_classwise_ap: True
+      post_prediction_callback:
+        _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
+        score_threshold: 0.1
+        pre_nms_max_predictions: 4096
+        post_nms_max_predictions: 512
+        nms_iou_threshold: 0.25
+        class_agnostic_nms: False
+
+# One can use COCO-style mAP implementation that sweeps over 0.5..0.95 thresholds and uses 101-point recall thresholds
+#  - OBBDetectionMetrics_050_095:
+#      num_cls: ${dataset_params.num_classes}
+#      class_names: ${dataset_params.class_names}
+#      post_prediction_callback:
+#        _target_: super_gradients.training.models.detection_models.yolo_nas_r.yolo_nas_r_post_prediction_callback.YoloNASRPostPredictionCallback
+#        output_device: cpu
+#        score_threshold: 0.1
+#        pre_nms_max_predictions: 1000
+#        post_nms_max_predictions: 100
+#        nms_iou_threshold: 0.6
+
+
+pre_prediction_callback:
+
+metric_to_watch: 'mAP@0.50'
+greater_metric_to_watch_is_better: True
+
+_convert_: all

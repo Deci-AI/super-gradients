@@ -1,0 +1,62 @@
+# Recipe for training YoloNAS-R OBB Detection training on Dota 2.0 Dataset:
+# YoloNAS-R trained in 640x640 crops and validated on 1024x1024 images.
+#
+# Instructions:
+#   0. Make sure that you have downloaded DOTA 2.0 dataset
+#
+#   1. Run super_gradients/examples/dota_prepare_dataset/dota_prepare_dataset.py
+#      This scrip is needed to slice the original images into patches of 1024x1024 pixels:
+#      python dota_prepare_dataset.py --input_dir <PATH-TO-DOTA-DATASET> --output_dir <OUTPUT_PATH>
+#
+#   2. Update data dir in dataset_params:
+#      Using CLI:
+#       python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_l dataset_params.data_dir=${OUTPUT_PATH}
+#
+#      By overriding the root YAML config file:
+#        dataset_params:
+#         data_dir: <OUTPUT_PATH>
+#
+#   3. Run the command you want:
+#         yolo_nas_r_s: python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_s
+#         yolo_nas_r_m: python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_m
+#         yolo_nas_r_l: python -m super_gradients.train_from_recipe --config-name=dota_yolo_nas_r_l
+#
+# Training times and accuracies (mAP@0.5 (Pascal Voc mAP, test on 1024x1024 images):
+#         yolo_nas_r_s: 7h  on 8 NVIDIA GeForce RTX 3090, mAP: 63.424 (val), 56.56 (test-dev)
+#         yolo_nas_r_m: 9h  on 8 NVIDIA GeForce RTX 3090, mAP: 64.647 (val), 57.31 (test-dev)
+#         yolo_nas_r_l: 12h on 8 NVIDIA GeForce RTX 3090, mAP: 66.223 (val), 59.82 (test-dev)
+#
+
+defaults:
+  - training_hyperparams: default_yolo_nas_r_train_params
+  - dataset_params: dota2_yolo_nas_r_dataset_params
+  - arch_params: yolo_nas_r_m_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+dataset_params:
+  train_dataloader_params:
+    batch_size: 24
+
+  val_dataloader_params:
+    batch_size: 8
+
+arch_params:
+  num_classes: ${dataset_params.num_classes}
+
+architecture: yolo_nas_r_m
+
+multi_gpu: DDP
+num_gpus: 8
+
+experiment_suffix: ""
+experiment_name: dota2_${architecture}${experiment_suffix}
+
+checkpoint_params:
+  # For training Yolo-NAS-R we use pretrained weights for Yolo-NAS-S object detection model.
+  # By setting strict_load: key_matching we load only those weights that match the keys of the model.
+  checkpoint_path: https://sghub.deci.ai/models/yolo_nas_m_coco.pth
+  strict_load:
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: key_matching

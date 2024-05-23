@@ -67,6 +67,17 @@ All the available models are listed in the column `Model name`.
 > - Latency performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1
 > - Latency performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
 
+### Pretrained Oriented Object Detection Models
+
+| Model        | Model Name     | Dataset | Resolution | mAP<sup>val<br>0.5 | mAP<sup>test<br>0.5 |
+|--------------|----------------|---------|------------|--------------------|---------------------|
+| YOLO-NAS-R S | yolo_nas_r_s   | DOTA 2  | 1024x1024  | 63.424             | 56.56               |
+| YOLO-NAS-R M | yolo_nas_r_m   | DOTA 2  | 1024x1024  | 64.647             | 57.31               |
+| YOLO-NAS-R L | yolo_nas_r_l   | DOTA 2  | 1024x1024  | 66.223             | 59.82               |
+
+> **NOTE:** <br/>
+> Latency for YoloNAS-R should be nearly identical to original YoloNAS due to the fact most layers are exactly the same
+
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
 | Model                 | Model Name        | Dataset    | Resolution | mIoU  | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO | Latency (Production)**<sub>Jetson Xavier NX</sub> | Torch Compile Support | 
