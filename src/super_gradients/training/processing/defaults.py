@@ -1,9 +1,11 @@
 from super_gradients.training.datasets.datasets_conf import (
     COCO_DETECTION_CLASSES_LIST,
+    DOTA2_DEFAULT_CLASSES_LIST,
     IMAGENET_CLASSES,
     CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST,
 )
 
+from .obb import OBBDetectionCenterPadding, OBBDetectionLongestMaxSizeRescale
 from .processing import (
     ComposeProcessing,
     ReverseImageChannels,
@@ -89,6 +91,28 @@ def default_yolo_nas_coco_processing_params() -> dict:
         image_processor=image_processor,
         iou=0.7,
         conf=0.25,
+    )
+    return params
+
+
+def default_yolo_nas_r_dota_processing_params() -> dict:
+    """Processing parameters commonly used for training YoloNAS on COCO dataset."""
+
+    image_processor = ComposeProcessing(
+        [
+            ReverseImageChannels(),  # Model trained on BGR images
+            OBBDetectionLongestMaxSizeRescale(output_shape=(1024, 1024)),
+            OBBDetectionCenterPadding(output_shape=(1024, 1024), pad_value=114),
+            StandardizeImage(max_value=255.0),
+            ImagePermute(permutation=(2, 0, 1)),
+        ]
+    )
+
+    params = dict(
+        class_names=DOTA2_DEFAULT_CLASSES_LIST,
+        image_processor=image_processor,
+        iou=0.25,
+        conf=0.1,
     )
     return params
 

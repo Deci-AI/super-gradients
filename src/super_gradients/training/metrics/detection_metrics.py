@@ -1,4 +1,6 @@
 import collections
+import numbers
+import typing
 from typing import Dict, Optional, Union, Tuple, List
 
 import numpy as np
@@ -109,11 +111,15 @@ class DetectionMetrics(Metric):
 
         if isinstance(iou_thres, IouThreshold):
             self.iou_thresholds = iou_thres.to_tensor()
-        if isinstance(iou_thres, tuple):
+        elif isinstance(iou_thres, tuple):
             low, high = iou_thres
             self.iou_thresholds = IouThreshold.from_bounds(low, high)
-        else:
-            self.iou_thresholds = torch.tensor([iou_thres])
+        elif isinstance(iou_thres, typing.Iterable):
+            self.iou_thresholds = torch.tensor(list(iou_thres)).float()
+        elif isinstance(iou_thres, np.ndarray):
+            self.iou_thresholds = torch.from_numpy(iou_thres).float()
+        elif isinstance(iou_thres, numbers.Number):
+            self.iou_thresholds = torch.tensor([iou_thres], dtype=torch.float32)
 
         self.map_str = "mAP" + self._get_range_str()
         self.include_classwise_ap = include_classwise_ap

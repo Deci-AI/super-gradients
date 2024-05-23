@@ -69,6 +69,7 @@ PRETRAINED_NUM_CLASSES = {
     "coco": 80,
     "coco_pose": 17,
     "cifar10": 10,
+    "dota2": 18,
 }
 
 DATASET_LICENSES = {
@@ -79,4 +80,5 @@ DATASET_LICENSES = {
     "coco_pose": "https://cocodataset.org/#termsofuse",
     "cityscapes": "https://www.cs.toronto.edu/~kriz/cifar.html",
     "objects365": "https://www.objects365.org/download.html",
+    "dota2": "https://captain-whu.github.io/DOTA/dataset.html",
 }
