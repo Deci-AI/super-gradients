@@ -50,7 +50,7 @@ class COCOParsingTest(unittest.TestCase):
                     coco_boxes_xyxy = xywh_to_xyxy(coco_boxes, image_shape=None)
                     coco_classes = [ann["category_id"] for ann in anns]
                     coco_class_names = [category_id_to_name[category_id] for category_id in coco_classes]
-                    coco_is_crowd = np.array([ann["iscrowd"] for ann in anns], dtype=np.bool).reshape(-1)
+                    coco_is_crowd = np.array([ann["iscrowd"] for ann in anns], dtype=bool).reshape(-1)
 
                     ann_class_names = [all_class_names[category_id] for category_id in annotation.ann_labels]
 

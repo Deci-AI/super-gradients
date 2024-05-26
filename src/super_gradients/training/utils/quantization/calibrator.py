@@ -6,33 +6,26 @@ https://github.com/NVIDIA/TensorRT/blob/51a4297753d3e12d0eed864be52400f429a6a94c
 
 (Licensed under the Apache License, Version 2.0)
 """
+
 import logging
 
 import torch
+from torch.distributed import all_gather
 from tqdm import tqdm
+
+
+from pytorch_quantization import nn as quant_nn
+from pytorch_quantization import calib
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.ddp_utils import get_local_rank, get_world_size
-from torch.distributed import all_gather
-
 from super_gradients.training.utils.utils import infer_model_device
 
 logger = get_logger(__name__)
 
-try:
-    from pytorch_quantization import nn as quant_nn
-    from pytorch_quantization import calib
-
-    _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warning("Failed to import pytorch_quantization")
-    _imported_pytorch_quantization_failure = import_err
-
 
 class QuantizationCalibrator:
     def __init__(self, torch_hist: bool = True, verbose: bool = True) -> None:
-        if _imported_pytorch_quantization_failure is not None:
-            raise _imported_pytorch_quantization_failure
         super().__init__()
         self.verbose = verbose
         self.torch_hist = torch_hist
@@ -72,7 +65,7 @@ class QuantizationCalibrator:
                 self._collect_stats(model, calib_data_loader, num_batches=num_calib_batches)
                 # FOR PERCENTILE WE MUST PASS PERCENTILE VALUE THROUGH KWARGS,
                 # SO IT WOULD BE PASSED TO module.load_calib_amax(**kwargs), AND IN OTHER METHODS WE MUST NOT PASS IT.
-                if method == "precentile":
+                if method == "percentile":
                     self._compute_amax(model, method="percentile", percentile=percentile)
                 else:
                     self._compute_amax(model, method=method)
@@ -94,7 +87,7 @@ class QuantizationCalibrator:
         self._enable_calibrators(model)
 
         # Feed data to the network for collecting stats
-        for i, batch in tqdm(enumerate(data_loader), total=num_batches, disable=local_rank > 0):
+        for i, batch in tqdm(enumerate(data_loader), total=num_batches, disable=local_rank > 0, desc="Calibrating"):
             if isinstance(batch, (list, tuple)):
                 image = batch[0]
             elif torch.is_tensor(batch):

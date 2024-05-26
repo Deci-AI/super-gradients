@@ -1,15 +1,14 @@
-import gc
-from collections import defaultdict
-
 import copy
 import dataclasses
+import gc
 import json
-import numpy as np
 import os
 import pickle
-import torch
-from tqdm import tqdm
+from collections import defaultdict
 from typing import List, Optional, Tuple
+
+import numpy as np
+import torch
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.deprecate import deprecated_parameter
@@ -225,27 +224,26 @@ def parse_coco_into_detection_annotations(
                                 (respecting include_classes/exclude_classes/class_ids_to_ignore) and
                                 annotations is a list of DetectionAnnotation objects.
     """
-    print(f"Creating a new COCO dataset with {ann}")
     with open(ann, "r") as f:
         coco = json.load(f)
 
-    print("Extract class names and class ids")
+    # Extract class names and class ids
     category_ids = np.array([category["id"] for category in coco["categories"]], dtype=int)
     category_names = np.array([category["name"] for category in coco["categories"]], dtype=str)
 
-    print("Extract box annotations")
-    ann_box_xyxy = xywh_to_xyxy_inplace(np.array([annotation["bbox"] for annotation in coco["annotations"]], dtype=np.float32), image_shape=None)
+    # Extract box annotations
+    ann_box_xyxy = xywh_to_xyxy_inplace(np.array([annotation["bbox"] for annotation in coco["annotations"]], dtype=np.float32).reshape(-1, 4), image_shape=None)
 
-    ann_category_id = np.array([annotation["category_id"] for annotation in coco["annotations"]], dtype=int)
-    ann_iscrowd = np.array([annotation["iscrowd"] for annotation in coco["annotations"]], dtype=bool)
-    ann_image_ids = np.array([annotation["image_id"] for annotation in coco["annotations"]], dtype=int)
+    ann_category_id = np.array([annotation["category_id"] for annotation in coco["annotations"]], dtype=int).reshape(-1)
+    ann_iscrowd = np.array([annotation["iscrowd"] for annotation in coco["annotations"]], dtype=bool).reshape(-1)
+    ann_image_ids = np.array([annotation["image_id"] for annotation in coco["annotations"]], dtype=int).reshape(-1)
 
-    print("Extract image stuff")
+    # Extract image stuff
     img_ids = [img["id"] for img in coco["images"]]
     img_paths = [img["file_name"] if "file_name" in img else "{:012}".format(img["id"]) + ".jpg" for img in coco["images"]]
     img_width_height = [(img["width"], img["height"]) for img in coco["images"]]
 
-    print("Now, we can drop the annotations that belongs to the excluded classes")
+    # Now, we can drop the annotations that belongs to the excluded classes
     if int(class_ids_to_ignore is not None) + int(exclude_classes is not None) + int(include_classes is not None) > 1:
         raise ValueError("Only one of exclude_classes, class_ids_to_ignore or include_classes can be specified")
     elif exclude_classes is not None:
@@ -282,12 +280,12 @@ def parse_coco_into_detection_annotations(
     # category_ids can be non-sequential and not ordered
     num_categories = len(category_ids)
 
-    print("Make sequential")
+    # Make sequential
     order = np.argsort(category_ids, kind="stable")
     category_ids = category_ids[order]  #
     category_names = category_names[order]
 
-    print("Remap category ids to be in range [0, num_categories)")
+    # Remap category ids to be in range [0, num_categories)
     class_label_table = np.zeros(np.max(category_ids) + 1, dtype=int) - 1
     new_class_ids = np.arange(num_categories, dtype=int)
     class_label_table[category_ids] = new_class_ids
@@ -299,7 +297,6 @@ def parse_coco_into_detection_annotations(
 
     annotations = []
 
-    print("Indexing annotations...")
     img_id2ann_box_xyxy = defaultdict(list)
     img_id2ann_iscrowd = defaultdict(list)
     img_id2ann_category_id = defaultdict(list)
@@ -308,8 +305,7 @@ def parse_coco_into_detection_annotations(
         img_id2ann_iscrowd[ann_image_id].append(_ann_iscrowd)
         img_id2ann_category_id[ann_image_id].append(_ann_category_id)
 
-    print("Create annotations")
-    for img_id, image_path, (image_width, image_height) in tqdm(zip(img_ids, img_paths, img_width_height), total=len(img_ids)):
+    for img_id, image_path, (image_width, image_height) in zip(img_ids, img_paths, img_width_height):
         if image_path_prefix is not None:
             image_path = os.path.join(image_path_prefix, image_path)
 
@@ -318,9 +314,9 @@ def parse_coco_into_detection_annotations(
             image_path=image_path,
             image_width=image_width,
             image_height=image_height,
-            ann_boxes_xyxy=np.asarray(img_id2ann_box_xyxy[img_id]),
-            ann_is_crowd=np.asarray(img_id2ann_iscrowd[img_id]),
-            ann_labels=np.asarray(img_id2ann_category_id[img_id]),
+            ann_boxes_xyxy=np.asarray(img_id2ann_box_xyxy[img_id], dtype=np.float32).reshape(-1, 4),
+            ann_is_crowd=np.asarray(img_id2ann_iscrowd[img_id], dtype=bool).reshape(-1),
+            ann_labels=np.asarray(img_id2ann_category_id[img_id], dtype=int).reshape(-1),
         )
         annotations.append(ann)
 

@@ -58,10 +58,14 @@ def deprecated(deprecated_since: str, removed_from: str, target: Optional[callab
                     message += f"Reason: {reason}.\n"
 
                 if target is not None:
+                    if hasattr(target, "__func__"):  # unwraps `__func__` for @classmethod and @staticmethod decorators
+                        target_func = target.__func__
+                    else:
+                        target_func = target
                     message += (
                         f"Please update your code:\n"
                         f"  [-] from `{old_func.__module__}` import `{old_func.__name__}`\n"
-                        f"  [+] from `{target.__module__}` import `{target.__name__}`"
+                        f"  [+] from `{target_func.__module__}` import `{target_func.__name__}`"
                     )
 
                 if is_still_supported:
@@ -109,7 +113,12 @@ def deprecated_parameter(parameter_name: str, deprecated_since: str, removed_fro
 
     def decorator(func: callable) -> callable:
         argspec = inspect.getfullargspec(func)
-        argument_index = argspec.args.index(parameter_name)
+        # This check is necessary for methods with star-signature foo(*, a,b,c)
+        # For such methods argspec.args is actually empty and argspec.kwonlyargs contains the parameter names
+        if "parameter_name" in argspec.args:
+            argument_index = argspec.args.index(parameter_name)
+        else:
+            argument_index = None
 
         default_value = None
         sig = inspect.signature(func)
@@ -126,9 +135,13 @@ def deprecated_parameter(parameter_name: str, deprecated_since: str, removed_fro
 
             # Try to get the actual value from the arguments
             # Have to check both positional and keyword arguments
-            try:
-                value = args[argument_index]
-            except IndexError:
+            if argument_index is not None:
+                try:
+                    value = args[argument_index]
+                except IndexError:
+                    if parameter_name in kwargs:
+                        value = kwargs[parameter_name]
+            else:
                 if parameter_name in kwargs:
                     value = kwargs[parameter_name]
 

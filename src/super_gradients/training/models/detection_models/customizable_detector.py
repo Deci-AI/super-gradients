@@ -194,8 +194,23 @@ class CustomizableDetector(HasPredict, SgModule):
         if class_agnostic_nms is not None:
             self._default_class_agnostic_nms = bool(class_agnostic_nms)
 
+    def get_dataset_processing_params(self):
+        return dict(
+            class_names=self._class_names,
+            image_processor=self._image_processor,
+            iou=self._default_nms_iou,
+            conf=self._default_nms_iou,
+            nms_top_k=self._default_nms_top_k,
+            max_predictions=self._default_max_predictions,
+            multi_label_per_box=self._default_multi_label_per_box,
+            class_agnostic_nms=self._default_class_agnostic_nms,
+        )
+
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
+
+    def get_class_names(self) -> Optional[List[str]]:
+        return self._class_names
 
     @lru_cache(maxsize=1)
     def _get_pipeline(
