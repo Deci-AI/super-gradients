@@ -22,11 +22,6 @@ from super_gradients.training.utils.detection_utils import change_bbox_bounds_fo
 logger = get_logger(__name__)
 
 
-def _serialize(data):
-    buffer = pickle.dumps(data, protocol=-1)
-    return torch.frombuffer(buffer, dtype=torch.uint8)
-
-
 @register_dataset("COCOFormatDetectionDataset")
 class COCOFormatDetectionDataset(DetectionDataset):
     """Base dataset to load ANY dataset that is with a similar structure to the COCO dataset.
@@ -50,6 +45,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         with_crowd: bool = True,
         class_ids_to_ignore: Optional[List[int]] = None,
         tight_box_rotation=None,
+        use_tensor_backed_storage: bool = False,
         *args,
         **kwargs,
     ):
@@ -60,6 +56,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         :param with_crowd:              Add the crowd groundtruths to __getitem__
         :param class_ids_to_ignore:     List of class ids to ignore in the dataset. By default, doesnt ignore any class.
         :param tight_box_rotation:      This parameter is deprecated and will be removed in a SuperGradients 3.8.
+        :param use_tensor_backed_storage: Whether to use tensor backed storage to mitigate python memory leak with large datasets ()
         """
         if tight_box_rotation is not None:
             logger.warning(
@@ -69,6 +66,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         self.json_annotation_file = json_annotation_file
         self.with_crowd = with_crowd
         self.class_ids_to_ignore = class_ids_to_ignore or []
+        self.use_tensor_backed_storage = use_tensor_backed_storage
 
         target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
         kwargs["target_fields"] = target_fields
@@ -87,6 +85,11 @@ class COCOFormatDetectionDataset(DetectionDataset):
                     "Number of classes in dataset JSON do not match with number of classes in all_classes_list parameter. "
                     "Most likely this indicates an error in your all_classes_list parameter"
                 )
+
+    @staticmethod
+    def _serialize_annotations(data):
+        buffer = pickle.dumps(data, protocol=-1)
+        return torch.frombuffer(buffer, dtype=torch.uint8)
 
     def _setup_data_source(self) -> int:
         """
@@ -114,20 +117,25 @@ class COCOFormatDetectionDataset(DetectionDataset):
         self.original_classes = list(all_class_names)
         self.classes = copy.deepcopy(self.original_classes)
 
-        self._annotations = [_serialize(x) for x in annotations]
+        self._annotations = annotations
 
-        del annotations, all_class_names
-        gc.collect()
+        if self.use_tensor_backed_storage:
+            self._annotations = [COCOFormatDetectionDataset._serialize_annotations(x) for x in self._annotations]
 
-        self._addr = torch.tensor([len(x) for x in self._annotations], dtype=torch.int64)
-        self._addr = torch.cumsum(self._addr, dim=0)
-        self._annotations = torch.concatenate(self._annotations)
-        print("Serialized dataset takes {:.2f} MiB".format(len(self._annotations) / 1024**2))
+            del annotations
+            gc.collect()
 
-        return len(self._addr)
+            self._addr = torch.tensor([len(x) for x in self._annotations], dtype=torch.int64)
+            self._addr = torch.cumsum(self._addr, dim=0)
+            self._annotations = torch.concatenate(self._annotations)
+
+            return len(self._addr)
+
+        else:
+            return len(self._annotations)
 
     def __len__(self) -> int:
-        return len(self._addr)
+        return len(self._addr) if self.use_tensor_backed_storage else len(self._annotations)
 
     @property
     def _all_classes(self) -> List[str]:
@@ -146,9 +154,12 @@ class COCOFormatDetectionDataset(DetectionDataset):
         :return img_path:               Path to the associated image
         """
 
-        start_addr = 0 if sample_id == 0 else self._addr[sample_id - 1].item()
-        end_addr = self._addr[sample_id].item()
-        annotation = pickle.loads(self._annotations[start_addr:end_addr].numpy().data)
+        if self.use_tensor_backed_storage:
+            start_addr = 0 if sample_id == 0 else self._addr[sample_id - 1].item()
+            end_addr = self._addr[sample_id].item()
+            annotation = pickle.loads(self._annotations[start_addr:end_addr].numpy().data)
+        else:
+            annotation = self._annotations[sample_id]
 
         width = annotation.image_width
         height = annotation.image_height
