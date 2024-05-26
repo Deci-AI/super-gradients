@@ -134,9 +134,6 @@ class COCOFormatDetectionDataset(DetectionDataset):
         else:
             return len(self._annotations)
 
-    def __len__(self) -> int:
-        return len(self._addr) if self.use_tensor_backed_storage else len(self._annotations)
-
     @property
     def _all_classes(self) -> List[str]:
         return self.original_classes
