@@ -121,7 +121,7 @@ class ExportableOBBDetectionModel:
     Classes that inherit from this mixin must implement the following methods:
     - get_decoding_module()
     - get_preprocessing_callback()
-    Providing these methods are implemented correctly, the model can be exported to ONNX or TensorRT formats
+    Provided these methods are implemented correctly, the model can be exported to ONNX or TensorRT formats
     using model.export(...) method.
     """
 
@@ -131,7 +131,9 @@ class ExportableOBBDetectionModel:
         This method must be implemented by the derived class and should return
         an instance of AbstractObjectDetectionDecodingModule that would take raw models' outputs and
         convert them to a tuple of two tensors (boxes, scores):
-         - boxes: [B, N, 4] - All predicted boxes in (x1, y1, x2, y2) format.
+         - boxes: [B, N, 5] - All predicted boxes in (CX, CY, W, H, R) format.
+           R represents the angle oriented box in radians, counter-clockwise and following
+           OpenCV convention of angle of rotation for cv2.minAreaRect/cv2.boxPoints.
          - scores: [B, N, C] - All predicted scores ([0..1] range) for each box and class.
         :return: An instance of AbstractObjectDetectionDecodingModule
         """
@@ -167,8 +169,8 @@ class ExportableOBBDetectionModel:
         num_pre_nms_predictions: int = 1000,
     ):
         """
-        Export the model to one of supported formats. Format is inferred from the output file extension or can be
-        explicitly specified via `format` argument.
+        Export the model to ONNX file. The exported model can be used for inference in ONNX runtime or converted to TensorRT.
+        By default, postprocessing and postprocessing steps (NMS) are also included.
 
         :param output: Output file name of the exported model.
         :param nms_threshold: (float) NMS threshold for the exported model.
