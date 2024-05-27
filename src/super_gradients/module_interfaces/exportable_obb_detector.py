@@ -51,7 +51,9 @@ class AbstractOBBDetectionDecodingModule(nn.Module):
 
         :return: Implementation of this method must return a tuple of two tensors (boxes, scores) with
         the following semantics:
-        - boxes - [B, N, 4]
+        - boxes - [B, N, 5] in (CX, CY, W, H, R) format.
+          R represents the angle oriented box in radians, counter-clockwise and following
+          OpenCV convention of angle of rotation for cv2.minAreaRect/cv2.boxPoints.
         - scores - [B, N, C]
         Where N is the maximum number of predictions per image (see self.get_num_pre_nms_predictions()),
         and C is the number of classes.

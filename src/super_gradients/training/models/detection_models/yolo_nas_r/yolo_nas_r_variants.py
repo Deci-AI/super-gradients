@@ -89,6 +89,9 @@ class YoloNASRDecodingModule(AbstractOBBDetectionDecodingModule):
 class YoloNASR(ExportableOBBDetectionModel, CustomizableDetector, SupportsInputShapeCheck):
     """
     YoloNAS-R model for Oriented Bounding Box (OBB) Detection.
+    The model is based on the YOLO-NAS architecture with minor modifications to support oriented bounding boxes.
+
+    Model supports export to ONNX and TensorRT via model.export(...) syntax.
     """
 
     def __init__(

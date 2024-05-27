@@ -37,6 +37,8 @@ class YoloNASRLogits:
     :param size_reduced: Tensor of shape [B, Anchors, 2] with predicted size distribution.
            None-multiplied by stride.
     :param angles: Tensor of shape [B, Anchors, 1] with predicted angles (in radians).
+           Angle is in range [-3*pi/4, pi/4]. Rotation is counter-clockwise and follows
+           OpenCV convention of angle of rotation for cv2.minAreaRect/cv2.boxPoints.
     :param offsets: Tensor of shape [B, Anchors, 2] with predicted offsets.
            Non-multiplied by stride.
     :param anchor_points: Tensor of shape [Anchors, 2] with anchor points.
