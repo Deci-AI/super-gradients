@@ -660,7 +660,7 @@ class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransform
                 targets=targets,
                 targets_seg=None,
                 crowd_targets=crowd_targets,
-                target_size=self.target_size or tuple(reversed(sample.image.shape[:2])),
+                target_size=self.target_size or tuple(sample.image.shape[:2]),
                 degrees=self.degrees,
                 translate=self.translate,
                 scales=self.scale,
@@ -1510,7 +1510,7 @@ def random_affine(
 
     M = get_affine_matrix(img.shape[:2], target_size, degrees, translate, scales, shear)
 
-    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(border_value, border_value, border_value))
+    img = cv2.warpAffine(img, M, dsize=target_size[::-1], borderValue=(border_value, border_value, border_value))
 
     # Transform label coordinates
     if len(targets) > 0:
