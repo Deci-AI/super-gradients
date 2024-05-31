@@ -568,7 +568,7 @@ class TestDetectionModelExport(unittest.TestCase):
         os.makedirs(export_dir, exist_ok=True)
 
         benchmark_command_dir = "benchmark_command.sh"
-        with open(benchmark_command_dir, "w") as f:
+        with open(benchmark_command_dir, "w", encoding="utf-8") as f:
             pass
 
         for output_predictions_format in [DetectionOutputFormatMode.BATCH_FORMAT, DetectionOutputFormatMode.FLAT_FORMAT]:
