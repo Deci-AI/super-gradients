@@ -23,6 +23,8 @@ from super_gradients.training.utils.utils import infer_model_device, check_model
 from torch import nn, Tensor
 from torch.utils.data import DataLoader
 
+from .exportable_detector import AbstractObjectDetectionDecodingModule
+
 logger = get_logger(__name__)
 
 __all__ = [
@@ -33,7 +35,7 @@ __all__ = [
 ]
 
 
-class AbstractOBBDetectionDecodingModule(nn.Module):
+class AbstractOBBDetectionDecodingModule(AbstractObjectDetectionDecodingModule):
     """
     Abstract class for decoding outputs from object detection models to a tuple of two tensors (boxes, scores)
     """
@@ -61,19 +63,6 @@ class AbstractOBBDetectionDecodingModule(nn.Module):
         """
         raise NotImplementedError(f"forward() method is not implemented for class {self.__class__.__name__}. ")
 
-    @torch.jit.ignore
-    def infer_total_number_of_predictions(self, predictions: Any) -> int:
-        """
-        This method is used to infer the total number of predictions for a given input resolution.
-        The function takes raw predictions from the model and returns the total number of predictions.
-        It is needed to check whether max_predictions_per_image and num_pre_nms_predictions are not greater than
-        the total number of predictions for a given resolution.
-
-        :param predictions: Predictions from the model itself.
-        :return: A total number of predictions for a given resolution
-        """
-        raise NotImplementedError(f"forward() method is not implemented for class {self.__class__.__name__}. ")
-
     def get_output_names(self) -> List[str]:
         """
         Returns the names of the outputs of the module.
@@ -83,14 +72,6 @@ class AbstractOBBDetectionDecodingModule(nn.Module):
         :return: A list of output names.
         """
         return ["pre_nms_bboxes_cycywhr", "pre_nms_scores"]
-
-    @abc.abstractmethod
-    def get_num_pre_nms_predictions(self) -> int:
-        """
-        Returns the number of predictions per image that this module produces.
-        :return: Number of predictions per image.
-        """
-        raise NotImplementedError(f"get_num_pre_nms_predictions() method is not implemented for class {self.__class__.__name__}. ")
 
 
 @dataclasses.dataclass
