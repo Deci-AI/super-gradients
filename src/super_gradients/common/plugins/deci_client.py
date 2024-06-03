@@ -161,7 +161,7 @@ class DeciClient:
             zipfile.extractall(package_path)
 
         # add an init file that imports all code files
-        with open(os.path.join(package_path, "__init__.py"), "w") as init_file:
+        with open(os.path.join(package_path, "__init__.py"), "w", encoding="utf-8") as init_file:
             all_str = "\n\n__all__ = ["
             for code_file in os.listdir(path=package_path):
                 if code_file.endswith(".py") and not code_file.startswith("__init__"):

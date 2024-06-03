@@ -100,7 +100,7 @@ class ClassBalancer:
 
         str_repeat_factors = [np.format_float_positional(rf, trim="0", precision=4) for rf in repeat_factors]
 
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(str_repeat_factors, f)
 
     @staticmethod

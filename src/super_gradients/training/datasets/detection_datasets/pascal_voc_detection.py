@@ -166,7 +166,7 @@ class PascalVOCDetectionDataset(PascalVOCFormatDetectionDataset):
                     xmin, ymin, xmax, ymax = get_coord("xmin"), get_coord("ymin"), get_coord("xmax"), get_coord("ymax")
                     labels.append(" ".join([xmin, ymin, xmax, ymax, str(PASCAL_VOC_2012_CLASSES_LIST.index(cls))]))
 
-            with open(new_label_path, "w") as f:
+            with open(new_label_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(labels))
 
         urls = [

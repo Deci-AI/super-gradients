@@ -46,7 +46,7 @@ def _copy_to_new_dir(mode: str, n_images: int, input_data_dir: Path, dest_data_d
     dest_images_dir = dest_data_dir / "images" / f"{mode}2017"
     dest_images_dir.mkdir(exist_ok=True, parents=True)
 
-    with open(dest_instances_path, "w") as f:
+    with open(dest_instances_path, "w", encoding="utf-8") as f:
         json.dump(instances, f)
 
     for image_name in kept_images_name:
