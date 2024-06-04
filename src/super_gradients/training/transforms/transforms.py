@@ -1483,7 +1483,7 @@ def random_affine(
     :param img:         Input image of shape [h, w, c]
     :param targets:     Input target
     :param targets_seg: Targets derived from segmentation masks
-    :param target_size: Desired output shape
+    :param target_size: Desired output shape tuple formatted as (rows, cols).
     :param degrees:     Degrees for random rotation, when float the random values are drawn uniformly
                             from (-degrees, degrees).
     :param translate:   Translate size (in pixels) for random translation, when float the random values
