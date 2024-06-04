@@ -52,7 +52,7 @@ class AutoLoggerConfig:
 
         if copy_already_logged_messages and self.filename is not None and os.path.exists(self.filename):
             with open(self.filename, "r", encoding="utf-8") as src:
-                with open(filename, "w") as dst:
+                with open(filename, "w", encoding="utf-8") as dst:
                     dst.write(src.read())
 
         file_logging_level = log_level or env_variables.FILE_LOG_LEVEL

@@ -1,85 +1,65 @@
-"""
-A base for a detection network built according to the following scheme:
- * constructed from nested arch_params;
- * inside arch_params each nested level (module) has an explicit type and its required parameters
- * each module accepts in_channels and other parameters
- * each module defines out_channels property on construction
-"""
-
-from typing import Union, Optional, List, Callable
+from typing import Optional, List
 from functools import lru_cache
 
 import torch
 from torch import nn
-from omegaconf import DictConfig
-
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
-from super_gradients.module_interfaces import SupportsReplaceNumClasses, SupportsReplaceInputChannels, HasPredict
-from super_gradients.modules.head_replacement_utils import replace_num_classes_with_random_weights
-from super_gradients.training.utils.utils import HpmStruct, arch_params_deprecated
-from super_gradients.training.models.sg_module import SgModule
-import super_gradients.common.factories.detection_modules_factory as det_factory
+from super_gradients.module_interfaces import HasPredict
+from super_gradients.training.models import CustomizableDetector
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
-from super_gradients.training.pipelines.pipelines import DetectionPipeline
+from super_gradients.training.pipelines.pipelines import SlidingWindowDetectionPipeline
 from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
-from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.media.image import ImageSource
+import torchvision
+from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 
 
-class CustomizableDetector(HasPredict, SgModule):
+class SlidingWindowInferenceDetectionWrapper(HasPredict, nn.Module):
     """
-    A customizable detector with backbone -> neck -> heads
-    Each submodule with its parameters must be defined explicitly.
-    Modules should follow the interface of BaseDetectionModule
+    Implements a sliding window inference wrapper for a customizable detector.
+
+    :param tile_size: (int) The size of each square tile (in pixels) used in the sliding window.
+    :param tile_step: (int) The step size (in pixels) between consecutive tiles in the sliding window.
+    :param model: (CustomizableDetector) The detection model to which the sliding window inference is applied.
+    :param min_tile_threshold: (int) Minimum dimension size for edge tiles before padding is applied.
+        If the remainder of the image (after the full tiles have been applied) is smaller than this threshold,
+        it will not be processed.
+    :param tile_nms_iou: (Optional[float]) IoU threshold for Non-Maximum Suppression (NMS) of bounding boxes.
+        Defaults to the model's internal setting if None.
+    :param tile_nms_conf: (Optional[float]) Confidence threshold for predictions to consider in post-processing.
+        Defaults to the model's internal setting if None.
+    :param tile_nms_top_k: (Optional[int]) Maximum number of top-scoring detections to consider for NMS in each tile.
+        Defaults to the model's internal setting if None.
+    :param tile_nms_max_predictions: (Optional[int]) Maximum number of detections to return from each tile.
+        Defaults to the model's internal setting if None.
+    :param tile_nms_multi_label_per_box: (Optional[bool]) Allows multiple labels per box if True. Each anchor can produce
+        multiple labels of different classes that pass the confidence threshold. Only the highest-scoring class is considered
+        per anchor if False. Defaults to the model's internal setting if None.
+    :param tile_nms_class_agnostic_nms: (Optional[bool]) Performs class-agnostic NMS if True, where the IoU of boxes across
+        different classes is considered. Performs class-specific NMS if False. Defaults to the model's internal setting if None.
     """
 
-    @arch_params_deprecated
     def __init__(
         self,
-        backbone: Union[str, dict, HpmStruct, DictConfig],
-        heads: Union[str, dict, HpmStruct, DictConfig],
-        neck: Optional[Union[str, dict, HpmStruct, DictConfig]] = None,
-        num_classes: int = None,
-        bn_eps: Optional[float] = None,
-        bn_momentum: Optional[float] = None,
-        inplace_act: Optional[bool] = True,
-        in_channels: int = 3,
+        tile_size: int,
+        tile_step: int,
+        model: Optional[CustomizableDetector],
+        min_tile_threshold: int = 30,
+        tile_nms_iou: Optional[float] = None,
+        tile_nms_conf: Optional[float] = None,
+        tile_nms_top_k: Optional[int] = None,
+        tile_nms_max_predictions: Optional[int] = None,
+        tile_nms_multi_label_per_box: Optional[bool] = None,
+        tile_nms_class_agnostic_nms: Optional[bool] = None,
     ):
-        """
-        :param backbone:    Backbone configuration.
-        :param heads:       Head configuration.
-        :param neck:        Neck configuration.
-        :param num_classes: num classes to predict.
-        :param bn_eps:      Epsilon for batch norm.
-        :param bn_momentum: Momentum for batch norm.
-        :param inplace_act: If True, do the operations operation in-place when possible.
-        :param in_channels: number of input channels
-        """
+
         super().__init__()
+        self.tile_size = tile_size
+        self.tile_step = tile_step
+        self.min_tile_threshold = min_tile_threshold
 
-        self.heads_params = heads
-        self.bn_eps = bn_eps
-        self.bn_momentum = bn_momentum
-        self.inplace_act = inplace_act
-        self.in_channels = in_channels
-        factory = det_factory.DetectionModulesFactory()
-
-        # move num_classes into heads params
-        if num_classes is not None:
-            self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", num_classes)
-
-        self.backbone = factory.get(factory.insert_module_param(backbone, "in_channels", in_channels))
-        if neck is not None:
-            self.neck = factory.get(factory.insert_module_param(neck, "in_channels", self.backbone.out_channels))
-            self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.neck.out_channels))
-        else:
-            self.neck = nn.Identity()
-            self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.backbone.out_channels))
-
-        self._initialize_weights(bn_eps, bn_momentum, inplace_act)
-
-        # Processing params
+        # GENERAL DEFAULTS
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
         self._default_nms_iou: float = 0.7
@@ -89,50 +69,91 @@ class CustomizableDetector(HasPredict, SgModule):
         self._default_multi_label_per_box = True
         self._default_class_agnostic_nms = False
 
-    def forward(self, x):
-        x = self.backbone(x)
-        x = self.neck(x)
-        return self.heads(x)
+        # TAKE PROCESSING PARAMS FROM THE WRAPPED MODEL IF THEY ARE AVAILABLE, OTHERWISE USE THE GENERAL DEFAULTS
+        self.model = model
+        self.set_dataset_processing_params(**self.model.get_dataset_processing_params())
 
-    def _initialize_weights(self, bn_eps: Optional[float] = None, bn_momentum: Optional[float] = None, inplace_act: Optional[bool] = True):
-        for m in self.modules():
-            t = type(m)
-            if t is nn.BatchNorm2d:
-                m.eps = bn_eps if bn_eps else m.eps
-                m.momentum = bn_momentum if bn_momentum else m.momentum
-            elif inplace_act and t in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU, nn.Mish]:
-                m.inplace = True
-
-    def prep_model_for_conversion(self, input_size: Optional[Union[tuple, list]] = None, **kwargs):
-        for module in self.modules():
-            if module != self and hasattr(module, "prep_model_for_conversion"):
-                module.prep_model_for_conversion(input_size, **kwargs)
-
-    def replace_head(self, new_num_classes: Optional[int] = None, new_head: Optional[nn.Module] = None):
-        if new_num_classes is None and new_head is None:
-            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
-        if new_head is not None:
-            self.heads = new_head
-        elif isinstance(self.heads, SupportsReplaceNumClasses):
-            self.heads.replace_num_classes(new_num_classes, replace_num_classes_with_random_weights)
+        # OVERRIDE WITH ANY EXPLICITLY PASSED PROCESSING PARAMS
+        if any(
+            arg is not None
+            for arg in [tile_nms_iou, tile_nms_conf, tile_nms_top_k, tile_nms_max_predictions, tile_nms_multi_label_per_box, tile_nms_class_agnostic_nms]
+        ):
+            self.set_dataset_processing_params(
+                iou=tile_nms_iou,
+                conf=tile_nms_conf,
+                nms_top_k=tile_nms_top_k,
+                max_predictions=tile_nms_max_predictions,
+                multi_label_per_box=tile_nms_multi_label_per_box,
+                class_agnostic_nms=tile_nms_class_agnostic_nms,
+            )
         else:
-            factory = det_factory.DetectionModulesFactory()
-            self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", new_num_classes)
-            self.heads = factory.get(factory.insert_module_param(self.heads_params, "in_channels", self.neck.out_channels))
-            self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)
 
-    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        if isinstance(self.backbone, SupportsReplaceInputChannels):
-            self.backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
-            self.in_channels = self.get_input_channels()
-        else:
-            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `replace_input_channels`")
+            self.sliding_window_post_prediction_callback = self.get_post_prediction_callback(
+                iou=self._default_nms_iou,
+                conf=self._default_nms_conf,
+                nms_top_k=self._default_nms_top_k,
+                max_predictions=self._default_max_predictions,
+                multi_label_per_box=self._default_multi_label_per_box,
+                class_agnostic_nms=self._default_class_agnostic_nms,
+            )
 
-    def get_input_channels(self) -> int:
-        if isinstance(self.backbone, SupportsReplaceInputChannels):
-            return self.backbone.get_input_channels()
+    def forward(self, inputs: torch.Tensor, sliding_window_post_prediction_callback: Optional[DetectionPostPredictionCallback] = None) -> List[torch.Tensor]:
+
+        sliding_window_post_prediction_callback = sliding_window_post_prediction_callback or self.sliding_window_post_prediction_callback
+        batch_size, _, _, _ = inputs.shape
+        all_detections = [[] for _ in range(batch_size)]  # Create a list for each image in the batch
+        # Generate and process each tile
+        for img_idx in range(batch_size):
+            single_image = inputs[img_idx : img_idx + 1]  # Extract each image
+            tiles = self._generate_tiles(single_image, self.tile_size, self.tile_step)
+            for tile, (start_x, start_y) in tiles:
+                tile_detections = self.model(tile)
+                # Apply local NMS using post_prediction_callback
+                tile_detections = sliding_window_post_prediction_callback(tile_detections)
+                # Adjust detections to global image coordinates
+                for img_i_tile_detections in tile_detections:
+                    if len(img_i_tile_detections) > 0:
+                        img_i_tile_detections[:, :4] += torch.tensor([start_x, start_y, start_x, start_y], device=tile.device)
+                        all_detections[img_idx].append(img_i_tile_detections)
+        # Concatenate and apply global NMS for each image's detections
+        final_detections = []
+        for detections in all_detections:
+            if detections:
+                detections = torch.cat(detections, dim=0)
+                # Apply global NMS
+                pred_bboxes = detections[:, :4]
+                pred_cls_conf = detections[:, 4]
+                pred_cls_label = detections[:, 5]
+                idx_to_keep = torchvision.ops.boxes.batched_nms(
+                    boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=sliding_window_post_prediction_callback.nms_threshold
+                )
+
+                final_detections.append(detections[idx_to_keep])
+            else:
+                final_detections.append(torch.empty(0, 6).to(inputs.device))  # Empty tensor for images with no detections
+        return final_detections
+
+    def _generate_tiles(self, image, tile_size, tile_step):
+        _, _, h, w = image.shape
+        tiles = []
+
+        # Calculate the end points for the grid
+        max_y = h if (h - tile_size) % tile_step < self.min_tile_threshold else h - (h - tile_size) % tile_step + tile_size
+        max_x = w if (w - tile_size) % tile_step < self.min_tile_threshold else w - (w - tile_size) % tile_step + tile_size
+
+        # Ensure that the image has enough padding if needed
+        if max_y > h or max_x > w:
+            padded_image = torch.zeros((image.shape[0], image.shape[1], max(max_y, h), max(max_x, w)), device=image.device)
+            padded_image[:, :, :h, :w] = image  # Place the original image in the padded one
         else:
-            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `replace_input_channels`")
+            padded_image = image
+
+        for y in range(0, max_y - tile_size + 1, tile_step):
+            for x in range(0, max_x - tile_size + 1, tile_step):
+                tile = padded_image[:, :, y : y + tile_size, x : x + tile_size]
+                tiles.append((tile, (x, y)))
+
+        return tiles
 
     def get_post_prediction_callback(
         self, *, conf: float, iou: float, nms_top_k: int, max_predictions: int, multi_label_per_box: bool, class_agnostic_nms: bool
@@ -142,15 +163,22 @@ class CustomizableDetector(HasPredict, SgModule):
 
         :param conf:                A minimum confidence threshold for predictions to be used in post-processing.
         :param iou:                 A IoU threshold for boxes non-maximum suppression.
-        :param nms_top_k:           The maximum number of detections to consider for NMS.
-        :param max_predictions:     The maximum number of detections to return.
+        :param nms_top_k:           The maximum number of detections to consider for the NMS applied on each tile.
+        :param max_predictions:     The maximum number of detections to return in each tile.
         :param multi_label_per_box: If True, each anchor can produce multiple labels of different classes.
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
                                     If False NMS is performed separately for each class.
         :return:
         """
-        raise NotImplementedError
+        return self.model.get_post_prediction_callback(
+            conf=conf,
+            iou=iou,
+            nms_top_k=nms_top_k,
+            max_predictions=max_predictions,
+            multi_label_per_box=multi_label_per_box,
+            class_agnostic_nms=class_agnostic_nms,
+        )
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(
@@ -168,10 +196,10 @@ class CustomizableDetector(HasPredict, SgModule):
 
         :param class_names:         (Optional) Names of the dataset the model was trained on.
         :param image_processor:     (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
-        :param iou:                 (Optional) IoU threshold for the nms algorithm
+        :param iou:                 (Optional) IoU threshold for the nms algorithm applied.
         :param conf:                (Optional) Below the confidence threshold, prediction are discarded
-        :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS.
-        :param max_predictions:     (Optional) The maximum number of detections to return.
+        :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS in each tile.
+        :param max_predictions:     (Optional) The maximum number of detections to return in each tile.
         :param multi_label_per_box: (Optional) If True, each anchor can produce multiple labels of different classes.
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  (Optional) If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
@@ -181,36 +209,31 @@ class CustomizableDetector(HasPredict, SgModule):
             self._class_names = tuple(class_names)
         if image_processor is not None:
             self._image_processor = image_processor
-        if iou is not None:
-            self._default_nms_iou = float(iou)
-        if conf is not None:
-            self._default_nms_conf = float(conf)
-        if nms_top_k is not None:
-            self._default_nms_top_k = int(nms_top_k)
-        if max_predictions is not None:
-            self._default_max_predictions = int(max_predictions)
-        if multi_label_per_box is not None:
-            self._default_multi_label_per_box = bool(multi_label_per_box)
-        if class_agnostic_nms is not None:
-            self._default_class_agnostic_nms = bool(class_agnostic_nms)
 
-    def get_dataset_processing_params(self):
-        return dict(
-            class_names=self._class_names,
-            image_processor=self._image_processor,
-            iou=self._default_nms_iou,
-            conf=self._default_nms_iou,
-            nms_top_k=self._default_nms_top_k,
-            max_predictions=self._default_max_predictions,
-            multi_label_per_box=self._default_multi_label_per_box,
-            class_agnostic_nms=self._default_class_agnostic_nms,
+        if iou is None:
+            iou = self._default_nms_iou
+        if conf is None:
+            conf = self._default_nms_conf
+        if nms_top_k is None:
+            nms_top_k = self._default_nms_top_k
+        if max_predictions is None:
+            max_predictions = self._default_max_predictions
+        if multi_label_per_box is None:
+            multi_label_per_box = self._default_multi_label_per_box
+        if class_agnostic_nms is None:
+            class_agnostic_nms = self._default_class_agnostic_nms
+
+        self.sliding_window_post_prediction_callback = self.get_post_prediction_callback(
+            iou=float(iou),
+            conf=float(conf),
+            nms_top_k=int(nms_top_k),
+            max_predictions=int(max_predictions),
+            multi_label_per_box=bool(multi_label_per_box),
+            class_agnostic_nms=bool(class_agnostic_nms),
         )
 
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
-
-    def get_class_names(self) -> Optional[List[str]]:
-        return self._class_names
 
     @lru_cache(maxsize=1)
     def _get_pipeline(
@@ -225,16 +248,17 @@ class CustomizableDetector(HasPredict, SgModule):
         multi_label_per_box: Optional[bool] = None,
         class_agnostic_nms: Optional[bool] = None,
         fp16: bool = True,
-    ) -> DetectionPipeline:
+    ) -> SlidingWindowDetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
-        :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param iou:                 (Optional) IoU threshold for the nms algorithm.
+         If None, the default value associated to the training is used.
         :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
                                     If None, the default value associated to the training is used.
         :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         :param skip_image_resizing: If True, the image processor will not resize the images.
-        :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS.
-        :param max_predictions:     (Optional) The maximum number of detections to return.
+        :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS for each tile.
+        :param max_predictions:     (Optional) The maximum number of detections to return for each tile.
         :param multi_label_per_box: (Optional) If True, each anchor can produce multiple labels of different classes.
                                     If False, each anchor can produce only one label of the class with the highest score.
         :param class_agnostic_nms:  (Optional) If True, perform class-agnostic NMS (i.e IoU of boxes of different classes is checked).
@@ -243,7 +267,9 @@ class CustomizableDetector(HasPredict, SgModule):
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
-                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
+                "You must set the dataset processing parameters before calling predict.\n"
+                "Please call "
+                "`model.set_dataset_processing_params(...)` first or do so on self.model. "
             )
 
         iou = self._default_nms_iou if iou is None else iou
@@ -261,7 +287,7 @@ class CustomizableDetector(HasPredict, SgModule):
         else:
             image_processor = self._image_processor
 
-        pipeline = DetectionPipeline(
+        pipeline = SlidingWindowDetectionPipeline(
             model=self,
             image_processor=image_processor,
             post_prediction_callback=self.get_post_prediction_callback(
@@ -339,7 +365,6 @@ class CustomizableDetector(HasPredict, SgModule):
         :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
                                     If None, the default value associated to the training is used.
-        :param batch_size:          Maximum number of images to process at the same time.
         :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         :param skip_image_resizing: If True, the image processor will not resize the images.
         :param nms_top_k:           (Optional) The maximum number of detections to consider for NMS.
@@ -363,10 +388,5 @@ class CustomizableDetector(HasPredict, SgModule):
         )
         pipeline.predict_webcam()
 
-    def train(self, mode: bool = True):
-        self._get_pipeline.cache_clear()
-        torch.cuda.empty_cache()
-        return super().train(mode)
-
-    def get_finetune_lr_dict(self, lr: float):
-        return {"heads": lr, "default": 0}
+    def get_input_channels(self) -> int:
+        return self.model.get_input_channels()
