@@ -311,7 +311,7 @@ if __name__ == "__main__":
         key_to_replace_with = f"{key}"
         content = content.replace(key_to_search, key_to_replace_with)
 
-    with open(output_script_path, "w") as f:
+    with open(output_script_path, "w", encoding="utf-8") as f:
         black = try_import_black()
         if black is not None:
             content = black.format_str(content, mode=black.FileMode(line_length=160))
