@@ -59,6 +59,9 @@ MODEL_URLS = {
     "yolo_nas_pose_s_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_s_coco_pose.pth",
     "yolo_nas_pose_m_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_m_coco_pose.pth",
     "yolo_nas_pose_l_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_l_coco_pose.pth",
+    "yolo_nas_r_s_dota2": "https://sghub.deci.ai/models/yolo_nas_r_s_dota2.pth",
+    "yolo_nas_r_m_dota2": "https://sghub.deci.ai/models/yolo_nas_r_m_dota2.pth",
+    "yolo_nas_r_l_dota2": "https://sghub.deci.ai/models/yolo_nas_r_l_dota2.pth",
 }
 
 PRETRAINED_NUM_CLASSES = {

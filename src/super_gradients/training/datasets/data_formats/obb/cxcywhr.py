@@ -24,6 +24,13 @@ def cxcywhr_to_poly(boxes: np.ndarray) -> np.ndarray:
 
 
 def poly_to_cxcywhr(poly: np.ndarray) -> np.ndarray:
+    """
+    Convert a polygon format to oriented bounding boxes in CX-CY-W-H-R format
+    :param poly: Input polygons in [N,...,4, 2] format
+    :return: [N,..., 5] Oriented bounding boxes in CX-CY-W-H-R format
+             R represents the angle oriented box in radians, counter-clockwise and following
+             OpenCV convention of angle of rotation for cv2.minAreaRect/cv2.boxPoints.
+    """
     shape = poly.shape
     if shape[-2:] != (4, 2):
         raise ValueError(f"Expected last two dimensions to be (4, 2), got {shape[-2:]}")
