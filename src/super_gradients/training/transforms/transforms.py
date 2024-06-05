@@ -609,7 +609,7 @@ class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransform
                                     (center-translate, center+translate)
      :param scales:                 Values for random rescale, when float the random values are drawn uniformly from (1-scales, 1+scales)
      :param shear:                  Degrees for random shear, when float the random values are drawn uniformly from (-shear, shear)
-     :param target_size:            Desired output shape.
+     :param target_size:            Desired output shape tuple formatted as (rows, cols).
      :param filter_box_candidates:  Whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio (default=False).
      :param wh_thr:                 Edge size threshold when filter_box_candidates = True.
                                     Bounding oxes with edges smaller than this values will be filtered out.
@@ -660,7 +660,7 @@ class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransform
                 targets=targets,
                 targets_seg=None,
                 crowd_targets=crowd_targets,
-                target_size=self.target_size or tuple(reversed(sample.image.shape[:2])),
+                target_size=self.target_size or tuple(sample.image.shape[:2]),
                 degrees=self.degrees,
                 translate=self.translate,
                 scales=self.scale,
@@ -1483,7 +1483,7 @@ def random_affine(
     :param img:         Input image of shape [h, w, c]
     :param targets:     Input target
     :param targets_seg: Targets derived from segmentation masks
-    :param target_size: Desired output shape
+    :param target_size: Desired output shape tuple formatted as (rows, cols).
     :param degrees:     Degrees for random rotation, when float the random values are drawn uniformly
                             from (-degrees, degrees).
     :param translate:   Translate size (in pixels) for random translation, when float the random values
@@ -1510,7 +1510,8 @@ def random_affine(
 
     M = get_affine_matrix(img.shape[:2], target_size, degrees, translate, scales, shear)
 
-    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(border_value, border_value, border_value))
+    rows, cols = target_size[:2]
+    img = cv2.warpAffine(img, M, dsize=(cols, rows), borderValue=(border_value, border_value, border_value))
 
     # Transform label coordinates
     if len(targets) > 0:
