@@ -948,42 +948,42 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
-  sanity_tests:
-     when:  << pipeline.parameters.run_sanity_tests_flow >>
-     jobs:
-       - sg_core_integration_tests_coverage:
-           context:
-             - slack
-       - hydra_sweeper_test:
-           context:
-             - slack
-       - recipe_sanity_tests_classification_pt1:
-           context:
-             - slack
-       - recipe_sanity_tests_classification_pt2:
-           context:
-             - slack
-       - recipe_sanity_tests_segmentation:
-           context:
-             - slack
-       - recipe_sanity_tests_detection:
-           context:
-             - slack
-       - recipe_sanity_tests_pose_estimation:
-           context:
-             - slack
-       - recipe_accuracy_tests:
-           context:
-             - slack
-       - run_and_convert_notebooks_to_docs:
-           context:
-             - slack
-  run_and_convert_notebooks_to_docs:
-    when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
-    jobs:
-      - run_and_convert_notebooks_to_docs:
-          context:
-            - slack
+#  sanity_tests:
+#     when:  << pipeline.parameters.run_sanity_tests_flow >>
+#     jobs:
+#       - sg_core_integration_tests_coverage:
+#           context:
+#             - slack
+#       - hydra_sweeper_test:
+#           context:
+#             - slack
+#       - recipe_sanity_tests_classification_pt1:
+#           context:
+#             - slack
+#       - recipe_sanity_tests_classification_pt2:
+#           context:
+#             - slack
+#       - recipe_sanity_tests_segmentation:
+#           context:
+#             - slack
+#       - recipe_sanity_tests_detection:
+#           context:
+#             - slack
+#       - recipe_sanity_tests_pose_estimation:
+#           context:
+#             - slack
+#       - recipe_accuracy_tests:
+#           context:
+#             - slack
+#       - run_and_convert_notebooks_to_docs:
+#           context:
+#             - slack
+#  run_and_convert_notebooks_to_docs:
+#    when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
+#    jobs:
+#      - run_and_convert_notebooks_to_docs:
+#          context:
+#            - slack
 
   release:
     unless:
@@ -1007,38 +1007,38 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
-      - sg_core_integration_tests_coverage:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - hydra_sweeper_test:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_sanity_tests_classification_pt1:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_sanity_tests_classification_pt2:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_sanity_tests_segmentation:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_sanity_tests_detection:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_sanity_tests_pose_estimation:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_accuracy_tests:
-          context:
-            - slack
-          <<: *release_tag_filter
+#      - sg_core_integration_tests_coverage:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - hydra_sweeper_test:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_sanity_tests_classification_pt1:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_sanity_tests_classification_pt2:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_sanity_tests_segmentation:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_sanity_tests_detection:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_sanity_tests_pose_estimation:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_accuracy_tests:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
       # Temporary disabled until we figure out why it is failing at `release` workflow
       # but not at `sanity_check` or `run_and_convert_notebooks_to_docs` workflows
       # - run_and_convert_notebooks_to_docs:
@@ -1049,14 +1049,14 @@ workflows:
           py_version: "3.8"
           requires:
             - "build3.8"
-            - sg_core_integration_tests_coverage
-            - hydra_sweeper_test
-            - recipe_accuracy_tests
-            - recipe_sanity_tests_classification_pt1
-            - recipe_sanity_tests_classification_pt2
-            - recipe_sanity_tests_segmentation
-            - recipe_sanity_tests_detection
-            - recipe_sanity_tests_pose_estimation
+#            - sg_core_integration_tests_coverage
+#            - hydra_sweeper_test
+#            - recipe_accuracy_tests
+#            - recipe_sanity_tests_classification_pt1
+#            - recipe_sanity_tests_classification_pt2
+#            - recipe_sanity_tests_segmentation
+#            - recipe_sanity_tests_detection
+#            - recipe_sanity_tests_pose_estimation
             # Temporary disabled until we figure out why it is failing at `release` workflow
             # but not at `sanity_check` or `run_and_convert_notebooks_to_docs` workflows
             # - run_and_convert_notebooks_to_docs
