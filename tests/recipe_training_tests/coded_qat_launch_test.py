@@ -1,12 +1,17 @@
 import unittest
 
+from super_gradients.import_utils import import_pytorch_quantization_or_install
 from torchvision.transforms import Normalize, ToTensor, RandomHorizontalFlip, RandomCrop
 
 from super_gradients import Trainer
-from super_gradients.training import modify_params_for_qat
+
 from super_gradients.training.dataloaders.dataloaders import cifar10_train, cifar10_val
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
+
+from super_gradients.training.utils.quantization.tensorrt.functional import modify_params_for_qat
+
+import_pytorch_quantization_or_install()
 
 
 class CodedQATLuanchTest(unittest.TestCase):

@@ -14,6 +14,7 @@ logger = get_logger(__name__)
     deprecated_since="3.7.0",
     removed_from="4.0.0",
     target=export_to_onnx,
+    reason="This function is deprecated. Please use super_gradients.conversion.onnx.export_to_onnx instead.",
 )
 def export_quantized_module_to_onnx(
     model: torch.nn.Module, onnx_filename: str, input_shape: tuple, train: bool = False, to_cpu: bool = True, deepcopy_model=False, **kwargs

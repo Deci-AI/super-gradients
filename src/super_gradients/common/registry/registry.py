@@ -194,3 +194,9 @@ register_optimizer = create_register_decorator(registry=OPTIMIZERS)
 
 PROCESSINGS = {}
 register_processing = create_register_decorator(registry=PROCESSINGS)
+
+ALL_QUANTIZER = {}
+register_quantizer = create_register_decorator(registry=ALL_QUANTIZER)
+
+ALL_EXPORTERS = {}
+register_exporter = create_register_decorator(registry=ALL_EXPORTERS)

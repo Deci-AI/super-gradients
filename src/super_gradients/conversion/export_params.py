@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Optional, Tuple
 
-from super_gradients.conversion.conversion_enums import ExportTargetBackend, DetectionOutputFormatMode
+from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
 
 
 @dataclasses.dataclass
@@ -9,10 +9,6 @@ class ExportParams:
     """
     Parameters for exporting a model to ONNX format in PTQ/QAT methods of Trainer.
     Most of the parameters are related ot ExportableObjectDetectionModel.export method.
-
-    :param output_onnx_path: The path to save the ONNX model.
-           If None, the ONNX filename will use current experiment dir folder
-           and the output filename will reflect model input shape & whether it's a PTQ or QAT model.
 
     :param batch_size: The batch size for the ONNX model. Default is 1.
 
@@ -58,8 +54,6 @@ class ExportParams:
            Relevant only for object detection models and only if postprocessing is True.
     """
 
-    output_onnx_path: Optional[str] = None
-    engine: Optional[ExportTargetBackend] = None
     batch_size: int = 1
     input_image_shape: Optional[Tuple[int, int]] = None
     preprocessing: bool = True
@@ -74,3 +68,4 @@ class ExportParams:
     detection_max_predictions_per_image: Optional[int] = None
     detection_predictions_format: DetectionOutputFormatMode = DetectionOutputFormatMode.BATCH_FORMAT
     detection_num_pre_nms_predictions: int = 1000
+    detection_postprocessing_use_tensorrt_nms: bool = False

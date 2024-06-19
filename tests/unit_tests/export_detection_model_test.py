@@ -11,7 +11,7 @@ import onnxruntime
 import torch
 from matplotlib import pyplot as plt
 from super_gradients.common.object_names import Models
-from super_gradients.conversion.conversion_enums import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
+from super_gradients.conversion.conversion_enums import ExportQuantizationMode, DetectionOutputFormatMode
 from super_gradients.conversion.onnx.nms import PickNMSPredictionsAndReturnAsFlatResult, PickNMSPredictionsAndReturnAsBatchedResult
 from super_gradients.conversion.tensorrt.nms import ConvertTRTFormatToFlatTensor
 from super_gradients.import_utils import import_pytorch_quantization_or_install, import_onnx_graphsurgeon_or_install
@@ -131,10 +131,10 @@ class TestDetectionModelExport(unittest.TestCase):
                 export_result = model_arch.export(
                     out_path,
                     input_image_shape=None,  # Force .export() to infer image shape from the model itself
-                    engine=ExportTargetBackend.ONNXRUNTIME,
                     output_predictions_format=output_predictions_format,
                     confidence_threshold=confidence_threshold,
                     nms_threshold=nms_threshold,
+                    postprocessing_use_tensorrt_nms=False,
                 )
 
                 [flat_predictions] = self._run_inference_with_onnx(export_result)
@@ -159,7 +159,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 export_result = model_arch.export(
                     out_path,
                     input_image_shape=None,  # Force .export() to infer image shape from the model itself
-                    engine=ExportTargetBackend.ONNXRUNTIME,
+                    postprocessing_use_tensorrt_nms=False,
                     output_predictions_format=output_predictions_format,
                     nms_threshold=nms_threshold,
                     confidence_threshold=confidence_threshold,
@@ -187,7 +187,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 export_result = model_arch.export(
                     out_path,
                     input_image_shape=None,  # Force .export() to infer image shape from the model itself
-                    engine=ExportTargetBackend.TENSORRT,
+                    postprocessing_use_tensorrt_nms=True,
                     output_predictions_format=output_predictions_format,
                     confidence_threshold=confidence_threshold,
                     nms_threshold=0.6,
@@ -211,7 +211,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 export_result = model_arch.export(
                     out_path,
                     input_image_shape=None,  # Force .export() to infer image shape from the model itself
-                    engine=ExportTargetBackend.TENSORRT,
+                    postprocessing_use_tensorrt_nms=True,
                     output_predictions_format=output_predictions_format,
                     nms_threshold=nms_threshold,
                     confidence_threshold=confidence_threshold,
@@ -234,7 +234,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 out_path,
                 input_image_shape=None,  # Force .export() to infer image shape from the model itself
                 device=device,
-                engine=ExportTargetBackend.TENSORRT,
+                postprocessing_use_tensorrt_nms=True,
                 output_predictions_format=output_predictions_format,
                 nms_threshold=nms_threshold,
                 confidence_threshold=confidence_threshold,
@@ -254,7 +254,7 @@ class TestDetectionModelExport(unittest.TestCase):
             export_result = model_arch.export(
                 out_path,
                 input_image_shape=None,  # Force .export() to infer image shape from the model itself
-                engine=ExportTargetBackend.TENSORRT,
+                postprocessing_use_tensorrt_nms=True,
                 output_predictions_format=output_predictions_format,
                 nms_threshold=nms_threshold,
                 confidence_threshold=confidence_threshold,
@@ -274,7 +274,7 @@ class TestDetectionModelExport(unittest.TestCase):
             export_result = model_arch.export(
                 out_path,
                 input_image_shape=None,  # Force .export() to infer image shape from the model itself
-                engine=ExportTargetBackend.TENSORRT,
+                postprocessing_use_tensorrt_nms=True,
                 output_predictions_format=output_predictions_format,
                 nms_threshold=nms_threshold,
                 confidence_threshold=confidence_threshold,
@@ -286,7 +286,7 @@ class TestDetectionModelExport(unittest.TestCase):
             out_path = os.path.join(tmpdirname, "ppyoloe_s_custom_image_shape.onnx")
 
             ppyolo_e: ExportableObjectDetectionModel = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
-            export_result = ppyolo_e.export(out_path, engine=ExportTargetBackend.ONNXRUNTIME, input_image_shape=(320, 320), output_predictions_format="flat")
+            export_result = ppyolo_e.export(out_path, postprocessing_use_tensorrt_nms=False, input_image_shape=(320, 320), output_predictions_format="flat")
             [flat_predictions] = self._run_inference_with_onnx(export_result)
 
             assert flat_predictions.shape[1] == 7
@@ -307,7 +307,7 @@ class TestDetectionModelExport(unittest.TestCase):
             export_result = ppyolo_e.export(
                 out_path,
                 device=device,
-                engine=ExportTargetBackend.ONNXRUNTIME,
+                postprocessing_use_tensorrt_nms=False,
                 max_predictions_per_image=max_predictions_per_image,
                 input_image_shape=(640, 640),
                 output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
@@ -337,7 +337,7 @@ class TestDetectionModelExport(unittest.TestCase):
             ppyolo_e: ExportableObjectDetectionModel = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
             export_result = ppyolo_e.export(
                 out_path,
-                engine=ExportTargetBackend.TENSORRT,
+                postprocessing_use_tensorrt_nms=True,
                 max_predictions_per_image=max_predictions_per_image,
                 input_image_shape=(640, 640),
                 output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
@@ -361,7 +361,7 @@ class TestDetectionModelExport(unittest.TestCase):
             export_result = ppyolo_e.export(
                 out_path,
                 device=device,
-                engine=ExportTargetBackend.TENSORRT,
+                postprocessing_use_tensorrt_nms=True,
                 max_predictions_per_image=max_predictions_per_image,
                 input_image_shape=(640, 640),
                 output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
@@ -379,7 +379,7 @@ class TestDetectionModelExport(unittest.TestCase):
             ppyolo_e: ExportableObjectDetectionModel = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
             export_result = ppyolo_e.export(
                 out_path,
-                engine=ExportTargetBackend.ONNXRUNTIME,
+                postprocessing_use_tensorrt_nms=False,
                 max_predictions_per_image=300,
                 input_image_shape=(640, 640),
                 output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
@@ -405,7 +405,7 @@ class TestDetectionModelExport(unittest.TestCase):
             ppyolo_e: ExportableObjectDetectionModel = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
             export_result = ppyolo_e.export(
                 out_path,
-                engine=ExportTargetBackend.TENSORRT,
+                postprocessing_use_tensorrt_nms=True,
                 max_predictions_per_image=300,
                 input_image_shape=(640, 640),
                 output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
@@ -424,7 +424,7 @@ class TestDetectionModelExport(unittest.TestCase):
             ppyolo_e: ExportableObjectDetectionModel = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
             export_result = ppyolo_e.export(
                 out_path,
-                engine=ExportTargetBackend.TENSORRT,
+                postprocessing_use_tensorrt_nms=True,
                 num_pre_nms_predictions=300,
                 max_predictions_per_image=100,
                 input_image_shape=(640, 640),
@@ -444,7 +444,7 @@ class TestDetectionModelExport(unittest.TestCase):
             ppyolo_e: ExportableObjectDetectionModel = models.get(Models.YOLOX_S, pretrained_weights="coco")
             export_result = ppyolo_e.export(
                 out_path,
-                engine=ExportTargetBackend.TENSORRT,
+                postprocessing_use_tensorrt_nms=True,
                 num_pre_nms_predictions=300,
                 max_predictions_per_image=100,
                 input_image_shape=(640, 640),
@@ -572,7 +572,7 @@ class TestDetectionModelExport(unittest.TestCase):
             pass
 
         for output_predictions_format in [DetectionOutputFormatMode.BATCH_FORMAT, DetectionOutputFormatMode.FLAT_FORMAT]:
-            for engine in [ExportTargetBackend.ONNXRUNTIME, ExportTargetBackend.TENSORRT]:
+            for trt_nms in [False, True]:
                 for quantization in [None, ExportQuantizationMode.FP16, ExportQuantizationMode.INT8]:
                     device = "cpu"
                     if torch.cuda.is_available():
@@ -596,14 +596,14 @@ class TestDetectionModelExport(unittest.TestCase):
                         model_name = str(model_type).lower()
                         model = models.get(model_type, pretrained_weights="coco")
                         quantization_suffix = f"_{quantization.value}" if quantization is not None else ""
-                        onnx_filename = f"{model_name}_{engine.value}_{output_predictions_format.value}{quantization_suffix}.onnx"
+                        onnx_filename = f"{model_name}_{'trt_nms' if trt_nms else 'onnx_nms'}_{output_predictions_format.value}{quantization_suffix}.onnx"
 
                         with self.subTest(msg=onnx_filename):
                             model.export(
                                 os.path.join(export_dir, onnx_filename),
                                 device=device,
                                 quantization_mode=quantization,
-                                engine=engine,
+                                postprocessing_use_tensorrt_nms=trt_nms,
                                 output_predictions_format=output_predictions_format,
                                 preprocessing=False,
                                 postprocessing=False,
