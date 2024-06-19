@@ -10,6 +10,8 @@ from matplotlib.colors import ListedColormap
 from albumentations import Compose, HorizontalFlip, InvertImg
 
 from super_gradients.training.datasets import Cifar10, Cifar100, ImageNetDataset, COCODetectionDataset, CoCoSegmentationDataSet, COCOPoseEstimationDataset
+from super_gradients.training.samples import OBBSample
+from super_gradients.training.transforms.pipeline_adaptors import AlbumentationsAdaptor
 from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy
 from super_gradients.training.datasets.depth_estimation_datasets import NYUv2DepthEstimationDataset
@@ -337,6 +339,27 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
             )
 
             _ = next(iter(unsupported_ds))
+
+    def test_obb_support_albumentations(self):
+        import albumentations as A
+
+        adaptor = AlbumentationsAdaptor(
+            composed_transforms=A.Compose(
+                transforms=[A.ShiftScaleRotate(p=1), A.RandomBrightness(p=1), A.Transpose(p=1)], keypoint_params=A.KeypointParams(format="xy")
+            )
+        )
+
+        sample = OBBSample(
+            image=np.ones((256, 256, 3), dtype=np.uint8),
+            rboxes_cxcywhr=np.array([[128, 128, 100, 50, 0]]),
+            labels=np.array([1]),
+            is_crowd=np.array([0]),
+            additional_samples=None,
+        )
+        sample = adaptor.apply_to_sample(sample)
+        self.assertEqual(sample.image.shape, (256, 256, 3))
+        self.assertEqual(sample.rboxes_cxcywhr.shape, (1, 5))
+        self.assertEqual(sample.labels.shape, (1,))
 
 
 if __name__ == "__main__":

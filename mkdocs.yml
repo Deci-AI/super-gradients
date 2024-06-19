@@ -19,7 +19,7 @@ nav:
   - Models: ./documentation/source/models.md
   - Dataset:
     - Data: ./documentation/source/Data.md
-    - Computer Vision Datasets: ./src/super_gradients/training/datasets/Dataset_Setup_Instructions.md
+    - Computer Vision Datasets: ./documentation/source/Dataset_Setup_Instructions.md
     - Dataset Adapter: ./documentation/source/dataloader_adapter.md
   - Loss functions: ./documentation/source/Losses.md
   - LR Assignment: ./documentation/source/LRAssignment.md

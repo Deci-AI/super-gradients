@@ -17,7 +17,7 @@ from .prediction_pose_estimation_results import (
     VideoPoseEstimationPrediction,
     ImagesPoseEstimationPrediction,
 )
-
+from .prediction_obb_detection_results import OBBDetectionPrediction, ImageOBBDetectionPrediction, ImagesOBBDetectionPrediction, VideoOBBDetectionPrediction
 
 __all__ = [
     "Prediction",
@@ -39,4 +39,8 @@ __all__ = [
     "ImageSegmentationPrediction",
     "ImagesSegmentationPrediction",
     "VideoSegmentationPrediction",
+    "OBBDetectionPrediction",
+    "ImageOBBDetectionPrediction",
+    "ImagesOBBDetectionPrediction",
+    "VideoOBBDetectionPrediction",
 ]

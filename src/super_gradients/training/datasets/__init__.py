@@ -25,7 +25,7 @@ from super_gradients.training.datasets.pose_estimation_datasets import (
     BaseKeypointsDataset,
     COCOPoseEstimationDataset,
 )
-
+from .obb import DOTAOBBDataset
 
 __all__ = [
     "BaseKeypointsDataset",
@@ -50,6 +50,7 @@ __all__ = [
     "SuperviselyPersonsDataset",
     "COCOKeypointsDataset",
     "COCOPoseEstimationDataset",
+    "DOTAOBBDataset",
 ]
 
 cv2.setNumThreads(0)

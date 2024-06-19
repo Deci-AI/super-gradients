@@ -44,7 +44,7 @@ def _rescale_image_with_pil(image: np.ndarray, target_shape: Tuple[int, int]) ->
 
 def _rescale_bboxes(targets: np.ndarray, scale_factors: Tuple[float, float]) -> np.ndarray:
     """Rescale bboxes to given scale factors, without preserving aspect ratio.
-    This function supports both xyxy and xywh bboxes.
+    This function supports both XYXY, XYWH and CXCYWHR box formats.
 
     :param targets:         Targets to rescale (N, 4+), where target[:, :4] is the bounding box coordinates.
     :param scale_factors:   Tuple of (scale_factor_h, scale_factor_w) scale factors to rescale to.
@@ -164,6 +164,18 @@ def _shift_bboxes_xyxy(targets: np.array, shift_w: float, shift_h: float) -> np.
     boxes[:, [0, 2]] += shift_w
     boxes[:, [1, 3]] += shift_h
     return np.concatenate((boxes, labels), 1)
+
+
+def _shift_bboxes_cxcywhr(targets: np.ndarray, shift_w: float, shift_h: float) -> np.ndarray:
+    """Shift bboxes with respect to padding values.
+
+    :param targets:  Bboxes to transform of shape (N, 5), in CXCYWHR format.
+    :param shift_w:  shift width along x-axis.
+    :param shift_h:  shift height along y-axis.
+    :return:         Bboxes transformed of shape (N, 5), in CXCYWHR format.
+    """
+    offsets = np.array([shift_w, shift_h, 0, 0, 0])
+    return targets + offsets
 
 
 def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.ndarray:

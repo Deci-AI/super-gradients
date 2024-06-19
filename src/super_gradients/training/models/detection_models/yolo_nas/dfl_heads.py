@@ -68,7 +68,6 @@ class YoloNASDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         self.cls_dropout_rate = nn.Dropout2d(cls_dropout_rate) if cls_dropout_rate > 0 else nn.Identity()
         self.reg_dropout_rate = nn.Dropout2d(reg_dropout_rate) if reg_dropout_rate > 0 else nn.Identity()
 
-        self.grid = torch.zeros(1)
         self.stride = stride
 
         self.prior_prob = 1e-2

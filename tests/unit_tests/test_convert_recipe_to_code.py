@@ -53,6 +53,9 @@ class TestConvertRecipeToCode(unittest.TestCase):
             "coco2017_yolo_nas_pose_l.yaml",
             "coco2017_yolo_nas_pose_n.yaml",
             "coco2017_yolo_nas_pose_s.yaml",
+            "dota_yolo_nas_r_l.yaml",
+            "dota_yolo_nas_r_m.yaml",
+            "dota_yolo_nas_r_s.yaml",
         ]
 
         self.recipes_that_does_not_work = [

@@ -17,6 +17,7 @@ from super_gradients.training.metrics.depth_estimation_metrics import (
     DepthRMSE,
     DepthMSLE,
 )
+from .obb_detection_metrics import OBBDetectionMetrics_050_095, OBBDetectionMetrics_050, OBBDetectionMetrics
 
 __all__ = [
     "METRICS",
@@ -45,4 +46,7 @@ __all__ = [
     "DepthMSE",
     "DepthRMSE",
     "DepthMSLE",
+    "OBBDetectionMetrics_050_095",
+    "OBBDetectionMetrics_050",
+    "OBBDetectionMetrics",
 ]

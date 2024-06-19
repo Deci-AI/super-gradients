@@ -60,6 +60,16 @@ class YoloNASPoseTests(unittest.TestCase):
         loss = criterion(outputs=outputs, targets=targets)
         loss[0].backward()
 
+    def test_flat_collate_bool(self):
+        tensors = [
+            torch.randn((8, 1)) > 0.5,
+            torch.randn((0, 1)) > 0.5,
+            torch.randn((2, 1)) > 0.5,
+        ]
+
+        result = flat_collate_tensors_with_batch_index(tensors)
+        assert result.dtype != torch.bool
+
     def test_flat_collate_2d(self):
         values = [
             torch.randn([1, 4]),

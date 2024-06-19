@@ -38,6 +38,16 @@ from super_gradients.common.registry.registry import TRANSFORMS
 from super_gradients.common.registry.albumentation import ALBUMENTATIONS_TRANSFORMS, ALBUMENTATIONS_COMP_TRANSFORMS, imported_albumentations_failure
 from super_gradients.training.transforms.detection import AbstractDetectionTransform, DetectionPadIfNeeded, DetectionLongestMaxSize
 
+from .obb import (
+    AbstractOBBDetectionTransform,
+    OBBDetectionPadIfNeeded,
+    OBBDetectionLongestMaxSize,
+    OBBDetectionStandardize,
+    OBBDetectionMixup,
+    OBBDetectionCompose,
+    OBBRemoveSmallObjects,
+)
+
 __all__ = [
     "TRANSFORMS",
     "ALBUMENTATIONS_TRANSFORMS",
@@ -76,6 +86,13 @@ __all__ = [
     "DetectionPadIfNeeded",
     "DetectionLongestMaxSize",
     "AbstractDetectionTransform",
+    "AbstractOBBDetectionTransform",
+    "OBBDetectionPadIfNeeded",
+    "OBBDetectionLongestMaxSize",
+    "OBBDetectionStandardize",
+    "OBBDetectionMixup",
+    "OBBDetectionCompose",
+    "OBBRemoveSmallObjects",
 ]
 
 cv2.setNumThreads(0)

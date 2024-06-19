@@ -1226,3 +1226,24 @@ CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST = [
     "motorcycle",
     "bicycle",
 ]
+
+DOTA2_DEFAULT_CLASSES_LIST = [
+    "plane",
+    "ship",
+    "storage-tank",
+    "baseball-diamond",
+    "tennis-court",
+    "basketball-court",
+    "ground-track-field",
+    "harbor",
+    "bridge",
+    "large-vehicle",
+    "small-vehicle",
+    "helicopter",
+    "roundabout",
+    "soccer-ball-field",
+    "swimming-pool",
+    "container-crane",
+    "airport",
+    "helipad",
+]
