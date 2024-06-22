@@ -87,7 +87,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             res_file = os.path.join(td, "keypoints_coco2017_results.json")
 
-            with open(res_file, "w") as f:
+            with open(res_file, "w", encoding="utf-8") as f:
                 json.dump(coco_pred, f, sort_keys=True, indent=4)
 
             coco_dt = self._load_coco_groundtruth(with_crowd, with_duplicates, with_invisible_keypoitns)

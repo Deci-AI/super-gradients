@@ -239,12 +239,14 @@ class Trainer:
         :return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
-        # TODO: bind checkpoint_run_id
         setup_device(
             device=core_utils.get_param(cfg, "device"),
             multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
             num_gpus=core_utils.get_param(cfg, "num_gpus"),
         )
+
+        # Create resolved config before instantiation
+        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -283,7 +285,6 @@ class Trainer:
 
         test_loaders = maybe_instantiate_test_loaders(cfg)
 
-        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
         res = trainer.train(
             model=model,
@@ -678,6 +679,15 @@ class Trainer:
             train_metrics_titles = get_metrics_titles(self.train_metrics)
             all_metrics["train"] = {metric_name: float(train_metrics_dict[metric_name]) for metric_name in train_metrics_titles}
 
+        best_checkpoint = (curr_tracked_metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
+            curr_tracked_metric < self.best_metric and not self.greater_metric_to_watch_is_better
+        )
+
+        if best_checkpoint:
+            # STORE THE CURRENT metric AS BEST
+            self.best_metric = curr_tracked_metric
+            self._best_ckpt_metrics = all_metrics
+
         # BUILD THE state_dict
         state = {
             "net": unwrap_model(self.net).state_dict(),
@@ -712,13 +722,7 @@ class Trainer:
             self.sg_logger.add_checkpoint(tag=f"ckpt_epoch_{epoch}.pth", state_dict=state, global_step=epoch)
 
         # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
-        if (curr_tracked_metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
-            curr_tracked_metric < self.best_metric and not self.greater_metric_to_watch_is_better
-        ):
-            # STORE THE CURRENT metric AS BEST
-            self.best_metric = curr_tracked_metric
-
-            self._best_ckpt_metrics = all_metrics
+        if best_checkpoint:
             self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
             # RUN PHASE CALLBACKS
@@ -1420,6 +1424,14 @@ class Trainer:
         self.training_params.mixed_precision = self._initialize_mixed_precision(self.training_params.mixed_precision)
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
+
+        if self.training_params.average_best_models and not self.training_params.save_model:
+            logger.warning(
+                "'training_params.average_best_models'  is enabled, but 'training_params.save_model' is disabled. \n"
+                "Model averaging requires saving snapshot checkpoints to function properly. As a result, "
+                "'training_params.average_best_models' will be disabled. "
+            )
+            self.training_params.average_best_models = False
 
         self.max_train_batches = self.training_params.max_train_batches
         self.max_valid_batches = self.training_params.max_valid_batches

@@ -156,7 +156,7 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def _write_to_log_file(self, lines: list):
-        with open(self.experiment_log_path, "a" if os.path.exists(self.experiment_log_path) else "w") as log_file:
+        with open(self.experiment_log_path, "a" if os.path.exists(self.experiment_log_path) else "w", encoding="utf-8") as log_file:
             for line in lines:
                 log_file.write(line + "\n")
 
@@ -345,7 +345,7 @@ class BaseSGLogger(AbstractSGLogger):
                 name = name + ".py"
 
             path = os.path.join(self._local_dir, name)
-            with open(path, "w") as f:
+            with open(path, "w", encoding="utf-8") as f:
                 f.write(code)
 
             self.add_file(name)
