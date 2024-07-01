@@ -51,7 +51,6 @@ COCO_DEFAULT_CLASSES_TUPLES_LIST = [
     (49, "knife"),
     (50, "spoon"),
     (51, "bowl"),
-    (51, "bowl"),
     (52, "banana"),
     (53, "apple"),
     (54, "sandwich"),
