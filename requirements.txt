@@ -14,7 +14,7 @@ torchmetrics==0.8
 hydra-core>=1.2.0
 onnxruntime>=1.15.0
 # onnx 1.16.0 introduce IR 10 which is not yet supported by onnx runtime & graphsurgeon
-onnx==1.15.0
+onnx==1.16.0
 pillow>=10.2.0
 pip-tools>=6.12.1
 einops==0.3.2
@@ -36,3 +36,4 @@ fonttools>=4.43.0
 # not directly required, pinned by Snyk to avoid a vulnerability
 werkzeug>=2.3.8
 imagesize~=1.4.1
+scikit-learn>=1.5.0 # not directly required, pinned by Snyk to avoid a vulnerability
