@@ -785,6 +785,19 @@ class TestDetectionModelExport(unittest.TestCase):
                         np.testing.assert_allclose(torch_result[2].numpy(), onnx_result[2], rtol=1e-3, atol=1e-3)
                         np.testing.assert_allclose(torch_result[3].numpy(), onnx_result[3], rtol=1e-3, atol=1e-3)
 
+    def test_yolo_nas_r_export(self):
+        """
+        Test the most common export use case - export to ONNX with all default parameters
+        """
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            out_path = os.path.join(tmpdirname, "yolo_nas_r_s.onnx")
+
+            model = models.get(Models.YOLO_NAS_R_S, pretrained_weights="dota2")
+            result = model.export(out_path)
+            assert result.input_image_dtype == torch.uint8
+            assert result.input_image_shape == (1024, 1024)
+            assert result.input_image_channels == 3
+
     def _get_image_as_bchw(self, image_shape=(640, 640)):
         """
 

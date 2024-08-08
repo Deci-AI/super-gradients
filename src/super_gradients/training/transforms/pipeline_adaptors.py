@@ -3,9 +3,11 @@ from typing import Callable
 from abc import abstractmethod, ABC
 import numpy as np
 from PIL import Image
+from super_gradients.training.datasets.data_formats.obb.cxcywhr import cxcywhr_to_poly, poly_to_cxcywhr
 
 from super_gradients.training.samples import DetectionSample, SegmentationSample, PoseEstimationSample, DepthEstimationSample
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
+from super_gradients.training.transforms.obb import OBBSample
 
 
 class SampleType(Enum):
@@ -14,6 +16,7 @@ class SampleType(Enum):
     POSE_ESTIMATION = "POSE_ESTIMATION"
     DEPTH_ESTIMATION = "DEPTH_ESTIMATION"
     IMAGE_ONLY = "IMAGE_ONLY"
+    OBB_DETECTION = "OBB_DETECTION"
 
 
 class TransformsPipelineAdaptorBase(ABC):
@@ -42,6 +45,8 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
     def __call__(self, sample, *args, **kwargs):
         if isinstance(sample, DetectionSample):
             self.sample_type = SampleType.DETECTION
+        elif isinstance(sample, OBBSample):
+            self.sample_type = SampleType.OBB_DETECTION
         elif isinstance(sample, SegmentationSample):
             self.sample_type = SampleType.SEGMENTATION
         elif isinstance(sample, DepthEstimationSample):
@@ -109,6 +114,14 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
     def prep_for_transforms(self, sample):
         if self.sample_type == SampleType.DETECTION:
             sample = {"image": sample.image, "bboxes": sample.bboxes_xyxy, "labels": sample.labels, "is_crowd": sample.is_crowd}
+        elif self.sample_type == SampleType.OBB_DETECTION:
+            sample: OBBSample = sample
+            sample = {
+                "image": sample.image,
+                "keypoints": cxcywhr_to_poly(sample.rboxes_cxcywhr).reshape(-1, 2),
+                "labels": sample.labels,
+                "is_crowd": sample.is_crowd,
+            }
         elif self.sample_type == SampleType.SEGMENTATION:
             sample = {"image": np.array(sample.image), "mask": np.array(sample.mask)}
         elif self.sample_type == SampleType.DEPTH_ESTIMATION:
@@ -145,6 +158,15 @@ class AlbumentationsAdaptor(TransformsPipelineAdaptorBase):
                 is_crowd=np.array(sample["is_crowd"]),
                 additional_samples=None,
             )
+        elif self.sample_type == SampleType.OBB_DETECTION:
+            polys = np.array(sample["keypoints"]).reshape(-1, 4, 2)
+            sample = OBBSample(
+                image=sample["image"],
+                rboxes_cxcywhr=poly_to_cxcywhr(polys),
+                labels=np.array(sample["labels"]).reshape(-1),
+                is_crowd=np.array(sample["is_crowd"]).reshape(-1),
+                additional_samples=None,
+            ).sanitize_sample()
         elif self.sample_type == SampleType.SEGMENTATION:
             sample = SegmentationSample(image=Image.fromarray(sample["image"]), mask=Image.fromarray(sample["mask"]))
         elif self.sample_type == SampleType.DEPTH_ESTIMATION:
