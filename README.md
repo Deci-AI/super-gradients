@@ -10,13 +10,10 @@ ______________________________________________________________________
 </div>  
 <div align="center">
 <p align="center">
-  <a href="https://www.supergradients.com/">Website</a> •
-  <a href="https://docs.deci.ai/super-gradients/documentation/source/welcome.html">Docs</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#implemented-model-architectures">Pretrained Models</a> •
   <a href="#community">Community</a> •
   <a href="#license">License</a> •
-  <a href="#deci-platform">Deci Platform</a>
 </p>
 <p align="center">
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" /></a>
@@ -42,11 +39,6 @@ ________________________________________________________________________________
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Classification 1500x900.png" width="250px">
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/PoseEstimation.jpg" width="250px">
 </div>
-
-### Have some questions about SuperGradients - Try our AI helper
-
-<a href="https://docs.deci.ai/super-gradients/latest/documentation/source/welcome.html?autoClick=true"><img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/try_ai.png" width="500px"></a>
-
 
 ### Ready to deploy pre-trained SOTA models
 
@@ -754,20 +746,6 @@ This project is released under the [Apache 2.0 license](LICENSE).
     
 __________________________________________________________________________________________________________
 
-
-## Deci Platform
-
-Deci Platform is our end to end platform for building, optimizing and deploying deep learning models to production.
-
-[Request free trial](https://bit.ly/3qO3icq) to enjoy immediate improvement in throughput, latency, memory footprint and model size.
-
-Features
-
-- Automatically compile and quantize your models with just a few clicks (TensorRT, OpenVINO).
-- Gain up to 10X improvement in throughput, latency, memory and model size. 
-- Easily benchmark your models’ performance on different hardware and batch sizes.
-- Invite co-workers to collaborate on models and communicate your progress.
-- Deci supports all common frameworks and Hardware, from Intel CPUs to Nvidia's GPUs and Jetsons.
 ֿ
 
 Request free trial [here](https://bit.ly/3qO3icq) 
