@@ -554,6 +554,9 @@ class ImagesDetectionPrediction(ImagesPredictions):
                 box_thickness=box_thickness,
                 show_confidence=show_confidence,
                 color_mapping=color_mapping,
+                target_bboxes=target_bbox,
+                target_bboxes_format=target_bboxes_format,
+                target_class_ids=target_class_id,
                 class_names=class_names,
             )
 
