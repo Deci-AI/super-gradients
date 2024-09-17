@@ -8,10 +8,8 @@ import numpy as np
 import onnxruntime
 import torch
 from matplotlib import pyplot as plt
-from torch import nn
-
 from super_gradients.common.object_names import Models
-from super_gradients.conversion.conversion_enums import ExportTargetBackend, DetectionOutputFormatMode
+from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
 from super_gradients.import_utils import import_onnx_graphsurgeon_or_install, import_pytorch_quantization_or_install
 from super_gradients.module_interfaces import ExportablePoseEstimationModel, PoseEstimationModelExportResult
 from super_gradients.training import models
@@ -28,6 +26,7 @@ from super_gradients.training.processing.processing import (
 )
 from super_gradients.training.utils.media.image import load_image
 from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
+from torch import nn
 
 import_onnx_graphsurgeon_or_install()
 import_pytorch_quantization_or_install()
@@ -164,7 +163,6 @@ class TestPoseEstimationModelExport(unittest.TestCase):
 
                 export_result = model_arch.export(
                     out_path,
-                    engine=ExportTargetBackend.ONNXRUNTIME,
                     output_predictions_format=output_predictions_format,
                     confidence_threshold=confidence_threshold,
                     nms_threshold=nms_threshold,
@@ -193,7 +191,6 @@ class TestPoseEstimationModelExport(unittest.TestCase):
                 model_arch.set_dataset_processing_params(**self.custom_params)
                 export_result = model_arch.export(
                     out_path,
-                    engine=ExportTargetBackend.ONNXRUNTIME,
                     output_predictions_format=output_predictions_format,
                     nms_threshold=nms_threshold,
                     confidence_threshold=confidence_threshold,

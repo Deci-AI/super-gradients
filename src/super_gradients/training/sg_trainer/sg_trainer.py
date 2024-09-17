@@ -1,24 +1,23 @@
-import copy
 import inspect
+import torchmetrics
 import os
-import typing
 import warnings
 from copy import deepcopy
-from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
-
+from typing import Union, Tuple, Mapping, Dict, Any, Optional, List
+import typing
 import hydra
 import numpy as np
 import torch
 import torch.cuda
 import torch.nn
-import torchmetrics
+from pathlib import Path
 from omegaconf import DictConfig, OmegaConf
 
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
-from torchmetrics import MetricCollection, Metric
+from torchmetrics import MetricCollection
 from tqdm import tqdm
 
 from super_gradients import is_distributed
@@ -29,8 +28,6 @@ from super_gradients.common.environment.checkpoints_dir_utils import (
     get_checkpoints_dir_path,
 )
 from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
-from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
-from super_gradients.import_utils import import_pytorch_quantization_or_install
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.training.utils.callbacks.callbacks import create_lr_scheduler_callback, LRSchedulerCallback
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -42,6 +39,9 @@ from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
+from super_gradients.common.factories.exporter_factory import ExporterFactory
+from super_gradients.common.factories.quantizer_factory import QuantizerFactory
+
 from super_gradients.common.environment.package_utils import get_installed_packages
 from super_gradients.common.environment.cfg_utils import maybe_instantiate_test_loaders
 
@@ -103,15 +103,17 @@ from super_gradients.common.environment.cfg_utils import load_experiment_cfg, ad
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
 from super_gradients.module_interfaces import (
-    ExportableObjectDetectionModel,
-    ExportablePoseEstimationModel,
-    ExportableSegmentationModel,
     SupportsInputShapeCheck,
     QuantizationResult,
 )
-from super_gradients.conversion import ExportQuantizationMode, ExportParams
-from super_gradients.common.deprecate import deprecated_parameter, deprecated
-from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
+from super_gradients.common.deprecate import deprecated
+from super_gradients.training.quantization import AbstractQuantizer, TRTPTQQuantizer, TRTQATQuantizer  # noqa
+from super_gradients.conversion.abstract_exporter import AbstractExporter
+
+from super_gradients.conversion import ExportParams
+from super_gradients.module_interfaces import ExportableObjectDetectionModel, ExportableSegmentationModel, ExportablePoseEstimationModel
+
+from super_gradients.conversion.onnx_exporter import ONNXExporter  # noqa
 
 logger = get_logger(__name__)
 
@@ -356,7 +358,9 @@ class Trainer:
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
-        if cfg.checkpoint_params.checkpoint_path is None:
+        if cfg.checkpoint_params.pretrained_weights is not None:
+            pass
+        elif cfg.checkpoint_params.checkpoint_path is None:
             logger.info(
                 "`checkpoint_params.checkpoint_path` was not provided. The recipe will be evaluated using checkpoints_dir.training_hyperparams.ckpt_name"
             )
@@ -2104,6 +2108,7 @@ class Trainer:
         metrics_progress_verbose=False,
         test_phase_callbacks=None,
         use_ema_net=True,
+        max_batches=None,
     ) -> Dict[str, float]:
         """
         Evaluates the model on given dataloader and metrics.
@@ -2114,6 +2119,7 @@ class Trainer:
         :param metrics_progress_verbose: (bool) controls the verbosity of metrics progress (default=False). Slows down the program.
         :param use_ema_net (bool) whether to perform test on self.ema_model.ema (when self.ema_model.ema exists,
             otherwise self.net will be tested) (default=True)
+        :param max_batches: (int) maximum number of batches to evaluate on. If None, will evaluate on the whole dataset.
         :return: results tuple (tuple) containing the loss items and metric values.
 
         All of the above args will override Trainer's corresponding attribute when not equal to None. Then evaluation
@@ -2163,6 +2169,7 @@ class Trainer:
             evaluation_type=EvaluationType.TEST,
             silent_mode=silent_mode,
             metrics_progress_verbose=metrics_progress_verbose,
+            max_batches=max_batches,
         )
         self.phase_callback_handler.on_test_loader_end(context)
 
@@ -2237,7 +2244,7 @@ class Trainer:
         :param silent_mode: (bool) controls verbosity
         :param metrics_progress_verbose: (bool) controls the verbosity of metrics progress (default=False).
             Slows down the program significantly.
-
+        :param max_batches: (int) maximum number of batches to evaluate on. If None, will evaluate on the whole dataset.
         :return: results tuple (tuple) containing the loss items and metric values.
         """
 
@@ -2422,17 +2429,13 @@ class Trainer:
     @classmethod
     def quantize_from_config(cls, cfg: Union[DictConfig, dict]) -> QuantizationResult:
         """
-        Perform quantization aware training (QAT) according to a recipe configuration.
+        Perform model quantization according to a recipe configuration.
 
         This method will instantiate all the objects specified in the recipe, build and quantize the model,
         and calibrate the quantized model. The resulting quantized model and the output of the trainer.train()
         method will be returned.
 
         The quantized model will be exported to ONNX along with other checkpoints.
-
-        The call to self.quantize (see docs in the next method) is done with the created
-         train_loader and valid_loader. If no calibration data loader is passed through cfg.calib_loader,
-         a train data laoder with the validation transforms is used for calibration.
 
         :param cfg: The parsed DictConfig object from yaml recipe files or a dictionary.
         :return: Returns an instaned of PTQResult or QATResult that contains quantized model instance, ONNX path
@@ -2444,71 +2447,16 @@ class Trainer:
         :raises ImportError: If pytorch-quantization import was unsuccessful
 
         """
-        import_pytorch_quantization_or_install()
-
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
-        # TRIGGER CFG MODIFYING CALLBACKS
-        cfg = cls._trigger_cfg_modifying_callbacks(cfg)
-
-        quantization_params = get_param(cfg, "quantization_params")
-        if quantization_params is None:
-            logger.warning("Your recipe does not include quantization_params. Using default quantization params.")
-            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
-            cfg.quantization_params = quantization_params
-
-        export_params = get_param(cfg, "export_params", {})
-        export_params = ExportParams(**export_params)
-
         if get_param(cfg.checkpoint_params, "checkpoint_path") is None and get_param(cfg.checkpoint_params, "pretrained_weights") is None:
-            raise ValueError("Starting checkpoint / pretrained weights are a must for QAT finetuning.")
+            raise ValueError("Starting checkpoint / pretrained weights are a must for quantization.")
 
         num_gpus = core_utils.get_param(cfg, "num_gpus")
         multi_gpu = core_utils.get_param(cfg, "multi_gpu")
         device = core_utils.get_param(cfg, "device")
-        if num_gpus != 1:
-            raise NotImplementedError(
-                f"Recipe requests multi_gpu={cfg.multi_gpu} and num_gpus={cfg.num_gpus}. QAT is proven to work correctly only with multi_gpu=OFF and num_gpus=1"
-            )
-
         setup_device(device=device, multi_gpu=multi_gpu, num_gpus=num_gpus)
-
-        # INSTANTIATE DATA LOADERS
-        train_dataloader = dataloaders.get(
-            name=get_param(cfg, "train_dataloader"),
-            dataset_params=copy.deepcopy(cfg.dataset_params.train_dataset_params),
-            dataloader_params=copy.deepcopy(cfg.dataset_params.train_dataloader_params),
-        )
-
-        val_dataloader = dataloaders.get(
-            name=get_param(cfg, "val_dataloader"),
-            dataset_params=copy.deepcopy(cfg.dataset_params.val_dataset_params),
-            dataloader_params=copy.deepcopy(cfg.dataset_params.val_dataloader_params),
-        )
-
-        if "calib_dataloader" in cfg:
-            calib_dataloader_name = get_param(cfg, "calib_dataloader")
-            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.calib_dataloader_params)
-            calib_dataset_params = copy.deepcopy(cfg.dataset_params.calib_dataset_params)
-        else:
-            calib_dataloader_name = get_param(cfg, "train_dataloader")
-            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.train_dataloader_params)
-            calib_dataset_params = copy.deepcopy(cfg.dataset_params.train_dataset_params)
-
-            # if we use whole dataloader for calibration, don't shuffle it
-            # HistogramCalibrator collection routine is sensitive to order of batches and produces slightly different results
-            # if we use several batches, we don't want it to be from one class if it's sequential in dataloader
-            # model is in eval mode, so BNs will not be affected
-            calib_dataloader_params.shuffle = cfg.quantization_params.calib_params.num_calib_batches is not None
-            # we don't need training transforms during calibration, distribution of activations will be skewed
-            calib_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
-
-        calib_dataloader = dataloaders.get(
-            name=calib_dataloader_name,
-            dataset_params=calib_dataset_params,
-            dataloader_params=calib_dataloader_params,
-        )
 
         # BUILD MODEL
         model = models.get(
@@ -2523,158 +2471,36 @@ class Trainer:
             num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
         )
 
-        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=get_param(cfg, "ckpt_root_dir"))
-
-        if quantization_params.ptq_only:
-            res = trainer.ptq(
-                model=model,
-                valid_loader=val_dataloader,
-                valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
-                calib_loader=calib_dataloader,
-                quantization_params=quantization_params,
-                export_params=export_params,
-            )
-        else:
-            res = trainer.qat(
-                model=model,
-                calib_loader=calib_dataloader,
-                valid_loader=val_dataloader,
-                valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
-                train_loader=train_dataloader,
-                training_params=cfg.training_hyperparams,
-                quantization_params=quantization_params,
-                export_params=export_params,
-                additional_qat_configs_to_log=recipe_logged_cfg,
+        if "quantization_params" not in cfg:
+            raise RuntimeError(
+                "quantization_params must be defined in the recipe. "
+                "You can set quantization params either via CLI: +quantization_params=default_tensorrt_ptq or +quantization_params=default_tensorrt_qat"
+                "You you can set them via YAML file:\n"
+                "defaults:"
+                "  ..."
+                "  - quantization_params: default_tensorrt_ptq"
             )
 
-        return res
-
-    def qat(
-        self,
-        *,
-        model: torch.nn.Module,
-        train_loader: DataLoader,
-        valid_loader: DataLoader,
-        calib_loader: DataLoader = None,
-        training_params: Mapping = None,
-        quantization_params: Mapping = None,
-        additional_qat_configs_to_log: Dict = None,
-        valid_metrics_list: List[Metric] = None,
-        export_params: ExportParams = None,
-    ) -> QuantizationResult:
-        """
-        Performs post-training quantization (PTQ), and then quantization-aware training (QAT).
-        Exports the ONNX models (ckpt_best.pth of QAT and the calibrated model) to the checkpoints directory.
-
-        :param calib_loader: DataLoader, data loader for calibration.
-
-        :param model: torch.nn.Module, Model to perform QAT/PTQ on. When None, will try to use the network from
-        previous self.train call(that is, if there was one - will try to use self.ema_model.ema if EMA was used,
-        otherwise self.net)
-
-
-        :param valid_loader: DataLoader, data loader for validation. Used both for validating the calibrated model after PTQ and during QAT.
-            When None, will try to use self.valid_loader if it was set in previous self.train(..) call (default=None).
-
-        :param train_loader: DataLoader, data loader for QA training, can be ignored when quantization_params["ptq_only"]=True (default=None).
-
-        :param quantization_params: Mapping, with the following entries:defaults-
-            selective_quantizer_params:
-              calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
-              calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
-              per_channel: True          # per-channel quantization of weights, activations stay per-tensor by default
-              learn_amax: False          # enable learnable amax in all TensorQuantizers using straight-through estimator
-              skip_modules:              # optional list of module names (strings) to skip from quantization
-
-            calib_params:
-              histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators,
-                                                                # acceptable types are ["percentile", "entropy", mse"],
-                                                                # "max" calibrators always use "max"
-
-              percentile: 99.99                     # percentile for all histogram calibrators with method "percentile",
-                                                    # other calibrators are not affected
-
-              num_calib_batches:                    # number of batches to use for calibration, if None, 512 / batch_size will be used
-              verbose: False                        # if calibrator should be verbose
-
-
-              When None, the above default config is used (default=None)
-
-
-        :param training_params: Mapping, training hyper parameters for QAT, same as in super.train(...). When None, will try to use self.training_params
-         which is set in previous self.train(..) call (default=None).
-
-        :param additional_qat_configs_to_log: Dict, Optional dictionary containing configs that will be added to the QA training's
-         sg_logger. Format should be {"Config_title_1": {...}, "Config_title_2":{..}}.
-
-        :param valid_metrics_list:  (list(torchmetrics.Metric)) metrics list for evaluation of the calibrated model.
-        When None, the validation metrics from training_params are used). (default=None).
-
-        :return: An instance of QATResult containing the quantized model, the ONNX path and other relevant information.
-        """
-        import_pytorch_quantization_or_install()
-
-        if quantization_params is None:
-            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
-            logger.info(f"Using default quantization params: {quantization_params}")
-        valid_metrics_list = valid_metrics_list or get_param(training_params, "valid_metrics_list")
-
-        ptq_result = self.ptq(
+        quantizer: AbstractQuantizer = cls._get_quantizer_from_config(cfg.quantization_params)
+        quantization_result = quantizer.quantize_from_config(
+            cfg=cfg,
             model=model,
-            valid_loader=valid_loader,
-            valid_metrics_list=valid_metrics_list,
-            calib_loader=calib_loader,
-            quantization_params=quantization_params,
-            export_params=None,  # Do not export PTQ model
-        )
-        # TRAIN
-        model = ptq_result.quantized_model
-        model.train()
-        torch.cuda.empty_cache()
-
-        run_id = core_utils.get_param(self.training_params, "run_id", None)
-        logger.debug(f"Experiment run id {run_id}")
-
-        output_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
-        logger.debug(f"Output directory {output_dir_path}")
-
-        os.makedirs(output_dir_path, exist_ok=True)
-
-        self.train(
-            model=model,
-            train_loader=train_loader,
-            valid_loader=valid_loader,
-            training_params=training_params,
-            additional_configs_to_log=additional_qat_configs_to_log,
+            trainer=trainer,
         )
 
-        valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
+        exporter, export_params = trainer._get_exporter_from_config(quantization_result, cfg.quantization_params)
 
-        # EXPORT QUANTIZED MODEL TO ONNX
-        if export_params is not None:
-            input_shape_from_loader = tuple(map(int, next(iter(valid_loader))[0].shape))
-            input_shape_with_export_batch_size = (export_params.batch_size,) + input_shape_from_loader[1:]
+        output_path = cfg.quantization_params.output_path or trainer._make_up_quantized_model_path_for_export(
+            model=quantization_result.quantized_model,
+            export_params=export_params,
+            calibration_dataloader=quantization_result.calibration_dataloader,
+            suffix="_int8",
+        )
+        output_path = trainer._append_experiment_name(output_path)
 
-            if export_params.output_onnx_path is None:
-                export_params.output_onnx_path = os.path.join(
-                    output_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_export_batch_size))}_qat.onnx"
-                )
-            export_result = self._export_quantized_model(model, export_params, input_shape_from_loader)
-            output_onnx_path = export_params.output_onnx_path
-            logger.info(f"Exported QAT ONNX to {output_onnx_path}")
-        else:
-            output_onnx_path = None
-            export_result = None
+        return cls._export_quantized_model(quantization_result, exporter, export_params, output_path)
 
-        return QuantizationResult(quantized_model=model, output_onnx_path=output_onnx_path, valid_metrics_dict=valid_metrics_dict, export_result=export_result)
-
-    @deprecated_parameter(
-        "deepcopy_model_for_export",
-        deprecated_since="3.6.1",
-        removed_from="3.8.0",
-        reason="This parameter is no longer used. A ptq() method will always make a deepcopy of the model.",
-    )
     def ptq(
         self,
         *,
@@ -2685,17 +2511,14 @@ class Trainer:
         quantization_params: Dict = None,
         export_params: ExportParams = None,
         deepcopy_model_for_export=None,
+        quantizer: AbstractQuantizer = None,
     ) -> QuantizationResult:
         """
         Performs post-training quantization (calibration of the model)..
-
         :param model: (torch.nn.Module) Model to perform calibration on. When None, will try to use self.net which is
                       set in previous self.train(..) call (default=None).
-
         :param valid_loader: DataLoader, data loader for validation. Used for validating the calibrated model.
-
         :param calib_loader: DataLoader, data loader for calibration. If None will use valid_loader for calibration.
-
         :param quantization_params: Mapping, with the following entries:defaults-
             selective_quantizer_params:
               calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
@@ -2703,33 +2526,20 @@ class Trainer:
               per_channel: True          # per-channel quantization of weights, activations stay per-tensor by default
               learn_amax: False          # enable learnable amax in all TensorQuantizers using straight-through estimator
               skip_modules:              # optional list of module names (strings) to skip from quantization
-
             calib_params:
               histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators,
                                                                 # acceptable types are ["percentile", "entropy", mse"],
                                                                 # "max" calibrators always use "max"
-
               percentile: 99.99                     # percentile for all histogram calibrators with method "percentile",
                                                     # other calibrators are not affected
-
               num_calib_batches:                    # number of batches to use for calibration, if None, 512 / batch_size will be used
               verbose: False                        # if calibrator should be verbose
-
-
               When None, the above default config is used (default=None)
-
-
-
         :param valid_metrics_list:  (list(torchmetrics.Metric)) metrics list for evaluation of the calibrated model.
-
         :param deepcopy_model_for_export: bool, Whether to export deepcopy(model). Necessary in case further training is
             performed and prep_model_for_conversion makes the network un-trainable (i.e RepVGG blocks).
-
         :return: Validation results of the calibrated model.
         """
-        import_pytorch_quantization_or_install()
-        from super_gradients.training.utils.quantization import SelectiveQuantizer, ptq
-
         if deepcopy_model_for_export is False:
             raise RuntimeError(
                 "deepcopy_model_for_export=False is not supported. "
@@ -2741,106 +2551,218 @@ class Trainer:
         calib_loader = calib_loader or valid_loader
 
         logger.debug("Performing post-training quantization (PTQ)...")
+
+        if quantization_params is None:
+            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+            quantization_params.ptq_only = True
+            logger.info(f"Using default quantization params: {quantization_params}")
+
+        if quantizer is None:
+            quantizer = self._get_quantizer_from_config(quantization_params)
+
+        quantization_result = quantizer.quantize_explicit(
+            model=model,
+            trainer=self,
+            train_loader=None,
+            training_hyperparams=None,
+            validation_loader=valid_loader,
+            validation_metrics=valid_metrics_list,
+            calibration_loader=calib_loader,
+        )
+
+        exporter, export_params = self._get_exporter_from_config(quantization_result, quantization_params)
+
+        output_path = quantization_params.output_path or self._make_up_quantized_model_path_for_export(
+            model=quantization_result.quantized_model,
+            export_params=export_params,
+            calibration_dataloader=quantization_result.calibration_dataloader,
+            suffix="_int8_ptq",
+        )
+        output_path = self._append_experiment_name(output_path)
+
+        return self._export_quantized_model(quantization_result, exporter, export_params, output_path)
+
+    def qat(
+        self,
+        *,
+        model: torch.nn.Module,
+        train_loader: DataLoader,
+        valid_loader: DataLoader,
+        calib_loader: DataLoader = None,
+        training_params: Mapping = None,
+        quantizer: AbstractQuantizer = None,
+        quantization_params: Mapping = None,
+        additional_qat_configs_to_log: Dict = None,
+        valid_metrics_list: List[torchmetrics.Metric] = None,
+        export_params: ExportParams = None,
+    ):
+        valid_metrics_list = valid_metrics_list or self.valid_metrics
+        calib_loader = calib_loader or valid_loader
+
+        logger.debug("Performing post-training quantization (QAT)...")
+
+        if quantization_params is None:
+            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+            quantization_params.ptq_only = False
+            logger.info(f"Using default quantization params: {quantization_params}")
+
+        if quantizer is None:
+            quantizer = self._get_quantizer_from_config(quantization_params)
+
+        quantization_result = quantizer.quantize_explicit(
+            model=model,
+            trainer=self,
+            train_loader=train_loader,
+            training_hyperparams=training_params,
+            validation_loader=valid_loader,
+            validation_metrics=valid_metrics_list,
+            calibration_loader=calib_loader,
+        )
+
+        exporter, export_params = self._get_exporter_from_config(quantization_result, quantization_params)
+        output_path = quantization_params.output_path or self._make_up_quantized_model_path_for_export(
+            model=quantization_result.quantized_model,
+            export_params=export_params,
+            calibration_dataloader=quantization_result.calibration_dataloader,
+            suffix="_int8_qat",
+        )
+        output_path = self._append_experiment_name(output_path)
+
+        return self._export_quantized_model(quantization_result, exporter, export_params, output_path)
+
+    def _get_exporter_from_config(self, quantization_result: QuantizationResult, quantization_params: DictConfig) -> Tuple[AbstractExporter, ExportParams]:
+        export_params_dict = {}
+        if "export_params" in quantization_params:
+            export_params_dict.update(quantization_params.export_params)
+
+        export_params = ExportParams(**export_params_dict)
+
+        # Currently all our quantization recipes are for ONNX export only
+        # and "exporter" section is absent there. But one day we may decide
+        # to add an option of exporting a model to CoreML or TFLite
+        # And then we would need to implement a CoreMLExporter that
+        # would take ONNX graph and produce a CoreML model.
+        # So we keep this code here for future compatibility.
+        if "exporter" in quantization_params:
+            exporter: AbstractExporter = ExporterFactory().get(quantization_params.exporter)
+        else:
+            exporter = ONNXExporter()
+
+        return exporter, export_params
+
+    @classmethod
+    def _get_quantizer_from_config(cls, quantization_params: DictConfig) -> AbstractQuantizer:
+        """
+        Instantiates quantizer instance from the quantization_params.
+        This function handles both new and old-style (pre 3.8.0) quantization configs
+        :param quantization_params:
+        :return: A quantizer object instance
+        """
+
+        # New-style configs support
+        if "quantizer" in quantization_params:
+            quantizer: AbstractQuantizer = QuantizerFactory().get(quantization_params.quantizer)
+            return quantizer
+
+        # Legacy configs support
+        if quantization_params.ptq_only:
+            quantizer = TRTPTQQuantizer(
+                selective_quantizer_params=quantization_params.selective_quantizer_params, calib_params=quantization_params.calib_params
+            )
+        else:
+            quantizer = TRTQATQuantizer(
+                selective_quantizer_params=quantization_params.selective_quantizer_params,
+                calib_params=quantization_params.calib_params,
+                qat_params=None,
+            )
+
+        return quantizer
+
+    def _make_up_quantized_model_path_for_export(self, model: nn.Module, export_params, calibration_dataloader, suffix: Optional[str]) -> str:
+        """
+        Helper method to generate a meaningful filename for exported ONNX model.
+        This method comes into play when explicit output filename is not provided.
+
+        :param model: Model itself. We use it to get the class name
+        :param export_params: Model export params
+        :param calibration_dataloader: A calibration dataloader
+        :return: Return a model filename of following format: {model_class}_{model_input_shape}.onnx
+        """
+        example_input_shape = next(iter(calibration_dataloader))[0].size()
+
+        input_shape_with_explicit_batch = tuple([export_params.batch_size, *example_input_shape[1:]])
+        if export_params.input_image_shape is not None:
+            input_shape_with_explicit_batch = input_shape_with_explicit_batch[: -len(export_params.input_image_shape)] + export_params.input_image_shape
+
+        shape_str = "_".join(map(str, input_shape_with_explicit_batch))
+        model_name = model.__class__.__name__.lower()
+        model_fname = f"{model_name}_{shape_str}{suffix}.onnx"
+
+        return model_fname
+
+    def _append_experiment_name(self, maybe_relative_path: str) -> str:
+        """
+        Append an experiment name and (maybe) run id to a relative path.
+        This method is helpful when you want to add some file to a latest experiment run folder
+
+        :param maybe_relative_path: Input file path
+        :return: A file path with experiment name and run id appended
+        """
+        if os.path.isabs(maybe_relative_path):
+            return maybe_relative_path
+
         logger.debug(f"Experiment name {self.experiment_name}")
-
         run_id = core_utils.get_param(self.training_params, "run_id", None)
-        logger.debug(f"Experiment run id {run_id}")
+        if run_id is None:
+            run_id = get_latest_run_id(checkpoints_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name)
 
+        logger.debug(f"Experiment run id {run_id}")
         output_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
         logger.debug(f"Output directory {output_dir_path}")
 
         os.makedirs(output_dir_path, exist_ok=True)
+        return os.path.join(output_dir_path, maybe_relative_path)
 
-        if quantization_params is None:
-            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
-            logger.info(f"Using default quantization params: {quantization_params}")
+    @classmethod
+    def _export_quantized_model(
+        cls, quantization_result: QuantizationResult, exporter: AbstractExporter, export_params: ExportParams, output_path
+    ) -> QuantizationResult:
+        # After we quantized a model, next step is to export it to ONNX with pre- & post- processings and
+        # other settings defined in export_params.
+        # Once ONNX file is ready - it can be exported further to target framework or left as is.
+        model = quantization_result.original_model
 
-        model = unwrap_model(model)  # Unwrap model in case it is wrapped with DataParallel or DistributedDataParallel
-        model = copy.deepcopy(model)  # Deepcopy model to avoid modifying the original model
-        model = model.to(device_config.device).eval()
-
-        selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
-        calib_params = get_param(quantization_params, "calib_params")
-
-        # QUANTIZE MODEL
-        fuse_repvgg_blocks_residual_branches(model)
-        q_util = SelectiveQuantizer(
-            default_quant_modules_calibrator_weights=get_param(selective_quantizer_params, "calibrator_w"),
-            default_quant_modules_calibrator_inputs=get_param(selective_quantizer_params, "calibrator_i"),
-            default_per_channel_quant_weights=get_param(selective_quantizer_params, "per_channel"),
-            default_learn_amax=get_param(selective_quantizer_params, "learn_amax"),
-            verbose=get_param(calib_params, "verbose"),
-        )
-        q_util.register_skip_quantization(layer_names=get_param(selective_quantizer_params, "skip_modules"))
-
-        model = ptq(
-            model,
-            selective_quantizer=q_util,
-            calibration_loader=calib_loader,
-            calibration_method=get_param(calib_params, "histogram_calib_method"),
-            calibration_batches=get_param(calib_params, "num_calib_batches") or max(1, int(512 // calib_loader.batch_size)),
-            calibration_percentile=get_param(calib_params, "percentile", 99.99),
-            calibration_verbose=get_param(calib_params, "verbose"),
-        )
-
-        # VALIDATE PTQ MODEL AND PRINT SUMMARY
-        logger.info("Validating PTQ model...")
-        valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
-        results = ["PTQ Model Validation Results"]
-        results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
-        logger.info("\n".join(results))
-
-        if export_params is not None:
-            input_shape_from_loader = tuple(map(int, next(iter(valid_loader))[0].shape))
-            input_shape_with_export_batch_size = (export_params.batch_size,) + input_shape_from_loader[1:]
-
-            if export_params.output_onnx_path is None:
-                export_params.output_onnx_path = os.path.join(
-                    output_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_export_batch_size))}_ptq.onnx"
-                )
-            logger.debug(f"Output ONNX file path {export_params.output_onnx_path}")
-            export_result = self._export_quantized_model(model, export_params, input_shape_from_loader)
-            output_onnx_path = export_params.output_onnx_path
+        # If the output path is not an ONNX path but something like .xml /  .engine / .coreml
+        # Then we need to export to ONNX first and then export to the target format
+        output_path = str(output_path)
+        if output_path.lower().endswith(".onnx"):
+            intermediate_onnx_path = output_path
         else:
-            output_onnx_path = None
-            export_result = None
+            intermediate_onnx_path = str(Path(output_path).with_suffix(".onnx"))
 
-        return QuantizationResult(quantized_model=model, output_onnx_path=output_onnx_path, valid_metrics_dict=valid_metrics_dict, export_result=export_result)
-
-    @staticmethod
-    def _export_quantized_model(model: nn.Module, export_params: ExportParams, input_shape_from_dataloader: Tuple[int, int, int, int]) -> Optional[Any]:
-        """
-        Internal method to export a quantized model to ONNX. This method used internally by PTQ & QAT steps.
-
-        :param model: Quantized model
-        :param export_params: Parameters controlling the export process.
-        :param input_shape_from_dataloader: Example shape of the batch from validation DataLoader.
-               It may be used as an example of the input shape during ONNX export.
-        :return: An instance of export result object if model supports `model.export()` or None of it's a regular model
-        """
-        from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
-
-        input_image_shape = export_params.input_image_shape
-        if input_image_shape is None:
-            input_image_shape = infer_image_shape_from_model(model)
-        if input_image_shape is None:
-            input_image_shape = input_shape_from_dataloader[2:]
-
-        input_channels = infer_image_input_channels(model)
-        if input_channels is not None and input_channels != input_shape_from_dataloader[1]:
-            logger.warning("Infered input channels does not match with the number of channels from the dataloader")
-
-        input_shape_with_explicit_batch = tuple([export_params.batch_size] + list(input_image_shape[1:]))
-
-        export_result = None
-        # A signatures of these two protocols are the same so we can use the same method and set of parameters for both
-        if isinstance(model, (ExportableObjectDetectionModel, ExportablePoseEstimationModel)):
-            model: ExportableObjectDetectionModel = typing.cast(ExportableObjectDetectionModel, model)
+        if isinstance(quantization_result.original_model, ExportableObjectDetectionModel):
+            model = typing.cast(ExportableObjectDetectionModel, model)
             export_result = model.export(
-                output=export_params.output_onnx_path,
-                engine=export_params.engine,
-                quantization_mode=ExportQuantizationMode.INT8,
-                input_image_shape=input_image_shape,
+                output=intermediate_onnx_path,
+                quantized_model=quantization_result.quantized_model,
+                input_image_shape=export_params.input_image_shape,
+                preprocessing=export_params.preprocessing,
+                postprocessing=export_params.postprocessing,
+                postprocessing_use_tensorrt_nms=export_params.detection_postprocessing_use_tensorrt_nms,
+                confidence_threshold=export_params.confidence_threshold,
+                nms_threshold=export_params.detection_nms_iou_threshold,
+                onnx_simplify=export_params.onnx_simplify,
+                onnx_export_kwargs=export_params.onnx_export_kwargs,
+                num_pre_nms_predictions=export_params.detection_num_pre_nms_predictions,
+                max_predictions_per_image=export_params.detection_max_predictions_per_image,
+                output_predictions_format=export_params.detection_predictions_format,
+            )
+        elif isinstance(quantization_result.original_model, ExportablePoseEstimationModel):
+            model = typing.cast(ExportablePoseEstimationModel, model)
+            export_result = model.export(
+                output=intermediate_onnx_path,
+                quantized_model=quantization_result.quantized_model,
+                input_image_shape=export_params.input_image_shape,
                 preprocessing=export_params.preprocessing,
                 postprocessing=export_params.postprocessing,
                 confidence_threshold=export_params.confidence_threshold,
@@ -2854,9 +2776,9 @@ class Trainer:
         elif isinstance(model, ExportableSegmentationModel):
             model: ExportableSegmentationModel = typing.cast(ExportableSegmentationModel, model)
             export_result = model.export(
-                output=export_params.output_onnx_path,
-                quantization_mode=ExportQuantizationMode.INT8,
-                input_image_shape=input_image_shape,
+                output=intermediate_onnx_path,
+                quantized_model=quantization_result.quantized_model,
+                input_image_shape=export_params.input_image_shape,
                 preprocessing=export_params.preprocessing,
                 postprocessing=export_params.postprocessing,
                 confidence_threshold=export_params.confidence_threshold,
@@ -2864,13 +2786,21 @@ class Trainer:
                 onnx_export_kwargs=export_params.onnx_export_kwargs,
             )
         else:
+            from super_gradients.conversion.onnx import export_to_onnx
+
             device = "cpu"
-            onnx_input = torch.randn(input_shape_with_explicit_batch).to(device="cpu")
+            example_input_shape = next(iter(quantization_result.calibration_dataloader))[0].size()
+            input_shape_with_explicit_batch = tuple([export_params.batch_size, *example_input_shape[1:]])
+            if export_params.input_image_shape is not None:
+                input_shape_with_explicit_batch = input_shape_with_explicit_batch[: -len(export_params.input_image_shape)] + export_params.input_image_shape
+
+            onnx_input = torch.randn(input_shape_with_explicit_batch).to(device=device)
             onnx_export_kwargs = export_params.onnx_export_kwargs or {}
+            model_to_export = quantization_result.quantized_model
             export_to_onnx(
-                model=model.to(device),
+                model=model_to_export.to(device),
                 model_input=onnx_input,
-                onnx_filename=export_params.output_onnx_path,
+                onnx_filename=intermediate_onnx_path,
                 input_names=["input"],
                 onnx_opset=onnx_export_kwargs.get("opset_version", None),
                 do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
@@ -2878,5 +2808,10 @@ class Trainer:
                 keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
                 verbose=onnx_export_kwargs.get("verbose", False),
             )
+            export_result = None
 
-        return export_result
+        exported_path = exporter.export_from_onnx(intermediate_onnx_path, output_path)
+        quantization_result.export_result = export_result
+        quantization_result.export_path = exported_path
+
+        return quantization_result
