@@ -33,7 +33,7 @@ class LoadCheckpointTest(unittest.TestCase):
         self.assertTrue((foo.fc2.weight == bar.fc2.weight).all())
 
     def test_checkpoint_path_url(self):
-        m1 = models.get(Models.YOLO_NAS_S, num_classes=80, checkpoint_path="https://sghub.deci.ai/models/yolo_nas_s_coco.pth")
+        m1 = models.get(Models.YOLO_NAS_S, num_classes=80, checkpoint_path="https://sg-hub-nv.s3.amazonaws.com/models/yolo_nas_s_coco.pth")
         m2 = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
         m1_state = m1.state_dict()
         m2_state = m2.state_dict()

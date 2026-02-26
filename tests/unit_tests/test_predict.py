@@ -17,7 +17,6 @@ class TestModelPredict(unittest.TestCase):
         self.images = [
             os.path.join(rootdir, "documentation", "source", "images", "examples", "countryside.jpg"),
             os.path.join(rootdir, "documentation", "source", "images", "examples", "street_busy.jpg"),
-            "https://deci-datasets-research.s3.amazonaws.com/image_samples/beatles-abbeyroad.jpg",
         ]
         self._set_images_with_targets()
 

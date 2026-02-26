@@ -1589,7 +1589,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     if url.startswith("file://") or os.path.exists(url):
         pretrained_state_dict = torch.load(url.replace("file://", ""), map_location="cpu")
     else:
-        unique_filename = url.split("https://sghub.deci.ai/models/")[1].replace("/", "_").replace(" ", "_")
+        unique_filename = url.split("https://sg-hub-nv.s3.amazonaws.com/models/")[1].replace("/", "_").replace(" ", "_")
         map_location = torch.device("cpu")
         with wait_for_the_master(get_local_rank()):
             pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
