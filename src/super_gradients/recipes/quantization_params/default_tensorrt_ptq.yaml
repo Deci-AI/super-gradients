@@ -1,0 +1,37 @@
+quantizer:
+  TRTPTQQuantizer:
+    selective_quantizer_params:
+      calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
+      calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
+      per_channel: True          # per-channel quantization of weights, activations stay per-tensor by default
+      learn_amax: False          # enable learnable amax in all TensorQuantizers using straight-through estimator
+      skip_modules: [ ]
+
+    calib_params:
+      histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", "mse"], "max" calibrators always use "max"
+      percentile: 99.99                     # percentile for all histogram calibrators with method "percentile", other calibrators are not affected
+      num_calib_batches: 128                # number of batches to use for calibration, if None, 512 / batch_size will be used
+      verbose: False                        # if calibrator should be verbose
+
+# Output path sets the name of the exported ONNX model after quantization
+# If not set, SG will make the default name of exported model using class name and input shape:
+# Example: yolonas_s_1_3_640_640.onnx
+# Here you can specify your own name for the exported model.
+# If it's a simple name, it will be saved in the directory corresponding to the current experiment name
+output_path:
+
+# Model-specific parameters
+export_params:
+  preprocessing: True
+  postprocessing: True
+
+  batch_size: 1
+  confidence_threshold: 0.2
+  onnx_simplify: True
+  onnx_export_kwargs: { }
+
+  detection_nms_iou_threshold: 0.5
+  detection_max_predictions_per_image: 128
+  detection_num_pre_nms_predictions: 1000
+  detection_predictions_format: flat
+  detection_postprocessing_use_tensorrt_nms: False

@@ -259,17 +259,14 @@ If you prefer more of a DIY approach, here is the code sample:
 
 ```python
 import torch
-from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
-
+from super_gradients.conversion.onnx import export_to_onnx
 onnx_filename = f"qat_model_1x3x224x224.onnx"
 
 dummy_input = torch.randn([1, 3, 224, 224], device="cpu")
-export_quantized_module_to_onnx(
-    model=quantized_model.cpu(),
+export_to_onnx(
+    model=quantized_model.eval(),
+    model_input=dummy_input,
     onnx_filename=onnx_filename,
-    input_shape=[1, 3, 224, 224],
-    input_size=[1, 3, 224, 224],
-    train=False,
 )
 ```
 

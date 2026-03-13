@@ -8,6 +8,7 @@ from typing import Union, Optional, List, Tuple
 import onnx
 import onnxsim
 import torch
+from super_gradients.common.deprecate import deprecated_parameter
 from super_gradients.conversion.conversion_utils import find_compatible_model_device_for_dtype
 from super_gradients.module_interfaces.supports_input_shape_check import SupportsInputShapeCheck
 from torch import nn, Tensor
@@ -18,7 +19,7 @@ from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMo
 from super_gradients.import_utils import import_onnx_graphsurgeon_or_install, import_pytorch_quantization_or_install
 from super_gradients.module_interfaces.exceptions import ModelHasNoPreprocessingParamsException
 from super_gradients.module_interfaces.usage_instructions import build_usage_instructions_for_pose_estimation
-from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
+from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules, infer_model_dtype
 
 logger = get_logger(__name__)
@@ -46,7 +47,7 @@ class AbstractPoseEstimationDecodingModule(nn.Module):
         the following semantics:
         - boxes - [B, N, 4]
         - scores - [B, N, 1]
-        - joints - [B, N, 17, 3]
+        - joints - [B, N, Num Joints, 3]
 
         Where N is the maximum number of predictions per image (see self.get_num_pre_nms_predictions())
         """
@@ -95,7 +96,7 @@ class PoseEstimationModelExportResult:
     input_image_dtype: torch.dtype
     input_image_shape: Tuple[int, int]
 
-    engine: ExportTargetBackend
+    engine: Union[ExportTargetBackend, None]
     quantization_mode: Optional[ExportQuantizationMode]
 
     output: str
@@ -132,6 +133,7 @@ class ExportablePoseEstimationModel:
     def get_preprocessing_callback(self, **kwargs) -> Optional[nn.Module]:
         raise NotImplementedError(f"get_preprocessing_callback is not implemented for class {self.__class__.__name__}.")
 
+    @deprecated_parameter("engine", deprecated_since="3.8.0", removed_from="3.10.0")
     def export(
         self,
         output: str,
@@ -139,6 +141,7 @@ class ExportablePoseEstimationModel:
         nms_threshold: Optional[float] = None,
         engine: Optional[ExportTargetBackend] = None,
         quantization_mode: Optional[ExportQuantizationMode] = None,
+        quantized_model=None,
         selective_quantizer: Optional["SelectiveQuantizer"] = None,  # noqa
         calibration_loader: Optional[DataLoader] = None,
         calibration_method: str = "percentile",
@@ -165,13 +168,7 @@ class ExportablePoseEstimationModel:
         :param output: Output file name of the exported model.
         :param nms_threshold: (float) NMS threshold for the exported model.
         :param confidence_threshold: (float) Confidence threshold for the exported model.
-        :param engine: Explicit specification of the inference engine. If not specified, engine is inferred from the output file extension.
-                       Supported values:
-                       - "onnxruntime" - export to ONNX format with ONNX runtime as inference engine.
-                       Note, models that are using NMS exported in this mode ARE compatible with TRT runtime.
-                       - "tensorrt" - export to ONNX format with TensorRT  as inference engine.
-                       This mode enables use of efficient TensorRT NMS plugin. Note, models that are using NMS exported in this
-                       mode ARE NOT COMPATIBLE with ONNX runtime.
+        :param engine: (ExportTargetBackend) Deprecated parameter. Has no effect on the result of export.
         :param quantization_mode: (QuantizationMode) Sets the quantization mode for the exported model.
             If None, the model is exported as-is without any changes to mode weights.
             If QuantizationMode.FP16, the model is exported with weights converted to half precision.
@@ -252,12 +249,10 @@ class ExportablePoseEstimationModel:
         logger.debug(f"Using device: {device} for exporting model {self.__class__.__name__}")
 
         model: nn.Module = copy.deepcopy(self).eval()
-
-        engine: ExportTargetBackend = engine or infer_format_from_file_name(output)
-        if engine is None:
+        if engine is not None:
             raise ValueError(
-                "Export format is not specified and cannot be inferred from the output file name. "
-                "Please specify the format explicitly: model.export(..., format=ExportTargetBackend.ONNXRUNTIME)"
+                f"Detected explict value of `engine={engine}` parameter in model.export()."
+                "This parameter is deprecated and will be removed in future versions."
             )
 
         # Infer the input image shape from the model
@@ -361,7 +356,7 @@ class ExportablePoseEstimationModel:
                     f"shape {input_shape}. Setting num_pre_nms_predictions to {number_of_predictions}"
                 )
                 num_pre_nms_predictions = number_of_predictions
-                # We have to recreate the postprocessing_module with the new value of num_pre_nms_predictions
+                # We have to re-instantiate the postprocessing_module with the new value of num_pre_nms_predictions
                 postprocessing_kwargs["num_pre_nms_predictions"] = num_pre_nms_predictions
                 postprocessing_module: AbstractPoseEstimationDecodingModule = model.get_decoding_module(**postprocessing_kwargs)
 
@@ -393,12 +388,12 @@ class ExportablePoseEstimationModel:
         if hasattr(model, "prep_model_for_conversion"):
             model.prep_model_for_conversion(**prep_model_for_conversion_kwargs)
 
-        contains_quantized_modules = check_model_contains_quantized_modules(model)
+        contains_quantized_modules = check_model_contains_quantized_modules(model) or quantized_model is not None
 
-        if quantization_mode == ExportQuantizationMode.INT8:
-            from super_gradients.training.utils.quantization import ptq
+        if quantization_mode == ExportQuantizationMode.INT8 and quantized_model is None:
+            from super_gradients.training.utils.quantization.tensorrt.functional import tensorrt_ptq
 
-            model = ptq(
+            quantized_model = tensorrt_ptq(
                 model,
                 selective_quantizer=selective_quantizer,
                 calibration_loader=calibration_loader,
@@ -418,9 +413,10 @@ class ExportablePoseEstimationModel:
 
         # The model.prep_model_for_conversion will be called inside ConvertableCompletePipelineModel once more,
         # but as long as implementation of prep_model_for_conversion is idempotent, it should be fine.
+        # Here we may change the model with a quantized counterpart for export (This is necessary for quantizers that returns completely different model)
         complete_model = (
             ConvertableCompletePipelineModel(
-                model=model, pre_process=preprocessing_module, post_process=postprocessing_module, **prep_model_for_conversion_kwargs
+                model=quantized_model or model, pre_process=preprocessing_module, post_process=postprocessing_module, **prep_model_for_conversion_kwargs
             )
             .to(device)
             .eval()
@@ -436,55 +432,44 @@ class ExportablePoseEstimationModel:
                     "FP16 quantization is done by calling model.half() so you don't need to pass calibration_loader, as it will be ignored."
                 )
 
-        if engine in {ExportTargetBackend.ONNXRUNTIME, ExportTargetBackend.TENSORRT}:
-            from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
+        from super_gradients.conversion.onnx.export_to_onnx import export_to_onnx
 
-            onnx_export_kwargs = onnx_export_kwargs or {}
-            onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
+        onnx_export_kwargs = onnx_export_kwargs or {}
+        onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
 
-            export_to_onnx(
-                model=complete_model,
-                model_input=onnx_input,
-                onnx_filename=output,
-                input_names=input_names,
-                output_names=output_names,
-                onnx_opset=onnx_export_kwargs.get("opset_version", None),
-                do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
-                dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
-                keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
-                verbose=onnx_export_kwargs.get("verbose", False),
+        export_to_onnx(
+            model=complete_model,
+            model_input=onnx_input,
+            onnx_filename=output,
+            input_names=input_names,
+            output_names=output_names,
+            onnx_opset=onnx_export_kwargs.get("opset_version", None),
+            do_constant_folding=onnx_export_kwargs.get("do_constant_folding", True),
+            dynamic_axes=onnx_export_kwargs.get("dynamic_axes", None),
+            keep_initializers_as_inputs=onnx_export_kwargs.get("keep_initializers_as_inputs", False),
+            verbose=onnx_export_kwargs.get("verbose", False),
+        )
+
+        # Stitch ONNX graph with NMS postprocessing
+        if attach_nms_postprocessing:
+            attach_onnx_pose_nms(
+                onnx_model_path=output,
+                output_onnx_model_path=output,
+                num_pre_nms_predictions=num_pre_nms_predictions,
+                max_predictions_per_image=max_predictions_per_image,
+                nms_threshold=nms_threshold,
+                confidence_threshold=confidence_threshold,
+                batch_size=batch_size,
+                output_predictions_format=output_predictions_format,
+                device=device,
             )
 
-            # Stitch ONNX graph with NMS postprocessing
-            if attach_nms_postprocessing:
-                if engine in (ExportTargetBackend.TENSORRT, ExportTargetBackend.ONNXRUNTIME):
-                    # For pose estimation models, we cannot use EfficientNMS plugin, since it does not output
-                    # indexes to keep which is necessary since we have to filter also joints.
-                    nms_attach_method = attach_onnx_pose_nms
-                else:
-                    raise KeyError(f"Unsupported engine: {engine}")
-
-                nms_attach_method(
-                    onnx_model_path=output,
-                    output_onnx_model_path=output,
-                    num_pre_nms_predictions=num_pre_nms_predictions,
-                    max_predictions_per_image=max_predictions_per_image,
-                    nms_threshold=nms_threshold,
-                    confidence_threshold=confidence_threshold,
-                    batch_size=batch_size,
-                    output_predictions_format=output_predictions_format,
-                    device=device,
-                )
-
-            if onnx_simplify:
-                model_opt, check_ok = onnxsim.simplify(output)
-                if not check_ok:
-                    raise RuntimeError(f"Failed to simplify ONNX model {output}")
-                onnx.save(model_opt, output)
-                logger.debug(f"Ran onnxsim.simplify on {output}")
-
-        else:
-            raise ValueError(f"Unsupported export format: {engine}. Supported formats: onnxruntime, tensorrt")
+        if onnx_simplify:
+            model_opt, simplify_successful = onnxsim.simplify(output)
+            if not simplify_successful:
+                raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+            onnx.save(model_opt, output)
+            logger.debug(f"Ran onnxsim.simplify on {output}")
 
         # Cleanup memory, not sure whether it is necessary but just in case
         gc.collect()
@@ -516,7 +501,7 @@ class ExportablePoseEstimationModel:
             input_image_channels=input_image_channels,
             input_image_dtype=input_image_dtype,
             input_image_shape=input_image_shape,
-            engine=engine,
+            engine=ExportTargetBackend.ONNXRUNTIME,
             quantization_mode=quantization_mode,
             output=output,
             output_predictions_format=output_predictions_format,
