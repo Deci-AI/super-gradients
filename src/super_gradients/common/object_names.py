@@ -330,6 +330,11 @@ class Models:
     YOLO_NAS_S = "yolo_nas_s"
     YOLO_NAS_M = "yolo_nas_m"
     YOLO_NAS_L = "yolo_nas_l"
+    YOLO_NAS_NANO = "yolo_nas_nano"
+    YOLO_NAS_NANO_SWISH = "yolo_nas_nano_swish"
+    YOLO_NAS_S_SWISH = "yolo_nas_s_swish"
+    YOLO_NAS_M_SWISH = "yolo_nas_m_swish"
+    YOLO_NAS_L_SWISH = "yolo_nas_l_swish"
     POSE_RESCORING = "pose_rescoring_custom"
     POSE_RESCORING_COCO = "pose_rescoring_coco"
 
