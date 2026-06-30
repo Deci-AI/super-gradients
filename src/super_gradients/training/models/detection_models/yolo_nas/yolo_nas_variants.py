@@ -145,11 +145,73 @@ class YoloNAS(ExportableObjectDetectionModel, SupportsInputShapeCheck, Customiza
     def get_minimum_input_shape_size(self) -> Tuple[int, int]:
         return 32, 32
 
+@register_model(Models.YOLO_NAS_NANO)
+class YoloNAS_NANO(YoloNAS):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
+        default_arch_params = get_arch_params("yolo_nas_nano_arch_params")
+        merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
+        merged_arch_params.override(**arch_params.to_dict())
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=get_param(merged_arch_params, "num_classes", None),
+            in_channels=get_param(merged_arch_params, "in_channels", 3),
+            bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
+            bn_eps=get_param(merged_arch_params, "bn_eps", None),
+            inplace_act=get_param(merged_arch_params, "inplace_act", None),
+        )
+
+    @property
+    def num_classes(self):
+        return self.heads.num_classes
+
+@register_model(Models.YOLO_NAS_NANO_SWISH)
+class YoloNAS_NANO_SWISH(YoloNAS):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
+        default_arch_params = get_arch_params("yolo_nas_nano_swish_arch_params")
+        merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
+        merged_arch_params.override(**arch_params.to_dict())
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=get_param(merged_arch_params, "num_classes", None),
+            in_channels=get_param(merged_arch_params, "in_channels", 3),
+            bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
+            bn_eps=get_param(merged_arch_params, "bn_eps", None),
+            inplace_act=get_param(merged_arch_params, "inplace_act", None),
+        )
+
+    @property
+    def num_classes(self):
+        return self.heads.num_classes
 
 @register_model(Models.YOLO_NAS_S)
 class YoloNAS_S(YoloNAS):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
         default_arch_params = get_arch_params("yolo_nas_s_arch_params")
+        merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
+        merged_arch_params.override(**arch_params.to_dict())
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=get_param(merged_arch_params, "num_classes", None),
+            in_channels=get_param(merged_arch_params, "in_channels", 3),
+            bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
+            bn_eps=get_param(merged_arch_params, "bn_eps", None),
+            inplace_act=get_param(merged_arch_params, "inplace_act", None),
+        )
+
+    @property
+    def num_classes(self):
+        return self.heads.num_classes
+
+@register_model(Models.YOLO_NAS_S_SWISH)
+class YoloNAS_S_SWISH(YoloNAS):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
+        default_arch_params = get_arch_params("yolo_nas_s_swish_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(
@@ -190,10 +252,52 @@ class YoloNAS_M(YoloNAS):
         return self.heads.num_classes
 
 
+@register_model(Models.YOLO_NAS_M_SWISH)
+class YoloNAS_M_SWISH(YoloNAS):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
+        default_arch_params = get_arch_params("yolo_nas_m_swish_arch_params")
+        merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
+        merged_arch_params.override(**arch_params.to_dict())
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=get_param(merged_arch_params, "num_classes", None),
+            in_channels=get_param(merged_arch_params, "in_channels", 3),
+            bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
+            bn_eps=get_param(merged_arch_params, "bn_eps", None),
+            inplace_act=get_param(merged_arch_params, "inplace_act", None),
+        )
+
+    @property
+    def num_classes(self):
+        return self.heads.num_classes
+
 @register_model(Models.YOLO_NAS_L)
 class YoloNAS_L(YoloNAS):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
         default_arch_params = get_arch_params("yolo_nas_l_arch_params")
+        merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
+        merged_arch_params.override(**arch_params.to_dict())
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=get_param(merged_arch_params, "num_classes", None),
+            in_channels=get_param(merged_arch_params, "in_channels", 3),
+            bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
+            bn_eps=get_param(merged_arch_params, "bn_eps", None),
+            inplace_act=get_param(merged_arch_params, "inplace_act", None),
+        )
+
+    @property
+    def num_classes(self):
+        return self.heads.num_classes
+
+@register_model(Models.YOLO_NAS_L_SWISH)
+class YoloNAS_L_SWISH(YoloNAS):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
+        default_arch_params = get_arch_params("yolo_nas_l_swish_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(
