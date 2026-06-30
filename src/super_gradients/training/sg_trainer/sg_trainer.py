@@ -1394,6 +1394,13 @@ class Trainer:
             self.start_epoch = 0
             self._reset_best_metric()
             load_opt_params = False
+        elif self._eval_before_resume:
+            # FIX(resume best-tracking): 체크포인트에서 best_metric 을 복원하지 못한 경우
+            # (_best_ckpt_metrics 누락 또는 metric_to_watch 이름 불일치 → _eval_before_resume=True),
+            # best_metric 이 __init__ 의 np.inf 로 남아 greater-is-better 메트릭에서는
+            # 어떤 epoch 도 best 를 갱신하지 못하고 ckpt_best 가 영구히 고정된다.
+            # greater 플래그가 확정된 이 시점에서 -inf(또는 inf)로 올바르게 리셋한다.
+            self._reset_best_metric()
 
         if self.lr_mode is not None:
             lr_scheduler_callback = create_lr_scheduler_callback(
